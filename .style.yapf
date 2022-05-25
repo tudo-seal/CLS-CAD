@@ -1,0 +1,7 @@
+[style]
+based_on_style = google
+spaces_before_comment = 4
+indent_width: 4
+split_before_logical_operator = true
+EACH_DICT_ENTRY_ON_SEPARATE_LINE=True
+column_limit = 80

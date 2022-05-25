@@ -20,14 +20,20 @@ PANEL_ID = 'VIZ'
 COMMAND_BESIDE_ID = 'ScriptsManagerCommand'
 
 # Resources
-ICON_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', '')
+ICON_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           'resources', '')
 
 # Local list of event handlers used to maintain a reference so
 # they are not released and garbage collected.
 local_handlers = []
 
+isDisplaying = False
+
+
 def start():
-    cmd_def = ui.commandDefinitions.addButtonDefinition(CMD_ID, CMD_NAME, CMD_Description, ICON_FOLDER)
+    cmd_def = ui.commandDefinitions.addButtonDefinition(CMD_ID, CMD_NAME,
+                                                        CMD_Description,
+                                                        ICON_FOLDER)
     futil.add_handler(cmd_def.commandCreated, command_created)
 
     # UI Register
@@ -36,10 +42,9 @@ def start():
     control = panel.controls.addCommand(cmd_def, COMMAND_BESIDE_ID, False)
     control.isPromoted = IS_PROMOTED
 
-    
 
 def stop():
-    #Clean entire Panel
+    # Clean entire Panel
     workspace = ui.workspaces.itemById(WORKSPACE_ID)
     panel = workspace.toolbarPanels.itemById(PANEL_ID)
     command_definition = ui.commandDefinitions.itemById(CMD_ID)
@@ -53,23 +58,29 @@ def stop():
         command_definition.deleteMe()
 
 
-
 def command_created(args: adsk.core.CommandCreatedEventArgs):
     # General logging for debug.
     futil.log(f'{CMD_NAME} Command Created Event')
 
     # Handlers
-    futil.add_handler(args.command.execute, command_execute, local_handlers=local_handlers)
-    futil.add_handler(args.command.inputChanged, command_input_changed, local_handlers=local_handlers)
-    futil.add_handler(args.command.executePreview, command_preview, local_handlers=local_handlers)
-    futil.add_handler(args.command.destroy, command_destroy, local_handlers=local_handlers)
+    futil.add_handler(args.command.execute,
+                      command_execute,
+                      local_handlers=local_handlers)
+    futil.add_handler(args.command.inputChanged,
+                      command_input_changed,
+                      local_handlers=local_handlers)
+    futil.add_handler(args.command.executePreview,
+                      command_preview,
+                      local_handlers=local_handlers)
+    futil.add_handler(args.command.destroy,
+                      command_destroy,
+                      local_handlers=local_handlers)
 
-    #No UI
+    # No UI
+
 
 def command_executePreview(args: adsk.core.CommandEventHandler):
     return
-
-
 
 
 def command_execute(args: adsk.core.CommandEventArgs):
@@ -78,18 +89,50 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
     inputs = args.command.commandInputs
     print("Executed")
+    global isDisplaying
+    app = adsk.core.Application.get()
+    design = adsk.fusion.Design.cast(app.activeProduct)
+    if config.customGraphicsDisplaying:
+        for i in range(design.rootComponent.customGraphicsGroups.count):
+            print("Deleted")
+            design.rootComponent.customGraphicsGroups.item(0).deleteMe()
+            config.customGraphicsDisplaying = False
+    else:
+        graphics = design.rootComponent.customGraphicsGroups.add()
+        for jointTyping in design.findAttributes("CLS", "JointTyping"):
+            jo = jointTyping.parent
+            jo_uuid = jo.attributes.itemByName("CLS", "UUID").value
+            tmatrix = adsk.core.Matrix3D.create()
+            tmatrix.setWithCoordinateSystem(jo.geometry.origin,
+                                            jo.geometry.secondaryAxisVector,
+                                            jo.geometry.thirdAxisVector,
+                                            jo.geometry.primaryAxisVector)
+            offset = jo.geometry.primaryAxisVector.copy()
+            offset.normalize()
+            offset.scaleBy(0.05)
+            offset.add(tmatrix.translation)
+            tmatrix.translation = offset
+            customText = graphics.addText(
+                "Type: %s\n Kinding: %s" % (jointTyping.value, ""), 'Arial',
+                0.2, tmatrix)
+            config.customTextDict[jo_uuid] = customText
+            config.customGraphicsDisplaying = True
 
-    #Recompute or hide all custom graphic objects
+    # Recompute or hide all custom graphic objects
 
 
 def command_preview(args: adsk.core.CommandEventArgs):
     inputs = args.command.commandInputs
     futil.log(f'{CMD_NAME} Command Preview Event')
 
+
 def command_input_changed(args: adsk.core.InputChangedEventArgs):
     changed_input = args.input
     inputs = args.inputs
-    futil.log(f'{CMD_NAME} Input Changed Event fired from a change to {changed_input.id}')
+    futil.log(
+        f'{CMD_NAME} Input Changed Event fired from a change to {changed_input.id}'
+    )
+
 
 def command_destroy(args: adsk.core.CommandEventArgs):
     global local_handlers
