@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 import adsk.core
 import os
@@ -19,6 +20,17 @@ IS_PROMOTED = True
 WORKSPACE_ID = 'FusionSolidEnvironment'
 PANEL_ID = 'TYPES'
 COMMAND_BESIDE_ID = 'ScriptsManagerCommand'
+
+PALETTE_ID = config.taxonomy_palette_id
+PALETTE_NAME = "Taxonomy"
+
+# Specify the full path to the local html. You can also use a web URL
+# such as 'https://www.autodesk.com/'
+PALETTE_URL = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           'resources', 'html', 'index.html')
+
+# The path function builds a valid OS path. This fixes it to be a valid local URL.
+PALETTE_URL = PALETTE_URL.replace('\\', '/')
 
 # Resource location
 ICON_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -72,8 +84,7 @@ jointOrigin = adsk.fusion.JointOrigin.cast(None)
 selectedJointOrigins = []
 typeTextBoxInput = adsk.core.TextBoxCommandInput.cast(None)
 nameTextBoxInput = adsk.core.TextBoxCommandInput.cast(None)
-typeSelectionDropDownInput = adsk.core.DropDownCommandInput.cast(None)
-kindingSelectionDropDownInput = adsk.core.DropDownCommandInput.cast(None)
+typeSelectionBrowserInput = adsk.core.BrowserCommandInput.cast(None)
 
 kinding = "Light"
 typing = "Blocked"
@@ -87,9 +98,9 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     futil.add_handler(args.command.execute,
                       command_execute,
                       local_handlers=local_handlers)
-    futil.add_handler(args.command.inputChanged,
-                      command_input_changed,
-                      local_handlers=local_handlers)
+    # futil.add_handler(args.command.inputChanged,
+    #                   command_input_changed,
+    #                   local_handlers=local_handlers)
     futil.add_handler(args.command.executePreview,
                       command_preview,
                       local_handlers=local_handlers)
@@ -114,8 +125,16 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     futil.add_handler(args.command.unselect,
                       command_unselect,
                       local_handlers=local_handlers)
+    futil.add_handler(args.command.navigatingURL,
+                      palette_navigating,
+                      local_handlers=local_handlers)
+    futil.add_handler(args.command.incomingFromHTML,
+                      palette_incoming,
+                      local_handlers=local_handlers)
 
     inputs = args.command.commandInputs
+    args.command.setDialogMinimumSize(600, 800)
+    args.command.setDialogInitialSize(600, 800)
 
     # UI DEF
 
@@ -124,7 +143,7 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     selectionInput.setSelectionLimits(0)
     selectionInput.addSelectionFilter("JointOrigins")
 
-    global typeTextBoxInput, typeSelectionDropDownInput, kindingSelectionDropDownInput, nameTextBoxInput
+    global typeTextBoxInput, typeSelectionBrowserInput, kindingSelectionDropDownInput, nameTextBoxInput
 
     typeTextBoxInput = inputs.addTextBoxCommandInput('typeTextBox', 'Part Type',
                                                      '', 2, True)
@@ -135,25 +154,11 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     groupTypingCmdInput.isExpanded = True
     groupTypingChildren = groupTypingCmdInput.children
 
-    typeSelectionDropDownInput = groupTypingChildren.addDropDownCommandInput(
-        'typeSelection', 'Typing',
-        adsk.core.DropDownStyles.TextListDropDownStyle)
-    typeSelectionDropDownInput.maxVisibleItems = 5
-    typeSelectionDropDownInputItems = typeSelectionDropDownInput.listItems
-    typeSelectionDropDownInputItems.add('Blocked', True, '')
-    typeSelectionDropDownInputItems.add('Palette', False, '')
-    typeSelectionDropDownInputItems.add('Shelf', False, '')
-
-    kindingSelectionDropDownInput = groupTypingChildren.addDropDownCommandInput(
-        'kindingSelection', 'Kinding',
-        adsk.core.DropDownStyles.TextListDropDownStyle)
-    kindingSelectionDropDownInput.maxVisibleItems = 5
-    kindingSelectionDropDownInputItems = kindingSelectionDropDownInput.listItems
-    kindingSelectionDropDownInputItems.add('Light', True, '')
-    kindingSelectionDropDownInputItems.add('Medium', False, '')
-    kindingSelectionDropDownInputItems.add('Heavy', False, '')
-
-    # Selecting types will probably have to be done by means of a palette, since we need some big filtering
+    typeSelectionBrowserInput = inputs.addBrowserCommandInput(
+        id=PALETTE_ID,
+        name=PALETTE_NAME,
+        htmlFileURL=PALETTE_URL,
+        minimumHeight=500)
 
 
 def command_executePreview(args: adsk.core.CommandEventHandler):
@@ -216,15 +221,51 @@ def command_preSelectEnd(args: adsk.core.SelectionEventArgs):
                 break
 
 
-def command_input_changed(args: adsk.core.InputChangedEventArgs):
-    app = adsk.core.Application.get()
-    design = adsk.fusion.Design.cast(app.activeProduct)
-    if args.input.id == 'typeSelection':
-        global typing
-        typing = typeSelectionDropDownInput.selectedItem.name
-    if args.input.id == 'kindingSelection':
-        global kinding
-        kinding = kindingSelectionDropDownInput.selectedItem.name
+# def command_input_changed(args: adsk.core.InputChangedEventArgs):
+#     app = adsk.core.Application.get()
+#     design = adsk.fusion.Design.cast(app.activeProduct)
+#     if args.input.id == 'typeSelection':
+#         global typing
+#         typing = typeSelectionDropDownInput.selectedItem.name
+#     if args.input.id == 'kindingSelection':
+#         global kinding
+#         kinding = kindingSelectionDropDownInput.selectedItem.name
+
+
+def palette_navigating(args: adsk.core.NavigationEventArgs):
+    futil.log(f'{CMD_NAME}: Palette navigating event.')
+
+    url = args.navigationURL
+
+    log_msg = f"User is attempting to navigate to {url}\n"
+    futil.log(log_msg, adsk.core.LogLevels.InfoLogLevel)
+
+    if url.startswith("http"):
+        args.launchExternally = True
+
+
+def palette_incoming(html_args: adsk.core.HTMLEventArgs):
+    futil.log(f'{CMD_NAME}: Palette incoming event.')
+
+    message_data: dict = json.loads(html_args.data)
+    message_action = html_args.action
+
+    log_msg = f"Event received from {html_args.firingEvent.sender.objectType}\n"
+    log_msg += f"Action: {message_action}\n"
+    log_msg += f"Data: {message_data}"
+    futil.log(log_msg, adsk.core.LogLevels.InfoLogLevel)
+
+    if message_action == 'messageFromPalette':
+        # We'll need to think about if id or if names unique, probably former
+        global typing, kinding
+        typing = message_data.get('arg2', 'No name of type sent')
+        kinding = "None"
+        arg2 = message_data.get('arg2', 'arg2 not sent')
+
+    # Return value.
+    now = datetime.now()
+    currentTime = now.strftime('%H:%M:%S')
+    html_args.returnData = f'OK - {currentTime}'
 
 
 # EXECUTE
