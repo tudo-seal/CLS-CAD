@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="static/palette.js"></script>
+    <link rel="stylesheet" href="static/jstree/themes/default/style.css" />
+    <style>
+        html {
+            background-color: #f2f2f2;
+        }
+
+        body {
+            background-color: #f2f2f2;
+        }
+
+        * {
+            font-family: ArtifaktElement, sans-serif;
+            font-weight: 300;
+            font-size: 12px;
+            line-height: 16px;
+        }
+    </style>
+</head>
+
+<body>
+    <div>
+        <!--
+        <h3>Taxonomy Demo</h3>
+        <p> Nodes will need an extra join attribute to support a non-standard tree taxonomy (or we don't do that)</p>
+        -->
+        <input type="text" id="taxonomy_search" value="" class="input">
+
+        <div id="data" class="demo"></div>
+
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+        <script src="static/jstree/jstree.js"></script>
+        <script>
+            var taxonomy_data = [
+                {
+                    "id": "unique_tax_id1",
+                    "parent": "#",
+                    "text": "TypeA"
+                },
+                {
+                    "id": "unique_tax_id2",
+                    "parent": "#",
+                    "text": "TypeB"
+                },
+                {
+                    "id": "unique_tax_id3",
+                    "parent": "unique_tax_id1",
+                    "text": "SubTypeA"
+                },
+                {
+                    "id": "unique_tax_id4",
+                    "parent": "unique_tax_id3",
+                    "text": "SubSubTypeA"
+                },
+            ]
+
+            $('#data').jstree({
+                'core': {
+                    'data': taxonomy_data,
+                    'force_text': true,
+                    "check_callback": true
+                },
+                "search": {
+                    "show_only_matches": true,
+                    "show_only_matches_children": true,
+                    "case_sensitive": true,
+                },
+                "contextmenu": {
+                    "items": function (node) {
+                        if (node.parents.length < 2) {
+                            return false;
+                        }
+                        return {
+                            "rename": {
+                                label: "Rename",
+                                action: function (obj) {
+                                    $j("#jstree").jstree(true).edit(node)
+                                }
+                            },
+                            "create": {
+                                label: "Create New",
+                                action: function () {
+                                    createNode(node);
+                                }
+                            },
+                            "delete": {
+                                label: "Delete",
+                                action: function () {
+                                    if (confirm("Really delete " + node.text + "?")) {
+                                        deleteNode(node);
+                                    }
+                                },
+                                separator_before: true
+                            }
+                        }
+                    }
+                },
+                "plugins": [
+                    "contextmenu", "dnd", "search", "unique",
+                    "types", "wholerow"
+                ]
+            });
+
+            var to = false;
+            $('#taxonomy_search').keyup(function () {
+                if (to) { clearTimeout(to); }
+                to = setTimeout(function () {
+                    var v = $('#taxonomy_search').val();
+                    $('#data').jstree(true).search(v);
+                }, 250);
+            });
+
+            $('#data').on('create_node.jstree', function (node, parent, position) {
+                console.log("Created")
+            });
+
+            $('#data').on('rename_node.jstree', function (node, text, old) {
+                console.log("Renamed")
+            });
+
+            $('#data').on('delete_node.jstree', function (node, parent) {
+                alert('Removed');
+            });
+
+            $('#data').on('select_node.jstree', function (node, selected, event) {
+                console.log(node)
+                console.log(selected)
+                const args = {
+                    arg1: selected.node.id,
+                    arg2: selected.node.text
+                };
+
+                adsk.fusionSendData("messageFromPalette", JSON.stringify(args)).then((result) =>
+                    () => { }
+                    // Potetially do stuff
+                );
+            });
+
+        </script>
+        <!--
+        <h3>Send Data to Fusion</h3>
+        <div style='margin-left: 30px;'>
+            <label for="sampleData"><b>Data to send:</b></label>
+            <input type="text" id="sampleData" value="Enter Some Text"><br /><br />
+            <button type='button' onclick='sendInfoToFusion()' style='background-color: #cccccc; padding: 5px'>
+                <b>Send Data</b>
+            </button>
+        </div>
+
+        <h3>HTML Event Response Value:</h3>
+        <div id='returnValue' style='margin-left: 30px;'>Response</div>
+
+        <h3>Receive message from Fusion (e.g. for searching tree?)</h3>
+        <div style='margin-left: 30px;'>
+            <p id='fusionMessage'>Message from Fusion</p>
+            <br /><br />
+        </div>
+    -->
+
+    </div>
+</body>
+
+</html>

@@ -16,9 +16,6 @@ CMD_NAME = 'Typed Joint'
 CMD_Description = 'Annotate joint origins with a combinatorial term, allowing combinatory logic to connect parts automatically.'
 IS_PROMOTED = True
 
-# Using "global" variables by referencing values from /config.py
-PALETTE_ID = config.sample_palette_id
-
 WORKSPACE_ID = 'FusionSolidEnvironment'
 PANEL_ID = 'TYPES'
 COMMAND_BESIDE_ID = 'ScriptsManagerCommand'

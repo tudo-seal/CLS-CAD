@@ -13,6 +13,7 @@ from .jointTyping import entry as jointTyping
 from .typeCrawlingProject import entry as typeCrawlingProject
 from .typeCrawlingHub import entry as typeCrawlingHub
 from .toggleCustomGraphics import entry as toggleCustomGraphics
+from .taxonomyEditing import entry as taxonomyEditing
 
 app = adsk.core.Application.get()
 ui = app.userInterface
@@ -20,11 +21,9 @@ ui = app.userInterface
 # TODO add your imported modules to this list.
 # Fusion will automatically call the start() and stop() functions.
 commands = [
-    jointTyping,
-    typeCrawlingProject,
-    typeCrawlingHub,
-    toggleCustomGraphics
+    jointTyping, typeCrawlingProject, typeCrawlingHub, toggleCustomGraphics, taxonomyEditing
 ]
+
 
 def addTab() -> adsk.core.ToolbarTab:
     designWorkspace = ui.workspaces.itemById("FusionSolidEnvironment")
@@ -39,7 +38,9 @@ def addTab() -> adsk.core.ToolbarTab:
             return newTab
     return None
 
-def addPanel(parentTab: adsk.core.ToolbarTab, panelId: str, panelName: str)-> adsk.core.ToolbarPanel:
+
+def addPanel(parentTab: adsk.core.ToolbarTab, panelId: str,
+             panelName: str) -> adsk.core.ToolbarPanel:
     newPanel = parentTab.toolbarPanels.itemById(panelId)
 
     if newPanel is None:
@@ -54,9 +55,10 @@ def start():
     mainTab = addTab()
     if not mainTab.isActive:
         mainTab.activate
-    addPanel(mainTab,"TYPES", "Typing Tools")
-    addPanel(mainTab,"CRAWL", "Setup Tools")
-    addPanel(mainTab,"VIZ", "Visualisation")
+    addPanel(mainTab, "TYPES", "Typing Tools")
+    addPanel(mainTab, "CRAWL", "Setup Tools")
+    addPanel(mainTab, "TAXONOMY", "Taxonomy")
+    addPanel(mainTab, "VIZ", "Visualisation")
     for command in commands:
         command.start()
 
