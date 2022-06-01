@@ -22,3 +22,30 @@ taxonomy_palette_id = f'{COMPANY_NAME}_{ADDIN_NAME}_palette_taxonomy'
 
 customTextDict = {}
 customGraphicsDisplaying = False
+
+taxonomies = {
+    "parts": {
+        "ID": "parts",
+        "nodes": [{
+            "id": "any",
+            "parent": "#",
+            "text": "Any Type"
+        }]
+    },
+    "formats": {
+        "ID": "formats",
+        "nodes": [{
+            "id": "any",
+            "parent": "#",
+            "text": "Any Type"
+        }]
+    },
+    "attributes": {
+        "ID": "attributes",
+        "nodes": [{
+            "id": "any",
+            "parent": "#",
+            "text": "Any Type"
+        }]
+    }
+}

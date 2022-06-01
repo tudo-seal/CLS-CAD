@@ -1,5 +1,6 @@
 # Here you define the commands that will be added to your add-in.
 import json
+from pathlib import Path
 import adsk.core
 import os
 
@@ -18,10 +19,13 @@ from .taxonomyEditing import entry as taxonomyEditing
 app = adsk.core.Application.get()
 ui = app.userInterface
 
+ROOT_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
+
 # TODO add your imported modules to this list.
 # Fusion will automatically call the start() and stop() functions.
 commands = [
-    jointTyping, typeCrawlingProject, typeCrawlingHub, toggleCustomGraphics, taxonomyEditing
+    jointTyping, typeCrawlingProject, typeCrawlingHub, toggleCustomGraphics,
+    taxonomyEditing
 ]
 
 
@@ -49,18 +53,47 @@ def addPanel(parentTab: adsk.core.ToolbarTab, panelId: str,
     return newPanel
 
 
+local_handlers = []
+
+
 # Assumes you defined a "start" function in each of your modules.
 # The start function will be run when the add-in is started.
 def start():
     mainTab = addTab()
     if not mainTab.isActive:
         mainTab.activate
+
+    pathPartTaxonomy = Path(os.path.join(ROOT_FOLDER, "parts.taxonomy"))
+    pathFormatTaxonomy = Path(os.path.join(ROOT_FOLDER, "formats.taxonomy"))
+    pathAttributeTaxonomy = Path(
+        os.path.join(ROOT_FOLDER, "attributes.taxonomy"))
+
+    if pathPartTaxonomy.is_file():
+        with open(pathPartTaxonomy) as json_file:
+            config.taxonomies["parts"] = json.load(json_file)
+    if pathFormatTaxonomy.is_file():
+        with open(pathFormatTaxonomy) as json_file:
+            config.taxonomies["formats"] = json.load(json_file)
+    if pathAttributeTaxonomy.is_file():
+        with open(pathAttributeTaxonomy) as json_file:
+            config.taxonomies["attributes"] = json.load(json_file)
+
+    futil.add_handler(app.documentOpened,
+                      application_documentOpened,
+                      local_handlers=local_handlers)
     addPanel(mainTab, "TYPES", "Typing Tools")
     addPanel(mainTab, "CRAWL", "Setup Tools")
     addPanel(mainTab, "TAXONOMY", "Taxonomy")
     addPanel(mainTab, "VIZ", "Visualisation")
     for command in commands:
         command.start()
+
+
+def application_documentOpened(args: adsk.core.DocumentEventArgs):
+    # Restore custom graphics
+    cmd = ui.commandDefinitions.itemById(
+        f'{config.COMPANY_NAME}_{config.ADDIN_NAME}_toggle_display')
+    cmd.execute()
 
 
 # Assumes you defined a "stop" function in each of your modules.

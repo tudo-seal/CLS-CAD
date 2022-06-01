@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Taxonomy Editor</title>
+    <link rel="stylesheet" href="static/jstree/themes/default/style.css" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="static/jstree/jstree.js"></script>
+    <script src="static/palette.js"></script>
+    <style>
+        html {
+            background-color: #f2f2f2;
+        }
+
+        body {
+            background-color: #f2f2f2;
+        }
+
+        * {
+            font-family: ArtifaktElement, sans-serif;
+            font-weight: 300;
+            font-size: 12px;
+            line-height: 16px;
+        }
+    </style>
+</head>
+
+<body>
+    <div>
+        <script>
+            // Once document loads, poll to see when Fusion deems it is time to inject adsk, then signal we are ready to receive data
+            document.addEventListener("DOMContentLoaded", () => {
+                let adskWaiter = setInterval(() => {
+                    if (window.adsk) {
+                        clearInterval(adskWaiter);
+                        sendReadyToFusion();
+                    }
+                }, 100);
+            });
+        </script>
+
+        <input type="text" id="taxonomy_search" value="" class="input">
+
+        <div id="data"></div>
+    </div>
+</body>
+
+</html>

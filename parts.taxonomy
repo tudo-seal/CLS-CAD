@@ -1,0 +1,173 @@
+{
+    "ID": "parts",
+    "nodes": [
+        {
+            "id": "any",
+            "text": "Any Type",
+            "icon": true,
+            "li_attr": {
+                "id": "any"
+            },
+            "a_attr": {
+                "href": "#",
+                "id": "any_anchor"
+            },
+            "state": {
+                "loaded": true,
+                "opened": true,
+                "selected": false,
+                "disabled": false
+            },
+            "data": {},
+            "parent": "#",
+            "type": "default"
+        },
+        {
+            "id": "j1_1",
+            "text": "Test",
+            "icon": true,
+            "li_attr": {
+                "id": "j1_1"
+            },
+            "a_attr": {
+                "href": "#",
+                "id": "j1_1_anchor"
+            },
+            "state": {
+                "loaded": true,
+                "opened": false,
+                "selected": false,
+                "disabled": false
+            },
+            "data": {},
+            "parent": "any",
+            "type": "default"
+        },
+        {
+            "id": "j1_3",
+            "text": "Test2",
+            "icon": true,
+            "li_attr": {
+                "id": "j1_3"
+            },
+            "a_attr": {
+                "href": "#",
+                "id": "j1_3_anchor"
+            },
+            "state": {
+                "loaded": true,
+                "opened": true,
+                "selected": false,
+                "disabled": false
+            },
+            "data": {},
+            "parent": "any",
+            "type": "default"
+        },
+        {
+            "id": "j1_4",
+            "text": "Graph",
+            "icon": true,
+            "li_attr": {
+                "id": "j1_4"
+            },
+            "a_attr": {
+                "href": "#",
+                "id": "j1_4_anchor"
+            },
+            "state": {
+                "loaded": true,
+                "opened": true,
+                "selected": false,
+                "disabled": false
+            },
+            "data": {},
+            "parent": "j1_3",
+            "type": "default"
+        },
+        {
+            "id": "j1_5",
+            "text": "Test",
+            "icon": true,
+            "li_attr": {
+                "id": "j1_5"
+            },
+            "a_attr": {
+                "href": "#",
+                "id": "j1_5_anchor"
+            },
+            "state": {
+                "loaded": true,
+                "opened": true,
+                "selected": false,
+                "disabled": false
+            },
+            "data": {},
+            "parent": "j1_4",
+            "type": "default"
+        },
+        {
+            "id": "j1_6",
+            "text": "Test",
+            "icon": true,
+            "li_attr": {
+                "id": "j1_6"
+            },
+            "a_attr": {
+                "href": "#",
+                "id": "j1_6_anchor"
+            },
+            "state": {
+                "loaded": true,
+                "opened": true,
+                "selected": true,
+                "disabled": false
+            },
+            "data": {},
+            "parent": "j1_5",
+            "type": "default"
+        },
+        {
+            "id": "j1_7",
+            "text": "Test",
+            "icon": true,
+            "li_attr": {
+                "id": "j1_7"
+            },
+            "a_attr": {
+                "href": "#",
+                "id": "j1_7_anchor"
+            },
+            "state": {
+                "loaded": true,
+                "opened": false,
+                "selected": false,
+                "disabled": false
+            },
+            "data": {},
+            "parent": "j1_6",
+            "type": "default"
+        },
+        {
+            "id": "j1_2",
+            "text": "Wee",
+            "icon": true,
+            "li_attr": {
+                "id": "j1_2"
+            },
+            "a_attr": {
+                "href": "#",
+                "id": "j1_2_anchor"
+            },
+            "state": {
+                "loaded": true,
+                "opened": false,
+                "selected": false,
+                "disabled": false
+            },
+            "data": {},
+            "parent": "any",
+            "type": "default"
+        }
+    ]
+}

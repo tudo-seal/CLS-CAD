@@ -1,5 +1,6 @@
 from datetime import datetime
 import json
+from time import sleep
 import adsk.core
 import os
 import inspect
@@ -26,8 +27,8 @@ PALETTE_NAME = "Taxonomy"
 
 # Specify the full path to the local html. You can also use a web URL
 # such as 'https://www.autodesk.com/'
-PALETTE_URL = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                           'resources', 'html', 'index.html')
+PALETTE_URL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..",
+                           "..", 'resources', 'html', 'index.html')
 
 # The path function builds a valid OS path. This fixes it to be a valid local URL.
 PALETTE_URL = PALETTE_URL.replace('\\', '/')
@@ -35,6 +36,9 @@ PALETTE_URL = PALETTE_URL.replace('\\', '/')
 # Resource location
 ICON_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                            'resources', '')
+
+ROOT_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..',
+                           '..')
 
 # Local list of event handlers used to maintain a reference so
 # they are not released and garbage collected.
@@ -131,6 +135,9 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     futil.add_handler(args.command.incomingFromHTML,
                       palette_incoming,
                       local_handlers=local_handlers)
+    futil.add_handler(args.command.activate,
+                      command_activate,
+                      local_handlers=local_handlers)
 
     inputs = args.command.commandInputs
     args.command.setDialogMinimumSize(600, 800)
@@ -167,6 +174,12 @@ def command_executePreview(args: adsk.core.CommandEventHandler):
     if design:
         cggroup = design.rootComponent.customGraphicsGroups.add()
         pass
+
+
+def command_activate(args: adsk.core.CommandEventArgs):
+    app = adsk.core.Application.get()
+    design = adsk.fusion.Design.cast(app.activeProduct)
+    app.log('In command_activate event handler.')
 
 
 def command_select(args: adsk.core.SelectionEventArgs):
@@ -246,7 +259,7 @@ def palette_navigating(args: adsk.core.NavigationEventArgs):
 
 def palette_incoming(html_args: adsk.core.HTMLEventArgs):
     futil.log(f'{CMD_NAME}: Palette incoming event.')
-
+    print("Incoming")
     message_data: dict = json.loads(html_args.data)
     message_action = html_args.action
 
@@ -255,12 +268,19 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
     log_msg += f"Data: {message_data}"
     futil.log(log_msg, adsk.core.LogLevels.InfoLogLevel)
 
-    if message_action == 'messageFromPalette':
+    if message_action == 'updateDataNotification':
+        # Update loaded and saved taxonomies
+        config.taxonomies[message_data["ID"]] = message_data
+        with open(os.path.join(ROOT_FOLDER, "%s.taxonomy" % message_data["ID"]),
+                  "w+") as f:
+            json.dump(message_data, f, ensure_ascii=False, indent=4)
+
+    if message_action == 'readyNotification':
         # We'll need to think about if id or if names unique, probably former
-        global typing, kinding
-        typing = message_data.get('arg2', 'No name of type sent')
-        kinding = "None"
-        arg2 = message_data.get('arg2', 'arg2 not sent')
+        print("Sending data beep boop")
+        taxonomyDataMessage = config.taxonomies["parts"]
+        typeSelectionBrowserInput.sendInfoToHTML(
+            "taxonomyDataMessage", json.dumps(taxonomyDataMessage))
 
     # Return value.
     now = datetime.now()
@@ -288,7 +308,10 @@ def command_execute(args: adsk.core.CommandEventArgs):
         adsk.core.Point3D.create(0, 0, 0))
     billBoard.billBoardStyle = adsk.fusion.CustomGraphicsBillBoardStyles.ScreenBillBoardStyle
 
-    global typing, kinding, selectedJointOrigins, nameTextBoxInput
+    global typing, kinding, selectedJointOrigins, nameTextBoxInput, typeSelectionBrowserInput
+
+    print("Trying to sync")
+    typeSelectionBrowserInput.sendInfoToHTML("returnTaxonomyDataMessage", "{}")
 
     # TODO Query for all already set up joint origins and read custom graphics to them on launch
     for jointTyping in design.findAttributes("CLS", "JointTyping"):
