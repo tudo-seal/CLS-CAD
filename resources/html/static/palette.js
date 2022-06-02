@@ -38,7 +38,7 @@ function updateMessage(messageString) {
 
 var taxonomyID;
 var taxonomyOriginalData;
-var taxonomyData
+var taxonomyData;
 
 var populated = false;
 

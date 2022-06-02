@@ -281,7 +281,6 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
         taxonomyDataMessage = config.taxonomies["parts"]
         typeSelectionBrowserInput.sendInfoToHTML(
             "taxonomyDataMessage", json.dumps(taxonomyDataMessage))
-        typeSelectionBrowserInput.sendInfoToHTML("taxonomyIDMessage", "")
 
     # Return value.
     now = datetime.now()

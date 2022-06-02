@@ -187,7 +187,8 @@
             });
 
             $('#data').on('delete_node.jstree', function (node, change) {
-                console.log(parent);
+                //What if we delete something and it gets orphaned, is that okay?
+                //What if we delete at a specifc location, does that mean we just want to remove that link?
                 for (const [key, value] of Object.entries(window.taxonomyData)) {
                     if (key === change["node"].text) {
                         delete window.taxonomyData[change["node"].text];
@@ -208,7 +209,7 @@
 
                 adsk.fusionSendData("messageFromPalette", JSON.stringify(args)).then((result) =>
                     () => { }
-                    // Potetially do stuff
+                    // Potentially do stuff
                 );
             });
 

@@ -18,6 +18,67 @@ function sendInfoToFusion() {
 
 }
 
+function sendReadyToFusion() {
+    // Send the data to Fusion as a JSON string. The return value is a Promise.
+    adsk.fusionSendData("readyNotification", "{}").then((result) =>
+        console.log(result)
+    );
+}
+
+var taxonomyID;
+var taxonomyOriginalData;
+var taxonomyData;
+
+var populated = false;
+
+function setTaxonomyData(taxonomyString) {
+    var cynodes = [];
+    var cyedges = [];
+
+    taxonomyData = JSON.parse(taxonomyString);
+    taxonomyOriginalData = taxonomyString;
+    taxonomyID = taxonomyData.ID;
+    populated = true;
+
+
+    for (let [key, value] of Object.entries(taxonomyData)) {
+        cynodes.push({ data: { id: key } });
+        value.forEach(child => {
+            cyedges.push({ data: { source: key, target: child } })
+        });
+    }
+
+    var cy = window.cy = cytoscape({
+        container: document.getElementById('cy'),
+
+        boxSelectionEnabled: false,
+        autounselectify: true,
+
+        layout: {
+            name: 'dagre',
+            spacingFactor: 1.5
+        },
+
+        style: [
+            {
+                selector: 'node',
+                style: {
+                    'label': 'data(id)',
+                    'text-valign': 'center',
+                    'color': '#000000',
+                    'background-color': '#639a00',
+                    'font-family': 'ArtifaktElement, sans-serif'
+                }
+            }
+        ],
+
+        elements: {
+            nodes: cynodes,
+            edges: cyedges
+        }
+    });
+}
+
 function updateMessage(messageString) {
     // Message is sent from the add-in as a JSON string.
     const messageData = JSON.parse(messageString);
@@ -34,6 +95,9 @@ window.fusionJavaScriptHandler = {
         try {
             if (action === "updateMessage") {
                 updateMessage(data);
+            } else if (action === "taxonomyDataMessage") {
+                console.log("TaxonomyData arrived.")
+                setTaxonomyData(data)
             } else if (action === "debugger") {
                 debugger;
             } else {

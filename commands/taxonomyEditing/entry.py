@@ -75,36 +75,42 @@ def stop():
     # Delete the command definition
     if command_definition:
         command_definition.deleteMe()
+    # Delete the Palette
+    if palette:
+        palette.deleteMe()
 
 
 def command_created(args: adsk.core.CommandCreatedEventArgs):
     futil.log(f'{CMD_NAME}: Command created event.')
 
-    futil.add_handler(args.command.execute,
-                      command_execute,
-                      local_handlers=local_handlers)
-    futil.add_handler(args.command.destroy,
-                      command_destroy,
-                      local_handlers=local_handlers)
-    futil.add_handler(args.command.navigatingURL,
-                      palette_navigating,
-                      local_handlers=local_handlers)
-    futil.add_handler(args.command.incomingFromHTML,
-                      palette_incoming,
-                      local_handlers=local_handlers)
-
+    palettes = ui.palettes
+    palette = palettes.itemById(PALETTE_ID)
+    if palette is None:
+        palette = palettes.add(id=PALETTE_ID,
+                               name=PALETTE_NAME,
+                               htmlFileURL=PALETTE_URL,
+                               isVisible=True,
+                               showCloseButton=True,
+                               isResizable=True,
+                               width=1200,
+                               height=800,
+                               useNewWebBrowser=True)
+        futil.add_handler(palette.closed, palette_closed)
+        futil.add_handler(palette.navigatingURL, palette_navigating)
+        futil.add_handler(palette.incomingFromHTML, palette_incoming)
+    else:
+        palette = ui.palettes.itemById(PALETTE_ID)
+        # ADSK was injected, so now we send the payload
+        taxonomyDataMessage = config.taxonomies["parts"]
+        palette.sendInfoToHTML("taxonomyDataMessage",
+                               json.dumps(taxonomyDataMessage))
     inputs = args.command.commandInputs
-    args.command.setDialogMinimumSize(600, 800)
-    args.command.setDialogInitialSize(600, 800)
+    args.command.setDialogMinimumSize(1200, 800)
+    args.command.setDialogInitialSize(1200, 800)
+    if palette.dockingState == adsk.core.PaletteDockingStates.PaletteDockStateFloating:
+        palette.dockingState = PALETTE_DOCKING
 
-    selectionInput = inputs.addSelectionInput('selection', 'Select',
-                                              'Basic select command input')
-    selectionInput.setSelectionLimits(0)
-    selectionInput.addSelectionFilter("JointOrigins")
-    taxonomyInput = inputs.addBrowserCommandInput(id=PALETTE_ID,
-                                                  name=PALETTE_NAME,
-                                                  htmlFileURL=PALETTE_URL,
-                                                  minimumHeight=500)
+    palette.isVisible = True
 
 
 def command_execute(args: adsk.core.CommandEventArgs):
@@ -143,6 +149,12 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
         arg1 = message_data.get('arg1', 'arg1 not sent')
         arg2 = message_data.get('arg2', 'arg2 not sent')
 
+    if message_action == 'readyNotification':
+        palette = ui.palettes.itemById(PALETTE_ID)
+        # ADSK was injected, so now we send the payload
+        taxonomyDataMessage = config.taxonomies["parts"]
+        palette.sendInfoToHTML("taxonomyDataMessage",
+                               json.dumps(taxonomyDataMessage))
     # Return value.
     now = datetime.now()
     currentTime = now.strftime('%H:%M:%S')
