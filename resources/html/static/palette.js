@@ -38,13 +38,12 @@ function updateMessage(messageString) {
 
 var taxonomyID;
 var taxonomyOriginalData;
+var taxonomyData
+
+var populated = false;
 
 function sendUpdatedData() {
-    var nodes = $('#data').jstree(true).get_json('#', { flat: true })
-    var returnData = {
-        "ID": taxonomyID,
-        "nodes": nodes
-    }
+    var returnData = taxonomyData;
     returnDataString = JSON.stringify(returnData)
     if (returnDataString !== taxonomyOriginalData) {
         adsk.fusionSendData("updateDataNotification", returnDataString).then((result) =>
@@ -54,136 +53,22 @@ function sendUpdatedData() {
 
 }
 
+function dfsTreeBuild(type, treeNode) {
+    (taxonomyData[type] ?? []).forEach(subtype => {
+        $('#data').jstree(true).create_node(treeNode, { "text": subtype }, "last", function (new_node) {
+            dfsTreeBuild(subtype, new_node);
+        });
+    });
+}
+
 function setTaxonomyData(taxonomyString) {
-    const taxonomyData = JSON.parse(taxonomyString);
+    taxonomyData = JSON.parse(taxonomyString);
     taxonomyOriginalData = taxonomyString;
     taxonomyID = taxonomyData.ID;
-    console.log(taxonomyID)
-    console.log(taxonomyData.nodes)
 
-    $('#data').jstree({
-        'core': {
-            'data': taxonomyData.nodes,
-            'force_text': true,
-            "check_callback": true
-        },
-        "search": {
-            "show_only_matches": true,
-            "show_only_matches_children": true,
-            "case_sensitive": true,
-        },
-        "contextmenu": {
-            "items": function (node) {
-                if (node.parents.length < 2) {
-                    return {
-                        "rename": {
-                            label: "Rename",
-                            action: function (data) {
-                                var inst = $.jstree.reference(data.reference),
-                                    obj = inst.get_node(data.reference);
-                                inst.edit(obj);
-                                inst.sort(inst.get_node(obj.parent))
-                            }
-                        },
-                        "create": {
-                            label: "Create New",
-                            action: function (data) {
-                                var inst = $.jstree.reference(data.reference),
-                                    obj = inst.get_node(data.reference);
-                                inst.create_node(obj, {}, "last", function (new_node) {
-                                    try {
-                                        inst.edit(new_node);
-                                    } catch (ex) {
-                                        setTimeout(function () { inst.edit(new_node); }, 0);
-                                    }
-                                });
-                            }
-                        },
-                    }
-                }
-                return {
-                    "rename": {
-                        label: "Rename",
-                        action: function (data) {
-                            var inst = $.jstree.reference(data.reference),
-                                obj = inst.get_node(data.reference);
-                            inst.edit(obj);
-                            inst.sort(inst.get_node(obj.parent))
-                        }
-                    },
-                    "create": {
-                        label: "Create New",
-                        action: function (data) {
-                            var inst = $.jstree.reference(data.reference),
-                                obj = inst.get_node(data.reference);
-                            inst.create_node(obj, {}, "last", function (new_node) {
-                                try {
-                                    inst.edit(new_node);
-                                } catch (ex) {
-                                    setTimeout(function () { inst.edit(new_node); }, 0);
-                                }
-                            });
-                        }
-                    },
-                    "remove": {
-                        label: "Delete",
-                        action: function (data) {
-                            var inst = $.jstree.reference(data.reference),
-                                obj = inst.get_node(data.reference);
-                            if (inst.is_selected(obj)) {
-                                inst.delete_node(inst.get_selected());
-                            }
-                            else {
-                                inst.delete_node(obj);
-                            }
-                        },
-                        separator_before: true
-                    }
-                }
-            }
-        },
-        "plugins": [
-            "contextmenu", "dnd", "search", "unique",
-            "types", "wholerow", "sort"
-        ]
-    });
+    dfsTreeBuild("Any", "any");
+    populated = true;
 
-    var to = false;
-    $('#taxonomy_search').keyup(function () {
-        if (to) { clearTimeout(to); }
-        to = setTimeout(function () {
-            var v = $('#taxonomy_search').val();
-            $('#data').jstree(true).search(v);
-        }, 250);
-    });
-
-    $('#data').on('create_node.jstree', function (node, parent, position) {
-        console.log("Created")
-    });
-
-    $('#data').on('rename_node.jstree', function (node, text, old) {
-        sendUpdatedData();
-        console.log("Renamed")
-    });
-
-    $('#data').on('delete_node.jstree', function (node, parent) {
-        sendUpdatedData();
-        console.log("Deleted")
-    });
-
-    $('#data').on('select_node.jstree', function (node, selected, event) {
-        console.log(node)
-        console.log(selected)
-        const args = {
-            arg1: selected.node.id,
-            arg2: selected.node.text
-        };
-
-        adsk.fusionSendData("messageFromPalette", JSON.stringify(args)).then((result) =>
-            () => { }
-            // Potetially do stuff
-        );
-    });
 }
 
 window.fusionJavaScriptHandler = {

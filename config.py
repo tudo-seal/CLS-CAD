@@ -25,27 +25,15 @@ customGraphicsDisplaying = False
 
 taxonomies = {
     "parts": {
-        "ID": "parts",
-        "nodes": [{
-            "id": "any",
-            "parent": "#",
-            "text": "Any Type"
-        }]
+        "Any": ["A", "B"],
+        "A": ["B", "C"],
+        "B": ["C"],
+        "C": ["D", "E"]
     },
     "formats": {
-        "ID": "formats",
-        "nodes": [{
-            "id": "any",
-            "parent": "#",
-            "text": "Any Type"
-        }]
+        "Any": []
     },
     "attributes": {
-        "ID": "attributes",
-        "nodes": [{
-            "id": "any",
-            "parent": "#",
-            "text": "Any Type"
-        }]
+        "Any": []
     }
 }

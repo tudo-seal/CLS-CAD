@@ -43,6 +43,176 @@
         <input type="text" id="taxonomy_search" value="" class="input">
 
         <div id="data"></div>
+        <script>
+            $('#data').jstree({
+                'core': {
+                    'data': [{ "id": "any", "parent": "#", "text": "Any" }],
+                    'force_text': true,
+                    'check_callback': function (operation, node, node_parent, node_position, more) {
+                        // operation can be 'create_node', 'rename_node', 'delete_node', 'move_node', 'copy_node' or 'edit'
+                        // in case of 'rename_node' node_position is filled with the new node name
+                        if (operation === 'rename_node') {
+                            if (window.taxonomyData.hasOwnProperty(node_position)) {
+                                console.log(node);
+                                if (node.text === "New node") {
+                                    $('#data').jstree(true).delete_node(node);
+                                }
+                                return false;
+                            }
+                        }
+                        return true;
+                    }
+                },
+                "search": {
+                    "show_only_matches": true,
+                    "show_only_matches_children": true,
+                    "case_sensitive": true,
+                },
+                "contextmenu": {
+                    "items": function (node) {
+                        if (node.parents.length < 2) {
+                            return {
+                                "rename": {
+                                    label: "Rename",
+                                    action: function (data) {
+                                        var inst = $.jstree.reference(data.reference),
+                                            obj = inst.get_node(data.reference);
+                                        inst.edit(obj);
+                                        inst.sort(inst.get_node(obj.parent))
+                                    }
+                                },
+                                "create": {
+                                    label: "Create New",
+                                    action: function (data) {
+                                        var inst = $.jstree.reference(data.reference),
+                                            obj = inst.get_node(data.reference);
+                                        inst.create_node(obj, {}, "last", function (new_node) {
+                                            try {
+                                                inst.edit(new_node);
+                                            } catch (ex) {
+                                                setTimeout(function () { inst.edit(new_node); }, 0);
+                                            }
+                                        });
+                                    }
+                                },
+                            }
+                        }
+                        return {
+                            "rename": {
+                                label: "Rename",
+                                action: function (data) {
+                                    var inst = $.jstree.reference(data.reference),
+                                        obj = inst.get_node(data.reference);
+                                    inst.edit(obj);
+                                    inst.sort(inst.get_node(obj.parent))
+                                }
+                            },
+                            "create": {
+                                label: "Create New",
+                                action: function (data) {
+                                    var inst = $.jstree.reference(data.reference),
+                                        obj = inst.get_node(data.reference);
+                                    inst.create_node(obj, {}, "last", function (new_node) {
+                                        try {
+                                            inst.edit(new_node);
+                                        } catch (ex) {
+                                            setTimeout(function () { inst.edit(new_node); }, 0);
+                                        }
+                                    });
+                                }
+                            },
+                            "remove": {
+                                label: "Delete",
+                                action: function (data) {
+                                    var inst = $.jstree.reference(data.reference),
+                                        obj = inst.get_node(data.reference);
+                                    if (inst.is_selected(obj)) {
+                                        inst.delete_node(inst.get_selected());
+                                    }
+                                    else {
+                                        inst.delete_node(obj);
+                                    }
+                                },
+                                separator_before: true
+                            }
+                        }
+                    }
+                },
+                "plugins": [
+                    "contextmenu", "dnd", "search", "unique",
+                    "types", "wholerow", "sort"
+                ]
+            });
+
+            var to = false;
+            $('#taxonomy_search').keyup(function () {
+                if (to) { clearTimeout(to); }
+                to = setTimeout(function () {
+                    var v = $('#taxonomy_search').val();
+                    $('#data').jstree(true).search(v);
+                }, 250);
+            });
+
+            $('#data').on('create_node.jstree', function (node, change) {
+                //if (window.populated) {
+                //   window.taxonomyData[change.parent].push(change.node.text)
+                //    winow.taxonomyData[change.node.text] = []
+                // }
+
+            });
+
+            $('#data').on('rename_node.jstree', function (node, change) {
+                console.log(change)
+                if (change["text"] === change["old"]) {
+                    return;
+                }
+                // If the renamed thing did not exist in data, it is not a rename but a new thing
+                if (!(window.taxonomyData.hasOwnProperty(change["old"]))) {
+                    window.taxonomyData[change["text"]] = []
+                    window.taxonomyData[$('#data').jstree(true).get_node(change["node"].parent).text].push(change["text"])
+
+                }
+                for (const [key, value] of Object.entries(window.taxonomyData)) {
+                    if (key === change["old"]) {
+                        Object.defineProperty(window.taxonomyData, change["text"],
+                            Object.getOwnPropertyDescriptor(window.taxonomyData, change["old"]));
+                        delete window.taxonomyData[change["old"]];
+                    }
+                    var index = value.indexOf(change["old"]);
+                    if (index !== -1) {
+                        value[index] = change["text"];
+                    }
+                }
+                sendUpdatedData();
+            });
+
+            $('#data').on('delete_node.jstree', function (node, change) {
+                console.log(parent);
+                for (const [key, value] of Object.entries(window.taxonomyData)) {
+                    if (key === change["node"].text) {
+                        delete window.taxonomyData[change["node"].text];
+                    }
+                    var index = value.indexOf(change["node"].text);
+                    if (index !== -1) {
+                        value.splice(index, 1)
+                    }
+                }
+                sendUpdatedData();
+            });
+
+            $('#data').on('select_node.jstree', function (node, selected, event) {
+                const args = {
+                    arg1: selected.node.id,
+                    arg2: selected.node.text
+                };
+
+                adsk.fusionSendData("messageFromPalette", JSON.stringify(args)).then((result) =>
+                    () => { }
+                    // Potetially do stuff
+                );
+            });
+
+        </script>
     </div>
 </body>
 

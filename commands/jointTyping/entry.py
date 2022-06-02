@@ -22,7 +22,7 @@ WORKSPACE_ID = 'FusionSolidEnvironment'
 PANEL_ID = 'TYPES'
 COMMAND_BESIDE_ID = 'ScriptsManagerCommand'
 
-PALETTE_ID = config.taxonomy_palette_id
+PALETTE_ID = "parts"
 PALETTE_NAME = "Taxonomy"
 
 # Specify the full path to the local html. You can also use a web URL
@@ -270,17 +270,18 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
 
     if message_action == 'updateDataNotification':
         # Update loaded and saved taxonomies
-        config.taxonomies[message_data["ID"]] = message_data
-        with open(os.path.join(ROOT_FOLDER, "%s.taxonomy" % message_data["ID"]),
+        taxonomyID = html_args.browserCommandInput.id
+        config.taxonomies[taxonomyID] = message_data
+        with open(os.path.join(ROOT_FOLDER, "%s.taxonomy" % taxonomyID),
                   "w+") as f:
             json.dump(message_data, f, ensure_ascii=False, indent=4)
 
     if message_action == 'readyNotification':
-        # We'll need to think about if id or if names unique, probably former
-        print("Sending data beep boop")
+        # ADSK was injected, so now we send the payload
         taxonomyDataMessage = config.taxonomies["parts"]
         typeSelectionBrowserInput.sendInfoToHTML(
             "taxonomyDataMessage", json.dumps(taxonomyDataMessage))
+        typeSelectionBrowserInput.sendInfoToHTML("taxonomyIDMessage", "")
 
     # Return value.
     now = datetime.now()
