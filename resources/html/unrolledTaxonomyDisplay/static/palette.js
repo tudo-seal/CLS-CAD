@@ -64,9 +64,9 @@ function dfsTreeBuild(type, treeNode) {
 function setTaxonomyData(taxonomyString) {
     taxonomyData = JSON.parse(taxonomyString);
     taxonomyOriginalData = taxonomyString;
-    taxonomyID = taxonomyData.ID;
+    $('#data').jstree(true).create_node("#", { "id": "any", "parent": "#", "text": Object.keys(taxonomyData)[0] })
 
-    dfsTreeBuild("Any", "any");
+    dfsTreeBuild(Object.keys(taxonomyData)[0], "any");
     populated = true;
 
 }
@@ -80,6 +80,11 @@ window.fusionJavaScriptHandler = {
             } else if (action === "taxonomyDataMessage") {
                 console.log("TaxonomyData arrived.")
                 setTaxonomyData(data)
+            }
+            else if (action === "taxonomyIDMessage") {
+                console.log("TaxonomyID arrived.")
+                document.title = data;
+                taxonomyID = data;
             }
             else if (action === "returnTaxonomyDataMessage") {
                 sendUpdatedData();

@@ -25,15 +25,15 @@ customGraphicsDisplaying = False
 
 taxonomies = {
     "parts": {
-        "Any": ["A", "B"],
+        "AnyPart": ["A", "B"],
         "A": ["B", "C"],
         "B": ["C"],
         "C": ["D", "E"]
     },
     "formats": {
-        "Any": []
+        "AnyFormat": []
     },
     "attributes": {
-        "Any": []
+        "AnyAttrib": []
     }
 }

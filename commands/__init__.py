@@ -11,6 +11,7 @@ from .. import config
 # If you want to add an additional command, duplicate one of the existing directories and import it here.
 # You need to use aliases (import "entry" as "my_module") assuming you have the default module named "entry".
 from .jointTyping import entry as jointTyping
+from .partTyping import entry as partTyping
 from .typeCrawlingProject import entry as typeCrawlingProject
 from .typeCrawlingHub import entry as typeCrawlingHub
 from .toggleCustomGraphics import entry as toggleCustomGraphics
@@ -24,8 +25,8 @@ ROOT_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 # TODO add your imported modules to this list.
 # Fusion will automatically call the start() and stop() functions.
 commands = [
-    jointTyping, typeCrawlingProject, typeCrawlingHub, toggleCustomGraphics,
-    taxonomyEditing
+    jointTyping, partTyping, typeCrawlingProject, typeCrawlingHub,
+    toggleCustomGraphics, taxonomyEditing
 ]
 
 
@@ -91,6 +92,7 @@ def start():
 
 def application_documentOpened(args: adsk.core.DocumentEventArgs):
     # Restore custom graphics
+    config.customGraphicsDisplaying = False
     cmd = ui.commandDefinitions.itemById(
         f'{config.COMPANY_NAME}_{config.ADDIN_NAME}_toggle_display')
     cmd.execute()

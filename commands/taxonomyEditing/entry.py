@@ -16,7 +16,7 @@ PALETTE_NAME = 'Taxonomy'
 IS_PROMOTED = True
 
 # Using "global" variables by referencing values from /config.py
-PALETTE_ID = config.taxonomy_palette_id
+PALETTE_ID = "partsTaxonomyBrowser_tax"
 
 # Specify the full path to the local html. You can also use a web URL
 # such as 'https://www.autodesk.com/'

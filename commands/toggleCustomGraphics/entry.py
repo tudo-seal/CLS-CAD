@@ -99,9 +99,9 @@ def command_execute(args: adsk.core.CommandEventArgs):
             config.customGraphicsDisplaying = False
     else:
         graphics = design.rootComponent.customGraphicsGroups.add()
-        for jointTyping in design.findAttributes("CLS", "JointTyping"):
+        for jointTyping in design.findAttributes("CLS-INFO", "UUID"):
             jo = jointTyping.parent
-            jo_uuid = jo.attributes.itemByName("CLS", "UUID").value
+            jo_uuid = jo.attributes.itemByName("CLS-INFO", "UUID").value
             tmatrix = adsk.core.Matrix3D.create()
             tmatrix.setWithCoordinateSystem(jo.geometry.origin,
                                             jo.geometry.secondaryAxisVector,
@@ -113,8 +113,8 @@ def command_execute(args: adsk.core.CommandEventArgs):
             offset.add(tmatrix.translation)
             tmatrix.translation = offset
             customText = graphics.addText(
-                "Type: %s\n Kinding: %s" % (jointTyping.value, ""), 'Arial',
-                0.2, tmatrix)
+                f'Requires: {jo.attributes.itemByName("CLS-JOINT", "RequiresString").value}\n Provides: {jo.attributes.itemByName("CLS-JOINT", "ProvidesString").value or "None"}',
+                'Courier New', 0.2, tmatrix)
             config.customTextDict[jo_uuid] = customText
             config.customGraphicsDisplaying = True
 

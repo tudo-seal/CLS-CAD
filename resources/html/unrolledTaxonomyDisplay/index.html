@@ -46,7 +46,7 @@
         <script>
             $('#data').jstree({
                 'core': {
-                    'data': [{ "id": "any", "parent": "#", "text": "Any" }],
+                    'data': [],
                     'force_text': true,
                     'check_callback': function (operation, node, node_parent, node_position, more) {
                         // operation can be 'create_node', 'rename_node', 'delete_node', 'move_node', 'copy_node' or 'edit'
@@ -202,12 +202,15 @@
             });
 
             $('#data').on('select_node.jstree', function (node, selected, event) {
+                selectedNames = []
+                $('#data').jstree(true).get_selected(true).forEach(selection => {
+                    selectedNames.push(selection.text)
+                });
                 const args = {
-                    arg1: selected.node.id,
-                    arg2: selected.node.text
+                    selections: selectedNames
                 };
 
-                adsk.fusionSendData("messageFromPalette", JSON.stringify(args)).then((result) =>
+                adsk.fusionSendData("selectionNotification", JSON.stringify(args)).then((result) =>
                     () => { }
                     // Potentially do stuff
                 );

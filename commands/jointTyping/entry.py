@@ -22,13 +22,16 @@ WORKSPACE_ID = 'FusionSolidEnvironment'
 PANEL_ID = 'TYPES'
 COMMAND_BESIDE_ID = 'ScriptsManagerCommand'
 
-PALETTE_ID = "parts"
-PALETTE_NAME = "Taxonomy"
+PARTTYPES_ID = "partsTaxonomyBrowser"
+FORMATTYPES_ID = "formatsTaxonomyBrowser"
+FORMATPROVIDESTYPES_ID = "providesFormatsTaxonomyBrowser"
+ATTRIBUTETYPES_ID = "attributesTaxonomyBrowser"
 
 # Specify the full path to the local html. You can also use a web URL
 # such as 'https://www.autodesk.com/'
 PALETTE_URL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..",
-                           "..", 'resources', 'html', 'index.html')
+                           "..", 'resources', 'html', "unrolledTaxonomyDisplay",
+                           'index.html')
 
 # The path function builds a valid OS path. This fixes it to be a valid local URL.
 PALETTE_URL = PALETTE_URL.replace('\\', '/')
@@ -86,9 +89,12 @@ jointOrigin = adsk.fusion.JointOrigin.cast(None)
 
 # Unsure if this is a better approach than iterating over the actual selection_input
 selectedJointOrigins = []
-typeTextBoxInput = adsk.core.TextBoxCommandInput.cast(None)
-nameTextBoxInput = adsk.core.TextBoxCommandInput.cast(None)
-typeSelectionBrowserInput = adsk.core.BrowserCommandInput.cast(None)
+#Initializing like this is nice but not necessary I guess
+#typeTextBoxInput = adsk.core.TextBoxCommandInput.cast(None)
+#nameStringValueInput = adsk.core.StringValueCommandInput.cast(None)
+#partsTypeSelectionBrowserInput = adsk.core.BrowserCommandInput.cast(None)
+
+reqFormats, reqAttributes, reqParts, providesFormats, providesParts, providesAttributes = [], [], [], [], [], []
 
 kinding = "Light"
 typing = "Blocked"
@@ -145,27 +151,55 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
 
     # UI DEF
 
-    selectionInput = inputs.addSelectionInput('selection', 'Select',
-                                              'Basic select command input')
+    selectionTab = inputs.addTabCommandInput('selectionTab',
+                                             'Select/Configure Joint')
+    requiresTab = inputs.addTabCommandInput('requiresTab',
+                                            'Select Required Type')
+    providesTab = inputs.addTabCommandInput('providesTab',
+                                            'Select Provided Type')
+    selectionTabInputs = selectionTab.children
+    requiresTabInputs = requiresTab.children
+    providesTabInputs = providesTab.children
+
+    selectionInput = selectionTabInputs.addSelectionInput(
+        'selection', 'Select', 'Basic select command input')
     selectionInput.setSelectionLimits(0)
     selectionInput.addSelectionFilter("JointOrigins")
 
-    global typeTextBoxInput, typeSelectionBrowserInput, kindingSelectionDropDownInput, nameTextBoxInput
+    global typeTextBoxInput, partsTypeSelectionBrowserInput, kindingSelectionDropDownInput, nameStringValueInput, providesTypeTextBoxInput
 
-    typeTextBoxInput = inputs.addTextBoxCommandInput('typeTextBox', 'Part Type',
-                                                     '', 2, True)
-    nameTextBoxInput = inputs.addTextBoxCommandInput('nameTextBox', 'Set Name',
-                                                     '', 2, False)
+    typeTextBoxInput = selectionTabInputs.addTextBoxCommandInput(
+        'typeTextBox', 'Requires Type', '', 2, True)
+    providesTypeTextBoxInput = selectionTabInputs.addTextBoxCommandInput(
+        'providesTypeTextBox', 'Provides Type', '', 2, True)
+    nameStringValueInput = selectionTabInputs.addStringValueInput(
+        'nameTextBox', 'Set Name', '')
 
-    groupTypingCmdInput = inputs.addGroupCommandInput('typingGroup', 'Typing')
-    groupTypingCmdInput.isExpanded = True
-    groupTypingChildren = groupTypingCmdInput.children
-
-    typeSelectionBrowserInput = inputs.addBrowserCommandInput(
-        id=PALETTE_ID,
-        name=PALETTE_NAME,
+    #groupTypingCmdInput = inputs.addGroupCommandInput('typingGroup', 'Typing')
+    #groupTypingCmdInput.isExpanded = True
+    #groupTypingChildren = groupTypingCmdInput.children
+    formatsTypeSelectionBrowserInput = requiresTabInputs.addBrowserCommandInput(
+        id=FORMATTYPES_ID,
+        name='Select format/format family',
         htmlFileURL=PALETTE_URL,
-        minimumHeight=500)
+        minimumHeight=300)
+    partsTypeSelectionBrowserInput = requiresTabInputs.addBrowserCommandInput(
+        id=PARTTYPES_ID,
+        name='Select part/part family',
+        htmlFileURL=PALETTE_URL,
+        minimumHeight=300)
+    attributesTypeSelectionBrowserInput = requiresTabInputs.addBrowserCommandInput(
+        id=ATTRIBUTETYPES_ID,
+        name='Select attributes/attribute family',
+        htmlFileURL=PALETTE_URL,
+        minimumHeight=300)
+
+    # Mot synced with other formats browser, figure that out still
+    providesTypeSelectionBrowserInput = providesTabInputs.addBrowserCommandInput(
+        id=FORMATPROVIDESTYPES_ID,
+        name='Select format present at joint',
+        htmlFileURL=PALETTE_URL,
+        minimumHeight=300)
 
 
 def command_executePreview(args: adsk.core.CommandEventHandler):
@@ -189,7 +223,9 @@ def command_select(args: adsk.core.SelectionEventArgs):
     if design and selectedJointOrigin:
         try:
             typeTextBoxInput.text = selectedJointOrigin.attributes.itemByName(
-                "CLS", "JointTyping").value
+                "CLS-JOINT", "RequiresString").value or "None"
+            providesTypeTextBoxInput.text = selectedJointOrigin.attributes.itemByName(
+                "CLS-JOINT", "ProvidesString").value or "None"
         except:
             pass
         selectedJointOrigins.append(selectedJointOrigin)
@@ -267,10 +303,30 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
     log_msg += f"Action: {message_action}\n"
     log_msg += f"Data: {message_data}"
     futil.log(log_msg, adsk.core.LogLevels.InfoLogLevel)
-
+    global reqFormats, reqParts, reqAttributes, providesFormats
+    if message_action == 'selectionNotification':
+        if html_args.browserCommandInput.id == PARTTYPES_ID:
+            reqParts = message_data['selections']
+        elif html_args.browserCommandInput.id == ATTRIBUTETYPES_ID:
+            reqAttributes = message_data['selections']
+        elif html_args.browserCommandInput.id == FORMATTYPES_ID:
+            reqFormats = message_data['selections']
+        elif html_args.browserCommandInput.id == FORMATPROVIDESTYPES_ID:
+            providesFormats = message_data['selections']
+        typeTextBoxInput.text = f'( ({"∩".join(reqFormats)} ∩ ({"∩".join(reqParts)}) ∩ ({"∩".join(reqAttributes)}) )'.replace(
+            " ∩ ()", "")
+        providesTypeTextBoxInput.text = f'( ({"∩".join(providesFormats)}) ∩ ({"∩".join(providesParts)}) ∩ ({"∩".join(providesAttributes)}) )'.replace(
+            " ∩ ()", "")
     if message_action == 'updateDataNotification':
         # Update loaded and saved taxonomies
-        taxonomyID = html_args.browserCommandInput.id
+
+        # The browser IDs should be refactored into constants
+        if html_args.browserCommandInput.id == PARTTYPES_ID:
+            taxonomyID = "parts"
+        elif html_args.browserCommandInput.id == ATTRIBUTETYPES_ID:
+            taxonomyID = "attributes"
+        elif html_args.browserCommandInput.id == FORMATTYPES_ID or html_args.browserCommandInput.id == FORMATPROVIDESTYPES_ID:
+            taxonomyID = "formats"
         config.taxonomies[taxonomyID] = message_data
         with open(os.path.join(ROOT_FOLDER, "%s.taxonomy" % taxonomyID),
                   "w+") as f:
@@ -278,9 +334,21 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
 
     if message_action == 'readyNotification':
         # ADSK was injected, so now we send the payload
-        taxonomyDataMessage = config.taxonomies["parts"]
-        typeSelectionBrowserInput.sendInfoToHTML(
+        taxonomyID = None
+        taxonomyDataMessage = None
+        if html_args.browserCommandInput.id == PARTTYPES_ID:
+            taxonomyDataMessage = config.taxonomies["parts"]
+            taxonomyID = "parts"
+        elif html_args.browserCommandInput.id == ATTRIBUTETYPES_ID:
+            taxonomyDataMessage = config.taxonomies["attributes"]
+            taxonomyID = "attributes"
+        elif html_args.browserCommandInput.id == FORMATTYPES_ID or html_args.browserCommandInput.id == FORMATPROVIDESTYPES_ID:
+            taxonomyDataMessage = config.taxonomies["formats"]
+            taxonomyID = "formats"
+        html_args.browserCommandInput.sendInfoToHTML(
             "taxonomyDataMessage", json.dumps(taxonomyDataMessage))
+        html_args.browserCommandInput.sendInfoToHTML("taxonomyIDMessage",
+                                                     taxonomyID)
 
     # Return value.
     now = datetime.now()
@@ -308,30 +376,40 @@ def command_execute(args: adsk.core.CommandEventArgs):
         adsk.core.Point3D.create(0, 0, 0))
     billBoard.billBoardStyle = adsk.fusion.CustomGraphicsBillBoardStyles.ScreenBillBoardStyle
 
-    global typing, kinding, selectedJointOrigins, nameTextBoxInput, typeSelectionBrowserInput
+    global typing, kinding, selectedJointOrigins, nameStringValueInput, partsTypeSelectionBrowserInput
 
     print("Trying to sync")
-    typeSelectionBrowserInput.sendInfoToHTML("returnTaxonomyDataMessage", "{}")
-
-    # TODO Query for all already set up joint origins and read custom graphics to them on launch
-    for jointTyping in design.findAttributes("CLS", "JointTyping"):
-        jointTyping.parent
-        print("Query Result: " + jointTyping.value)
+    partsTypeSelectionBrowserInput.sendInfoToHTML("returnTaxonomyDataMessage",
+                                                  "{}")
 
     selections = []
     for jo in selectedJointOrigins:
 
         # Add typing information as string (this is kinda okay, because we'll send it via JSON to the backend anyway)
-        jo.attributes.add("CLS", "JointTyping", typing)
+        jo.attributes.add("CLS-JOINT", "RequiresString", typeTextBoxInput.text)
+        jo.attributes.add(
+            "CLS-JOINT", "ProvidesString",
+            f'({"∩".join(providesFormats)})'.replace(" ∩ ()",
+                                                     "").replace("()", ""))
+        jo.attributes.add("CLS-JOINT", "RequiresFormats",
+                          json.dumps(reqFormats))
+        jo.attributes.add("CLS-JOINT", "RequiresParts", json.dumps(reqParts))
+        jo.attributes.add("CLS-JOINT", "RequiresAttributes",
+                          json.dumps(reqAttributes))
+        jo.attributes.add("CLS-JOINT", "ProvidesFormats",
+                          json.dumps(providesFormats))
 
         # The first time a joint is typed, assign a UUID and change its name
-        if not jo.attributes.itemByName("CLS", "UUID"):
+        if not jo.attributes.itemByName("CLS-INFO", "UUID"):
             print("Added UUID to %s" % jo.name)
-            jo.attributes.add("CLS", "UUID", str(uuid.uuid4()))
+            jo.attributes.add("CLS-INFO", "UUID", str(uuid.uuid4()))
             jo.name = 'Typed Joint'
 
-        jo_uuid = jo.attributes.itemByName("CLS", "UUID").value
+        jo_uuid = jo.attributes.itemByName("CLS-INFO", "UUID").value
 
+        ################################################
+        ################################################
+        # GRAPHICAL DISPLAY STUFF, IMPORTANT A BIT LATER
         coord_array = [
             jo.geometry.origin.x, jo.geometry.origin.y, jo.geometry.origin.z
         ]
@@ -341,8 +419,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
             UserDefinedCustomGraphicsPointType, ICON_FOLDER + '/lambda.png')
         if jo_uuid in config.customTextDict:
             config.customTextDict[
-                jo_uuid].formattedText = "Type: %s\n Kinding: %s" % (typing,
-                                                                     kinding)
+                jo_uuid].formattedText = f'Requires: {jo.attributes.itemByName("CLS-JOINT", "RequiresString").value}\n Provides: {jo.attributes.itemByName("CLS-JOINT", "ProvidesString").value or "None"}'
         else:
             tmatrix = adsk.core.Matrix3D.create()
             tmatrix.setWithCoordinateSystem(jo.geometry.origin,
@@ -355,11 +432,11 @@ def command_execute(args: adsk.core.CommandEventArgs):
             offset.add(tmatrix.translation)
             tmatrix.translation = offset
             customText = graphics.addText(
-                "Type: %s\n Kinding: %s" % (typing, kinding), 'Arial', 0.2,
-                tmatrix)
+                f'Requires: {jo.attributes.itemByName("CLS-JOINT", "RequiresString").value}\n Provides: {jo.attributes.itemByName("CLS-JOINT", "ProvidesString").value or "None"}',
+                'Courier New', 0.2, tmatrix)
             config.customTextDict[jo_uuid] = customText
 
-    design.selectionSets.add(selectedJointOrigins, nameTextBoxInput.text)
+    design.selectionSets.add(selectedJointOrigins, nameStringValueInput.value)
 
     selectedJointOrigins = []
     # Should probably be a toggle under visualisation section
@@ -372,6 +449,7 @@ def command_preview(args: adsk.core.CommandEventArgs):
 
 
 def command_destroy(args: adsk.core.CommandEventArgs):
-    global local_handlers
+    global local_handlers, reqAttributes, reqFormats, reqParts, providesAttributes, providesFormats, providesParts
     local_handlers = []
+    reqAttributes, reqFormats, reqParts, providesAttributes, providesFormats, providesParts = [],[],[],[],[],[]
     futil.log(f'{CMD_NAME} Command Destroy Event')

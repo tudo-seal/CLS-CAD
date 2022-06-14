@@ -67,7 +67,8 @@ function setTaxonomyData(taxonomyString) {
                     'text-valign': 'center',
                     'color': '#000000',
                     'background-color': '#639a00',
-                    'font-family': 'ArtifaktElement, sans-serif'
+                    'font-family': 'Courier, monospace',
+                    'font-weight': '900'
                 }
             }
         ],
@@ -97,7 +98,9 @@ window.fusionJavaScriptHandler = {
                 updateMessage(data);
             } else if (action === "taxonomyDataMessage") {
                 console.log("TaxonomyData arrived.")
-                setTaxonomyData(data)
+                setTaxonomyData(data);
+            } else if (action === "taxonomyIDMessage") {
+                document.title = data;
             } else if (action === "debugger") {
                 debugger;
             } else {
