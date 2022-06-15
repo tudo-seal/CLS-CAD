@@ -183,9 +183,9 @@ def generateTypeText():
         reqList = [x[0] for x in typedJOs if x != joInfo]
         uuidList = [x[2] for x in typedJOs if x != joInfo]
         guardedTypes.append(
-            f'( Constructor(\"Config\",{"×".join(uuidList)}) ) → ' +
-            "→".join(reqList) + " → ( " + joInfo[1] +
-            f' ∩ ({"∩".join(providesParts)}) ∩ ({"∩".join(providesAttributes)}) )'
+            f'(Constructor(\"Config\",{"×".join(uuidList)})) → ' +
+            "→".join(reqList) + " → (" + joInfo[1] +
+            f' ∩ ({"∩".join(providesParts)}) ∩ ({"∩".join(providesAttributes)}))'
         )
     return """<style>
                 pre {
@@ -195,7 +195,7 @@ def generateTypeText():
                     line-height: 100%;
                     font-family: Courier;
                 }
-                </style><pre>""" + " ∩ \n".join(guardedTypes).replace(
+                </style><pre>(""" + ") ∩ \n".join(guardedTypes).replace(
         " ∩ ()", "") + "</pre>"
 
 

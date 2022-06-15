@@ -220,12 +220,30 @@ def command_select(args: adsk.core.SelectionEventArgs):
     app = adsk.core.Application.get()
     design = adsk.fusion.Design.cast(app.activeProduct)
     selectedJointOrigin = adsk.fusion.JointOrigin.cast(args.selection.entity)
+    global reqAttributes, reqFormats, reqParts, providesFormats
     if design and selectedJointOrigin:
         try:
             typeTextBoxInput.text = selectedJointOrigin.attributes.itemByName(
                 "CLS-JOINT", "RequiresString").value or "None"
             providesTypeTextBoxInput.text = selectedJointOrigin.attributes.itemByName(
                 "CLS-JOINT", "ProvidesString").value or "None"
+            providesFormats = json.loads(
+                selectedJointOrigin.attributes.itemByName(
+                    "CLS-JOINT", "ProvidesFormats").value)
+            reqAttributes = json.loads(
+                selectedJointOrigin.attributes.itemByName(
+                    "CLS-JOINT", "RequiresAttributes").value)
+            reqFormats = json.loads(
+                selectedJointOrigin.attributes.itemByName(
+                    "CLS-JOINT", "RequiresFormats").value)
+            reqParts = json.loads(
+                selectedJointOrigin.attributes.itemByName(
+                    "CLS-JOINT", "RequiresParts").value)
+            #If nothing went wrong here, properly generate the text
+            typeTextBoxInput.text = f'(({"∩".join(reqFormats)} ∩ ({"∩".join(reqParts)}) ∩ ({"∩".join(reqAttributes)}))'.replace(
+                " ∩ ()", "")
+            providesTypeTextBoxInput.text = f'(({"∩".join(providesFormats)}) ∩ ({"∩".join(providesParts)}) ∩ ({"∩".join(providesAttributes)}))'.replace(
+                " ∩ ()", "")
         except:
             pass
         selectedJointOrigins.append(selectedJointOrigin)
