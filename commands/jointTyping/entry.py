@@ -432,9 +432,6 @@ def command_execute(args: adsk.core.CommandEventArgs):
             jo.geometry.origin.x, jo.geometry.origin.y, jo.geometry.origin.z
         ]
         coords = adsk.fusion.CustomGraphicsCoordinates.create(coord_array)
-        points = graphics.addPointSet(
-            coords, [0], adsk.fusion.CustomGraphicsPointTypes.
-            UserDefinedCustomGraphicsPointType, ICON_FOLDER + '/lambda.png')
         if jo_uuid in config.customTextDict:
             config.customTextDict[
                 jo_uuid].formattedText = f'Requires: {jo.attributes.itemByName("CLS-JOINT", "RequiresString").value}\n Provides: {jo.attributes.itemByName("CLS-JOINT", "ProvidesString").value or "None"}'
