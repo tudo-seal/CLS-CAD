@@ -45,6 +45,7 @@ ROOT_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..',
 # Local list of event handlers used to maintain a reference so
 # they are not released and garbage collected.
 local_handlers = []
+providesParts, providesAttributes = [], []
 
 # Executed when add-in is run.
 
@@ -86,10 +87,10 @@ jointOrigin = adsk.fusion.JointOrigin.cast(None)
 typeTextBoxInput = adsk.core.TextBoxCommandInput.cast(None)
 partsTypeSelectionBrowserInput = adsk.core.BrowserCommandInput.cast(None)
 
-providesParts, providesAttributes = [], []
-
 
 def command_created(args: adsk.core.CommandCreatedEventArgs):
+    global typeTextBoxInput, partsTypeSelectionBrowserInput, providesParts, providesAttributes
+
     # General logging for debug.
     futil.log(f'{CMD_NAME} Command Created Event')
 
@@ -113,13 +114,22 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
                       command_activate,
                       local_handlers=local_handlers)
 
+    app = adsk.core.Application.get()
+    design = adsk.fusion.Design.cast(app.activeProduct)
+    providesAttributes = json.loads(
+        design.rootComponent.attributes.itemByName(
+            "CLS-PART", "ProvidesAttributes").value if design.rootComponent.
+        attributes.itemByName("CLS-PART", "ProvidesAttributes") else "")
+    providesParts = json.loads(
+        design.rootComponent.attributes.itemByName("CLS-PART", "ProvidesParts").
+        value if design.rootComponent.attributes.
+        itemByName("CLS-PART", "ProvidesParts") else "")
+
     inputs = args.command.commandInputs
     args.command.setDialogMinimumSize(1200, 800)
     args.command.setDialogInitialSize(1200, 800)
 
     # UI DEF
-
-    global typeTextBoxInput, partsTypeSelectionBrowserInput, kindingSelectionDropDownInput, nameStringValueInput, providesTypeTextBoxInput
 
     typeTextBoxInput = inputs.addTextBoxCommandInput('typeTextBox', 'Part Type',
                                                      '', 1, True)
@@ -175,7 +185,7 @@ def generateTypeText():
         guardedTypes.append(
             f'( Constructor(\"Config\",{"×".join(uuidList)}) ) → ' +
             "→".join(reqList) + " → ( " + joInfo[1] +
-            f'∩ ({"∩".join(providesParts)}) ∩ ({"∩".join(providesAttributes)}) )'
+            f' ∩ ({"∩".join(providesParts)}) ∩ ({"∩".join(providesAttributes)}) )'
         )
     return """<style>
                 pre {
@@ -245,9 +255,20 @@ def command_execute(args: adsk.core.CommandEventArgs):
     # General logging for debug
     futil.log(f'{CMD_NAME} Command Execute Event')
 
+    global providesAttributes, providesParts
     inputs = args.command.commandInputs
     app = adsk.core.Application.get()
     design = adsk.fusion.Design.cast(app.activeProduct)
+    rootComp = design.rootComponent
+    rootComp.attributes.add(
+        "CLS-PART",
+        "ProvidesString",
+        f'({"∩".join(providesParts)}) ∩ ({"∩".join(providesAttributes)})',
+    )
+    rootComp.attributes.add("CLS-PART", "ProvidesAttributes",
+                            json.dumps(providesAttributes))
+    rootComp.attributes.add("CLS-PART", "ProvidesParts",
+                            json.dumps(providesParts))
 
 
 def command_preview(args: adsk.core.CommandEventArgs):
