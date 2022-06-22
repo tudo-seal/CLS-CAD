@@ -1,27 +1,37 @@
 from glob import glob1
+import json
 from typing import Iterable
 from uuid import uuid4
 from cls_python import *
 
-a = Constructor("a")
 
-
-class Listify:
+class Jsonify:
 
     def __call__(self, x):
-        return Listify([*self.data, x])
+        return Jsonify(self.config, [*self.data, x], self.description)
 
     def __str__(self):
         return deep_str(self.data)
 
-    def __init__(self, data):
+    def __init__(self, config, data, description):
+        self.config = config
         self.data = data
+        self.description = description
+
+    def to_dict(self):
+        return dict(part=self.description,
+                    provides=self.config.provides,
+                    **{
+                        label: bauteil.to_dict()
+                        for (label,
+                             bauteil) in zip(self.config.jointorder, self.data)
+                    })
 
 
 class Part(object):
 
     def __call__(self, x):
-        return Listify([self.payload, x])
+        return Jsonify(x, [], self.payload)
 
     def __repr__(self):
         return ""
@@ -38,19 +48,15 @@ class Part(object):
     def __init__(self, payload):
         # Create combinator type here based on some JSON payload in future
         self.payload = payload
-        print(payload)
 
 
-def flatten(lis):
-    for idx, item in enumerate(lis):
-        if isinstance(item, str):
-            jnts = [s + ":" for s in item.split("_")]
-            for i in range(len(jnts) - 1):
-                jnts[i] = jnts[i] + deep_str(lis[i + idx + 1])
-        if isinstance(item, Iterable) and not isinstance(item, str):
-            #recurse here
-            pass
-    return deep_str(jnts)
+#additional info about the parts configuration options
+class Config:
+
+    def __init__(self, jointorder, provides):
+        # Create combinator type here based on some JSON payload in future
+        self.jointorder = jointorder
+        self.provides = provides
 
 
 if __name__ == "__main__":
@@ -69,17 +75,17 @@ if __name__ == "__main__":
 
     differentialdrive = Constructor("differentialdrive")
 
-    mainpart = Part("mainpart:")
-    endpart1 = Part("endpart1:")
-    endpart2 = Part("endpart2:")
-    endpart3 = Part("endpart3:")
+    mainpart = Part("mainpart")
+    endpart1 = Part("endpart1")
+    endpart2 = Part("endpart2")
+    endpart3 = Part("endpart3")
 
-    g1 = Constructor("j1_j2_j3")
-    g2 = Constructor("j1_j3_j2")
-    g3 = Constructor("j2_j3_j1")
-    h1 = Constructor("j1")
-    h2 = Constructor("j2")
-    h3 = Constructor("j1_j2")
+    g1 = Config(["j1", "j2"], "j3")
+    g2 = Config(["j1", "j3"], "j2")
+    g3 = Config(["j2", "j3"], "j1")
+    h1 = Config([], "j1")
+    h2 = Config([], "j2")
+    h3 = Config(["j2"], "j1")
 
     taxonomy = Subtypes({
         steel410.name: {steel.name},
@@ -88,71 +94,68 @@ if __name__ == "__main__":
 
     mychemicalrepo = {
         mainpart:
-        Type.intersect([
-            Arrow(
-                Constructor("j1_j2_j3"),
+            Type.intersect([
                 Arrow(
-                    Type.intersect([steel, xl430hornmount]),
+                    Constructor("j1_j2_j3"),
                     Arrow(
-                        Type.intersect([steel410, xl430hornmount]),
-                        Type.intersect(
-                            [steel, differentialdrive,
-                             baseplatebolt])))),  #j3 as last
-            Arrow(
-                Constructor("j1_j3_j2"),
+                        Type.intersect([steel, xl430hornmount]),
+                        Arrow(
+                            Type.intersect([steel410, xl430hornmount]),
+                            Type.intersect(
+                                [steel, differentialdrive,
+                                 baseplatebolt])))),    #j3 as last
                 Arrow(
-                    Type.intersect([steel, xl430hornmount]),
+                    Constructor("j1_j3_j2"),
                     Arrow(
-                        Type.intersect([steel, baseplate]),
-                        Type.intersect([steel, differentialdrive,
-                                        xl430horn])))),  #j2 as last
-            Arrow(Constructor("j2_j3_j1"),
-                  Arrow(
-                      Type.intersect([steel410, xl430hornmount]),
+                        Type.intersect([steel, xl430hornmount]),
+                        Arrow(
+                            Type.intersect([steel, baseplate]),
+                            Type.intersect(
+                                [steel, differentialdrive,
+                                 xl430horn])))),    #j2 as last
+                Arrow(Constructor("j2_j3_j1"),
                       Arrow(
-                          Type.intersect([steel, baseplate]),
-                          Type.intersect([steel, differentialdrive,
-                                          xl430horn]))))  #j1 as last
-        ]),
+                          Type.intersect([steel410, xl430hornmount]),
+                          Arrow(
+                              Type.intersect([steel, baseplate]),
+                              Type.intersect(
+                                  [steel, differentialdrive,
+                                   xl430horn]))))    #j1 as last
+            ]),
         endpart1:
-        Type.intersect([
-            Arrow(
-                Constructor("j1_j2"),
-                Arrow(Type.intersect([steel410, xl430hornmount]),
+            Type.intersect([
+                Arrow(
+                    Constructor("j2_j1"),
+                    Arrow(Type.intersect([steel410, xl430hornmount]),
+                          Type.intersect([steel410, xl430hornmount
+                                         ]))),    #provides its j1
+                Arrow(Constructor("j2"),
                       Type.intersect([steel410,
-                                      xl430hornmount]))),  #provides its j1
-            Arrow(Constructor("j2"),
-                  Type.intersect([steel410, baseplate])),  #provides its j2
-        ]),  #only has provides joints
+                                      baseplate])),    #provides its j2
+            ]),    #only has provides joints
         endpart2:
-        Type.intersect([
-            Arrow(Constructor("j1"), Type.intersect([steel410,
-                                                     xl430hornmount]))
-        ]),  #only has provides joints
-        "uid1_uid2_uid3":
-        g1,
-        "uid1_uid3_uid2":
-        g2,
-        "uid2_uid3_uid1":
-        g3,
-        "h1":
-        h1,
-        "h2":
-        h2,
-        "uid2_uid1":
-        h3
+            Type.intersect([
+                Arrow(Constructor("j1"),
+                      Type.intersect([steel410, xl430hornmount]))
+            ]),    #only has provides joints
+        g1:
+            Constructor("j1_j2_j3"),
+        g2:
+            Constructor("j1_j3_j2"),
+        g3:
+            Constructor("j2_j3_j1"),
+        h1:
+            Constructor("j1"),
+        h2:
+            Constructor("j2"),
+        h3:
+            Constructor("j2_j1")
     }
-    #print(deep_str(mychemicalrepo))
+
     gamma = FiniteCombinatoryLogic(mychemicalrepo, taxonomy, processes=1)
-    result = gamma.inhabit(
-        Type.intersect([steel, differentialdrive, xl430horn]))
-
-    print(deep_str(result.grouped_rules))
+    result = gamma.inhabit(Type.intersect([steel, differentialdrive,
+                                           xl430horn]))
     print(result.size())
-    for x in range(0, 10):
-        #print(deep_str(result.raw[x]))
-        #print(deep_str(result.evaluated[x]))
-        print(flatten(result.evaluated[x].data) + "\n\n\n")
-        #This is just transformable to JSON
-
-        # Bäume (deep_str weil print auf den listen elementen .repr statt .str aufruft)
+    for x in range(9, 10):
+        json_formatted_str = json.dumps(result.evaluated[x].to_dict(), indent=4)
+        print(json_formatted_str)
