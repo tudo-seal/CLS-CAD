@@ -1,7 +1,6 @@
-from abc import ABC, abstractmethod
+from abc import ABC
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Optional, Tuple
 
 
 @dataclass(frozen=True)
