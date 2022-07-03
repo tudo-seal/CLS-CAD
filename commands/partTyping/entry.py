@@ -6,9 +6,11 @@ import os
 import inspect
 import copy
 from ...lib import fusion360utils as futil
+from ...lib.cls_python_compat import *
 from ... import config
 import uuid
 import collections
+import base64
 
 app = adsk.core.Application.get()
 ui = app.userInterface
@@ -250,6 +252,15 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
     html_args.returnData = f'OK - {currentTime}'
 
 
+def winapi_path(dos_path, encoding=None):
+    if (not isinstance(dos_path, str) and encoding is not None):
+        dos_path = dos_path.decode(encoding)
+    path = os.path.abspath(dos_path)
+    if path.startswith(u"\\\\"):
+        return u"\\\\?\\UNC\\" + path[2:]
+    return u"\\\\?\\" + path
+
+
 # EXECUTE
 def command_execute(args: adsk.core.CommandEventArgs):
     # General logging for debug
@@ -269,6 +280,38 @@ def command_execute(args: adsk.core.CommandEventArgs):
                             json.dumps(providesAttributes))
     rootComp.attributes.add("CLS-PART", "ProvidesParts",
                             json.dumps(providesParts))
+
+    #Demo of data interchange to backend
+    joInfos = []
+    for jointTyping in design.findAttributes("CLS-INFO", "UUID"):
+        jo = jointTyping.parent
+        joUUID = jo.attributes.itemByName("CLS-INFO", "UUID").value
+        joReqFormats = json.loads(
+            jo.attributes.itemByName("CLS-JOINT", "RequiresFormats").value)
+        joReqParts = json.loads(
+            jo.attributes.itemByName("CLS-JOINT", "RequiresParts").value)
+        joReqAttributes = json.loads(
+            jo.attributes.itemByName("CLS-JOINT", "RequiresAttributes").value)
+        joProvFormats = json.loads(
+            jo.attributes.itemByName("CLS-JOINT", "ProvidesFormats").value)
+        joInfos.append((joUUID, joReqFormats + joReqParts + joReqAttributes,
+                        providesAttributes + providesParts + joProvFormats))
+    configurations = []
+    for info in joInfos:
+        reqJoints = [x for x in joInfos if x != info]
+        arrow = Type.intersect(info[2])
+        for reqJoint in reqJoints:
+            arrow = Arrow(Type.intersect(reqJoint[1]), arrow)
+        configurations.append(
+            Arrow("_".join([x[0] for x in reqJoints + [info]]), arrow))
+    with open(
+            winapi_path(
+                os.path.join(
+                    ROOT_FOLDER, "_".join([
+                        app.data.activeProject.id, app.data.activeFolder.id,
+                        app.activeDocument.dataFile.id
+                    ]).replace(":", "-") + ".json")), "w+") as f:
+        json.dump(Type.intersect(configurations), f, cls=CLSEncoder, indent=4)
 
 
 def command_preview(args: adsk.core.CommandEventArgs):

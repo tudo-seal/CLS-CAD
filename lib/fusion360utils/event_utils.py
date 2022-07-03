@@ -4,18 +4,15 @@ from typing import Callable, Union
 import adsk.core
 from .general_utils import handle_error
 
-
 # Global Variable to hold Event Handlers
 _handlers = []
 
 
-def add_handler(
-        event: adsk.core.Event,
-        callback: Callable,
-        *,
-        name: str = None,
-        local_handlers: list = None
-):
+def add_handler(event: adsk.core.Event,
+                callback: Callable,
+                *,
+                name: str = None,
+                local_handlers: list = None):
     """Adds an event handler to the specified event.
 
     Arguments:
@@ -31,10 +28,11 @@ def add_handler(
                       be cleared using the clear_handlers function. You may want
                       to maintain your own handler list so it can be managed 
                       independently for each command.
-    """   
+    """
     module = sys.modules[event.__module__]
     handler_type = module.__dict__[event.add.__annotations__['handler']]
-    handler = _create_handler(handler_type, callback, event, name, local_handlers)
+    handler = _create_handler(handler_type, callback, event, name,
+                              local_handlers)
     event.add(handler)
 
 
@@ -45,13 +43,11 @@ def clear_handlers():
     _handlers = []
 
 
-def _create_handler(
-        handler_type,
-        callback: Callable,
-        event: adsk.core.Event,
-        name: str = None,
-        local_handlers: list = None
-):
+def _create_handler(handler_type,
+                    callback: Callable,
+                    event: adsk.core.Event,
+                    name: str = None,
+                    local_handlers: list = None):
     handler = _define_handler(handler_type, callback, name)()
     (local_handlers or _handlers).append(handler)
     return handler
@@ -61,6 +57,7 @@ def _define_handler(handler_type, callback, name: str = None):
     name = name or handler_type.__name__
 
     class Handler(handler_type):
+
         def __init__(self):
             super().__init__()
 
