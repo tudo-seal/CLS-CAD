@@ -4,7 +4,7 @@ __pycache__/
 *$py.class
 
 *.taxonomy
-+.json
+*.json
 
 # C extensions
 *.so
