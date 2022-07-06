@@ -187,3 +187,6 @@ fabric.properties
 *.sqlite
 migrations/
 
+# application specific
+Repositories
+
