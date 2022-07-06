@@ -43,7 +43,7 @@ class Part(object):
         return isinstance(other, Part)
 
     def __hash__(self):
-        return hash(self.payload)
+        return  ayload)
 
     def __init__(self, payload):
         # Create combinator type here based on some JSON payload in future

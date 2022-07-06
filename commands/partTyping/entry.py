@@ -297,13 +297,26 @@ def command_execute(args: adsk.core.CommandEventArgs):
         joInfos.append((joUUID, joReqFormats + joReqParts + joReqAttributes,
                         providesAttributes + providesParts + joProvFormats))
     configurations = []
+    partDict = {"partConfigs": []}
     for info in joInfos:
         reqJoints = [x for x in joInfos if x != info]
+        partDict["partConfigs"].append({
+            "jointOrderUuids": [x[0] for x in reqJoints],
+            "providesUuid": info[0]
+        })
         arrow = Type.intersect(info[2])
         for reqJoint in reqJoints:
             arrow = Arrow(Type.intersect(reqJoint[1]), arrow)
         configurations.append(
             Arrow("_".join([x[0] for x in reqJoints + [info]]), arrow))
+    partDict["combinator"] = CLSEncoder().default(
+        Type.intersect(configurations))
+    partDict["partName"] = app.activeDocument.name
+    # this might be wrong and return the browsed ID
+    partDict["forgeProjectId"] = app.data.activeProject.id
+    partDict["forgeFolderId"] = app.data.activeFolder.id
+    partDict["forgeDocumentId"] = app.activeDocument.dataFile.id
+
     with open(
             winapi_path(
                 os.path.join(
@@ -311,7 +324,12 @@ def command_execute(args: adsk.core.CommandEventArgs):
                         app.data.activeProject.id, app.data.activeFolder.id,
                         app.activeDocument.dataFile.id
                     ]).replace(":", "-") + ".json")), "w+") as f:
-        json.dump(Type.intersect(configurations), f, cls=CLSEncoder, indent=4)
+        json.dump(
+            partDict,
+            f,
+            cls=CLSEncoder,
+            indent=4,
+        )
 
 
 def command_preview(args: adsk.core.CommandEventArgs):

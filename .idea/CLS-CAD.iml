@@ -13,15 +13,6 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module-library" scope="PROVIDED">
-      <library name="Fusion 360 API" type="python">
-        <CLASSES>
-          <root url="file://$MODULE_DIR$/../../../../../../Local/Autodesk/webdeploy/production/a728026e6cfbcb51c0eeb65fc1debc9226e69551/Api/Python/packages/adsk/defs" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES />
-      </library>
-    </orderEntry>
   </component>
   <component name="PyDocumentationSettings">
     <option name="format" value="GOOGLE" />
