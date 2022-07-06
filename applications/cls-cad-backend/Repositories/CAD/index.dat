@@ -1,0 +1,23 @@
+{
+    "folders": {
+        "urn:adsk.wipprod:fs.folder:co.E7Fo0V78SVux5exRVol-ig": [
+            "urn:adsk.wipprod:dm.lineage:r0B29-dmRPi_YH8bi-Cptg"
+        ]
+    },
+    "parts": {
+        "urn:adsk.wipprod:dm.lineage:r0B29-dmRPi_YH8bi-Cptg": {
+            "forgeProjectId": "a.YnVzaW5lc3M6Y2hhdW1ldCNEMjAxOTA4MTQyMDg3NzMxNzY",
+            "forgeFolderId": "urn:adsk.wipprod:fs.folder:co.E7Fo0V78SVux5exRVol-ig"
+        }
+    },
+    "projects": {
+        "a.YnVzaW5lc3M6Y2hhdW1ldCNEMjAxOTA4MTQyMDg3NzMxNzY": {
+            "folders": [
+                "urn:adsk.wipprod:fs.folder:co.E7Fo0V78SVux5exRVol-ig"
+            ],
+            "documents": [
+                "urn:adsk.wipprod:dm.lineage:r0B29-dmRPi_YH8bi-Cptg"
+            ]
+        }
+    }
+}
