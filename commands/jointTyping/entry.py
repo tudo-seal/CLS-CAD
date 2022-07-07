@@ -150,6 +150,7 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     args.command.setDialogInitialSize(600, 800)
 
     # UI DEF
+    global typeTextBoxInput, partsTypeSelectionBrowserInput, kindingSelectionDropDownInput, nameStringValueInput, providesTypeTextBoxInput, jointConnectTypeInput
 
     selectionTab = inputs.addTabCommandInput('selectionTab',
                                              'Select/Configure Joint')
@@ -166,7 +167,11 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     selectionInput.setSelectionLimits(0)
     selectionInput.addSelectionFilter("JointOrigins")
 
-    global typeTextBoxInput, partsTypeSelectionBrowserInput, kindingSelectionDropDownInput, nameStringValueInput, providesTypeTextBoxInput
+    jointConnectTypeInput = selectionTabInputs.addButtonRowCommandInput(
+        'jointTypeSelection', 'Joint Type', False)
+    jointConnectTypeInput.listItems.add('Rigid', False, 'resources/lambda.png')
+    jointConnectTypeInput.listItems.add('Revolute', False,
+                                        'resources/lambda.png')
 
     typeTextBoxInput = selectionTabInputs.addTextBoxCommandInput(
         'typeTextBox', 'Requires Type', '', 2, True)
@@ -394,7 +399,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
         adsk.core.Point3D.create(0, 0, 0))
     billBoard.billBoardStyle = adsk.fusion.CustomGraphicsBillBoardStyles.ScreenBillBoardStyle
 
-    global typing, kinding, selectedJointOrigins, nameStringValueInput, partsTypeSelectionBrowserInput
+    global typing, kinding, selectedJointOrigins, nameStringValueInput, partsTypeSelectionBrowserInput, jointConnectTypeInput
 
     print("Trying to sync")
     partsTypeSelectionBrowserInput.sendInfoToHTML("returnTaxonomyDataMessage",
@@ -416,6 +421,8 @@ def command_execute(args: adsk.core.CommandEventArgs):
                           json.dumps(reqAttributes))
         jo.attributes.add("CLS-JOINT", "ProvidesFormats",
                           json.dumps(providesFormats))
+        jo.attributes.add("CLS-JOINT", "JointConnectType",
+                          jointConnectTypeInput.selectedItem.name)
 
         # The first time a joint is typed, assign a UUID and change its name
         if not jo.attributes.itemByName("CLS-INFO", "UUID"):

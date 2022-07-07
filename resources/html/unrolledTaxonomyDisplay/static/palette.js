@@ -53,8 +53,8 @@ function sendUpdatedData() {
 
 }
 
+//Cookie-cutter BFS Traversal to find cycles
 function getCycle(graph) {
-    // Copy the graph, converting all node references to String
     graph = Object.assign(...Object.keys(graph).map(node =>
         ({ [node]: graph[node].map(String) })
     ));

@@ -145,18 +145,24 @@ def command_execute(args: adsk.core.CommandEventArgs):
             jo.attributes.itemByName("CLS-JOINT", "RequiresAttributes").value)
         joProvFormats = json.loads(
             jo.attributes.itemByName("CLS-JOINT", "ProvidesFormats").value)
+        joConnectType = jo.attributes.itemByName(
+            "CLS-JOINT", "JointConnectType").value if jo.attributes.itemByName(
+                "CLS-JOINT", "JointConnectType") else "Rigid"
         joInfos.append((joUUID, [s + "_format" for s in joReqFormats] +
                         [s + "_part" for s in joReqParts] +
                         [s + "_attribute" for s in joReqAttributes],
                         [s + "_attribute" for s in providesAttributes] +
                         [s + "_part" for s in providesParts] +
-                        [s + "_format" for s in joProvFormats]))
+                        [s + "_format" for s in joProvFormats], joConnectType))
     configurations = []
     partDict = {"partConfigs": []}
     for info in joInfos:
         reqJoints = [x for x in joInfos if x != info]
         partDict["partConfigs"].append({
-            "jointOrderUuids": [x[0] for x in reqJoints],
+            "jointOrderInfo": [{
+                "uuid": x[0],
+                "connectType": x[3]
+            } for x in reqJoints],
             "providesUuid": info[0]
         })
         arrow = Type.intersect(info[2])
