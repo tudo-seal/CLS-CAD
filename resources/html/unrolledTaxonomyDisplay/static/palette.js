@@ -53,6 +53,26 @@ function sendUpdatedData() {
 
 }
 
+function getCycle(graph) {
+    // Copy the graph, converting all node references to String
+    graph = Object.assign(...Object.keys(graph).map(node =>
+        ({ [node]: graph[node].map(String) })
+    ));
+
+    let queue = Object.keys(graph).map(node => [node]);
+    while (queue.length) {
+        const batch = [];
+        for (const path of queue) {
+            const parents = graph[path[0]] || [];
+            for (const node of parents) {
+                if (node === path[path.length - 1]) return [node, ...path];
+                batch.push([node, ...path]);
+            }
+        }
+        queue = batch;
+    }
+}
+
 function dfsTreeBuild(type, treeNode) {
     (taxonomyData[type] ?? []).forEach(subtype => {
         $('#data').jstree(true).create_node(treeNode, { "text": subtype }, "last", function (new_node) {

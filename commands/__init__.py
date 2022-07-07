@@ -14,6 +14,7 @@ from .jointTyping import entry as jointTyping
 from .partTyping import entry as partTyping
 from .typeCrawlingProject import entry as typeCrawlingProject
 from .typeCrawlingHub import entry as typeCrawlingHub
+from .checkAndSubmit import entry as checkAndSubmit
 from .toggleCustomGraphics import entry as toggleCustomGraphics
 from .taxonomyEditing import entry as taxonomyEditing
 
@@ -25,8 +26,8 @@ ROOT_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
 # TODO add your imported modules to this list.
 # Fusion will automatically call the start() and stop() functions.
 commands = [
-    jointTyping, partTyping, typeCrawlingProject, typeCrawlingHub,
-    toggleCustomGraphics, taxonomyEditing
+    jointTyping, partTyping, checkAndSubmit, typeCrawlingProject,
+    typeCrawlingHub, toggleCustomGraphics, taxonomyEditing
 ]
 
 

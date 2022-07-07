@@ -434,7 +434,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
         coords = adsk.fusion.CustomGraphicsCoordinates.create(coord_array)
         if jo_uuid in config.customTextDict:
             config.customTextDict[
-                jo_uuid].formattedText = f'Requires: {jo.attributes.itemByName("CLS-JOINT", "RequiresString").value}\n Provides: {jo.attributes.itemByName("CLS-JOINT", "ProvidesString").value or "None"}'
+                jo_uuid].formattedText = f'Requires: {jo.attributes.itemByName("CLS-JOINT", "RequiresString").value}\nProvides: {jo.attributes.itemByName("CLS-JOINT", "ProvidesString").value or "None"}'
         else:
             tmatrix = adsk.core.Matrix3D.create()
             tmatrix.setWithCoordinateSystem(jo.geometry.origin,
@@ -447,7 +447,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
             offset.add(tmatrix.translation)
             tmatrix.translation = offset
             customText = graphics.addText(
-                f'Requires: {jo.attributes.itemByName("CLS-JOINT", "RequiresString").value}\n Provides: {jo.attributes.itemByName("CLS-JOINT", "ProvidesString").value or "None"}',
+                f'Requires: {jo.attributes.itemByName("CLS-JOINT", "RequiresString").value}\nProvides: {jo.attributes.itemByName("CLS-JOINT", "ProvidesString").value or "None"}',
                 'Courier New', 0.2, tmatrix)
             config.customTextDict[jo_uuid] = customText
 

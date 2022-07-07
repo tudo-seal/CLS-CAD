@@ -121,11 +121,11 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     providesAttributes = json.loads(
         design.rootComponent.attributes.itemByName(
             "CLS-PART", "ProvidesAttributes").value if design.rootComponent.
-        attributes.itemByName("CLS-PART", "ProvidesAttributes") else "")
+        attributes.itemByName("CLS-PART", "ProvidesAttributes") else "[]")
     providesParts = json.loads(
         design.rootComponent.attributes.itemByName("CLS-PART", "ProvidesParts").
         value if design.rootComponent.attributes.
-        itemByName("CLS-PART", "ProvidesParts") else "")
+        itemByName("CLS-PART", "ProvidesParts") else "[]")
 
     inputs = args.command.commandInputs
     args.command.setDialogMinimumSize(1200, 800)
@@ -280,56 +280,6 @@ def command_execute(args: adsk.core.CommandEventArgs):
                             json.dumps(providesAttributes))
     rootComp.attributes.add("CLS-PART", "ProvidesParts",
                             json.dumps(providesParts))
-
-    #Demo of data interchange to backend
-    joInfos = []
-    for jointTyping in design.findAttributes("CLS-INFO", "UUID"):
-        jo = jointTyping.parent
-        joUUID = jo.attributes.itemByName("CLS-INFO", "UUID").value
-        joReqFormats = json.loads(
-            jo.attributes.itemByName("CLS-JOINT", "RequiresFormats").value)
-        joReqParts = json.loads(
-            jo.attributes.itemByName("CLS-JOINT", "RequiresParts").value)
-        joReqAttributes = json.loads(
-            jo.attributes.itemByName("CLS-JOINT", "RequiresAttributes").value)
-        joProvFormats = json.loads(
-            jo.attributes.itemByName("CLS-JOINT", "ProvidesFormats").value)
-        joInfos.append((joUUID, joReqFormats + joReqParts + joReqAttributes,
-                        providesAttributes + providesParts + joProvFormats))
-    configurations = []
-    partDict = {"partConfigs": []}
-    for info in joInfos:
-        reqJoints = [x for x in joInfos if x != info]
-        partDict["partConfigs"].append({
-            "jointOrderUuids": [x[0] for x in reqJoints],
-            "providesUuid": info[0]
-        })
-        arrow = Type.intersect(info[2])
-        for reqJoint in reqJoints:
-            arrow = Arrow(Type.intersect(reqJoint[1]), arrow)
-        configurations.append(
-            Arrow("_".join([x[0] for x in reqJoints + [info]]), arrow))
-    partDict["combinator"] = CLSEncoder().default(
-        Type.intersect(configurations))
-    partDict["partName"] = app.activeDocument.name
-    # this might be wrong and return the browsed ID
-    partDict["forgeProjectId"] = app.data.activeProject.id
-    partDict["forgeFolderId"] = app.data.activeFolder.id
-    partDict["forgeDocumentId"] = app.activeDocument.dataFile.id
-
-    with open(
-            winapi_path(
-                os.path.join(
-                    ROOT_FOLDER, "_".join([
-                        app.data.activeProject.id, app.data.activeFolder.id,
-                        app.activeDocument.dataFile.id
-                    ]).replace(":", "-") + ".json")), "w+") as f:
-        json.dump(
-            partDict,
-            f,
-            cls=CLSEncoder,
-            indent=4,
-        )
 
 
 def command_preview(args: adsk.core.CommandEventArgs):

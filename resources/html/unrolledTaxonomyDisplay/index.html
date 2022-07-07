@@ -23,6 +23,14 @@
             font-size: 12px;
             line-height: 16px;
         }
+
+        .horizontal {
+            display: inline-block;
+            *display: inline;
+            zoom: 1;
+            vertical-align: top;
+            font-size: 12px;
+        }
     </style>
 </head>
 
@@ -40,7 +48,8 @@
             });
         </script>
 
-        <input type="text" id="taxonomy_search" value="" class="input">
+        <input type="text" id="taxonomy_search" value="" class="input horizontal">
+        <button type="button" class="horizontal">Add type</button>
 
         <div id="data"></div>
         <script>
@@ -53,11 +62,19 @@
                         // in case of 'rename_node' node_position is filled with the new node name
                         if (operation === 'rename_node') {
                             if (window.taxonomyData.hasOwnProperty(node_position)) {
+                                // Check if this will lead to a cycle on insert
                                 console.log(node);
-                                if (node.text === "New node") {
+                                checkTax = JSON.parse(JSON.stringify(window.taxonomyData));
+                                checkTax[$('#data').jstree(true).get_node(node.parent).text].push(node_position);
+                                cycle = window.getCycle(checkTax);
+                                if (cycle != null) {
+                                    alert("This would lead to a cycle: " + cycle.toString());
                                     $('#data').jstree(true).delete_node(node);
+                                    return false;
                                 }
-                                return false;
+                                else {
+                                    return true;
+                                }
                             }
                         }
                         return true;
@@ -122,7 +139,7 @@
                                 }
                             },
                             "remove": {
-                                label: "Delete",
+                                label: "Remove Occurence",
                                 action: function (data) {
                                     var inst = $.jstree.reference(data.reference),
                                         obj = inst.get_node(data.reference);
@@ -132,6 +149,31 @@
                                     else {
                                         inst.delete_node(obj);
                                     }
+                                    var index = window.taxonomyData[inst.get_node(obj.parent).text].indexOf(obj.text);
+                                    if (index !== -1) {
+                                        console.log("Updated taxdata splice")
+                                        window.taxonomyData[inst.get_node(obj.parent).text].splice(index, 1)
+                                    }
+                                    sendUpdatedData();
+
+                                },
+                                separator_before: true
+                            },
+                            "delete": {
+                                label: "Delete",
+                                action: function (data) {
+                                    var inst = $.jstree.reference(data.reference),
+                                        obj = inst.get_node(data.reference);
+                                    for (const [key, value] of Object.entries(window.taxonomyData)) {
+                                        if (key === obj.text) {
+                                            delete window.taxonomyData[obj.text];
+                                        }
+                                        var index = value.indexOf(obj.text);
+                                        if (index !== -1) {
+                                            value.splice(index, 1)
+                                        }
+                                    }
+                                    sendUpdatedData();
                                 },
                                 separator_before: true
                             }
@@ -139,8 +181,8 @@
                     }
                 },
                 "plugins": [
-                    "contextmenu", "dnd", "search", "unique",
-                    "types", "wholerow", "sort"
+                    "contextmenu", "dnd", "search",
+                    "types", "wholerow", "sort", "state"
                 ]
             });
 
@@ -167,10 +209,15 @@
                     return;
                 }
                 // If the renamed thing did not exist in data, it is not a rename but a new thing
-                if (!(window.taxonomyData.hasOwnProperty(change["old"]))) {
-                    window.taxonomyData[change["text"]] = []
-                    window.taxonomyData[$('#data').jstree(true).get_node(change["node"].parent).text].push(change["text"])
-
+                if (!(window.taxonomyData.hasOwnProperty(change["old"])) & !(window.taxonomyData.hasOwnProperty(change["text"]))) {
+                    window.taxonomyData[change["text"]] = [];
+                    window.taxonomyData[$('#data').jstree(true).get_node(change["node"].parent).text].push(change["text"]);
+                }
+                // If it did exist, it is autounrolled/copied
+                else {
+                    console.log("This happened")
+                    window.taxonomyData[$('#data').jstree(true).get_node(change["node"].parent).text].push(change["text"]);
+                    // This works but isn't exactly clean, properly updating the tree would be better
                 }
                 for (const [key, value] of Object.entries(window.taxonomyData)) {
                     if (key === change["old"]) {
@@ -188,17 +235,7 @@
 
             $('#data').on('delete_node.jstree', function (node, change) {
                 //What if we delete something and it gets orphaned, is that okay?
-                //What if we delete at a specifc location, does that mean we just want to remove that link?
-                for (const [key, value] of Object.entries(window.taxonomyData)) {
-                    if (key === change["node"].text) {
-                        delete window.taxonomyData[change["node"].text];
-                    }
-                    var index = value.indexOf(change["node"].text);
-                    if (index !== -1) {
-                        value.splice(index, 1)
-                    }
-                }
-                sendUpdatedData();
+                //What if we delete at a specific location, does that mean we just want to remove that link? 07.07.2022 YES
             });
 
             $('#data').on('select_node.jstree', function (node, selected, event) {
