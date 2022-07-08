@@ -94,7 +94,7 @@ selected_joint_origins = []
 #nameStringValueInput = adsk.core.StringValueCommandInput.cast(None)
 #partsTypeSelectionBrowserInput = adsk.core.BrowserCommandInput.cast(None)
 
-reqFormats, reqAttributes, reqParts, providesFormats, provides_parts, provides_attributes = [], [], [], [], [], []
+req_formats, req_attributes, req_parts, provides_formats, provides_parts, provides_attributes = [], [], [], [], [], []
 
 kinding = "Light"
 typing = "Blocked"
@@ -225,29 +225,29 @@ def command_select(args: adsk.core.SelectionEventArgs):
     app = adsk.core.Application.get()
     design = adsk.fusion.Design.cast(app.activeProduct)
     selected_joint_origin = adsk.fusion.JointOrigin.cast(args.selection.entity)
-    global reqAttributes, reqFormats, reqParts, providesFormats
+    global req_attributes, req_formats, req_parts, provides_formats
     if design and selected_joint_origin:
         try:
             type_text_box_input.text = selected_joint_origin.attributes.itemByName(
                 "CLS-JOINT", "RequiresString").value or "None"
             provides_type_text_box_input.text = selected_joint_origin.attributes.itemByName(
                 "CLS-JOINT", "ProvidesString").value or "None"
-            providesFormats = json.loads(
+            provides_formats = json.loads(
                 selected_joint_origin.attributes.itemByName(
                     "CLS-JOINT", "ProvidesFormats").value)
-            reqAttributes = json.loads(
+            req_attributes = json.loads(
                 selected_joint_origin.attributes.itemByName(
                     "CLS-JOINT", "RequiresAttributes").value)
-            reqFormats = json.loads(
+            req_formats = json.loads(
                 selected_joint_origin.attributes.itemByName(
                     "CLS-JOINT", "RequiresFormats").value)
-            reqParts = json.loads(
+            req_parts = json.loads(
                 selected_joint_origin.attributes.itemByName(
                     "CLS-JOINT", "RequiresParts").value)
             #If nothing went wrong here, properly generate the text
-            type_text_box_input.text = f'(({"∩".join(reqFormats)} ∩ ({"∩".join(reqParts)}) ∩ ({"∩".join(reqAttributes)}))'.replace(
+            type_text_box_input.text = f'(({"∩".join(req_formats)} ∩ ({"∩".join(req_parts)}) ∩ ({"∩".join(req_attributes)}))'.replace(
                 " ∩ ()", "")
-            provides_type_text_box_input.text = f'(({"∩".join(providesFormats)}) ∩ ({"∩".join(provides_parts)}) ∩ ({"∩".join(provides_attributes)}))'.replace(
+            provides_type_text_box_input.text = f'(({"∩".join(provides_formats)}) ∩ ({"∩".join(provides_parts)}) ∩ ({"∩".join(provides_attributes)}))'.replace(
                 " ∩ ()", "")
         except:
             pass
@@ -327,19 +327,19 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
     log_msg += f"Action: {message_action}\n"
     log_msg += f"Data: {message_data}"
     futil.log(log_msg, adsk.core.LogLevels.InfoLogLevel)
-    global reqFormats, reqParts, reqAttributes, providesFormats
+    global req_formats, req_parts, req_attributes, provides_formats
     if message_action == 'selectionNotification':
         if html_args.browserCommandInput.id == PARTTYPES_ID:
-            reqParts = message_data['selections']
+            req_parts = message_data['selections']
         elif html_args.browserCommandInput.id == ATTRIBUTETYPES_ID:
-            reqAttributes = message_data['selections']
+            req_attributes = message_data['selections']
         elif html_args.browserCommandInput.id == FORMATTYPES_ID:
-            reqFormats = message_data['selections']
+            req_formats = message_data['selections']
         elif html_args.browserCommandInput.id == FORMATPROVIDESTYPES_ID:
-            providesFormats = message_data['selections']
-        type_text_box_input.text = f'( ({"∩".join(reqFormats)} ∩ ({"∩".join(reqParts)}) ∩ ({"∩".join(reqAttributes)}) )'.replace(
+            provides_formats = message_data['selections']
+        type_text_box_input.text = f'( ({"∩".join(req_formats)} ∩ ({"∩".join(req_parts)}) ∩ ({"∩".join(req_attributes)}) )'.replace(
             " ∩ ()", "")
-        provides_type_text_box_input.text = f'( ({"∩".join(providesFormats)}) ∩ ({"∩".join(provides_parts)}) ∩ ({"∩".join(provides_attributes)}) )'.replace(
+        provides_type_text_box_input.text = f'( ({"∩".join(provides_formats)}) ∩ ({"∩".join(provides_parts)}) ∩ ({"∩".join(provides_attributes)}) )'.replace(
             " ∩ ()", "")
     if message_action == 'updateDataNotification':
         # Update loaded and saved taxonomies
@@ -413,15 +413,15 @@ def command_execute(args: adsk.core.CommandEventArgs):
         jo.attributes.add("CLS-JOINT", "RequiresString", type_text_box_input.text)
         jo.attributes.add(
             "CLS-JOINT", "ProvidesString",
-            f'({"∩".join(providesFormats)})'.replace(" ∩ ()",
+            f'({"∩".join(provides_formats)})'.replace(" ∩ ()",
                                                      "").replace("()", ""))
         jo.attributes.add("CLS-JOINT", "RequiresFormats",
-                          json.dumps(reqFormats))
-        jo.attributes.add("CLS-JOINT", "RequiresParts", json.dumps(reqParts))
+                          json.dumps(req_formats))
+        jo.attributes.add("CLS-JOINT", "RequiresParts", json.dumps(req_parts))
         jo.attributes.add("CLS-JOINT", "RequiresAttributes",
-                          json.dumps(reqAttributes))
+                          json.dumps(req_attributes))
         jo.attributes.add("CLS-JOINT", "ProvidesFormats",
-                          json.dumps(providesFormats))
+                          json.dumps(provides_formats))
         jo.attributes.add("CLS-JOINT", "JointConnectType",
                           joint_connect_type_input.selectedItem.name)
 
@@ -472,7 +472,7 @@ def command_preview(args: adsk.core.CommandEventArgs):
 
 
 def command_destroy(args: adsk.core.CommandEventArgs):
-    global local_handlers, reqAttributes, reqFormats, reqParts, provides_attributes, providesFormats, provides_parts
+    global local_handlers, req_attributes, req_formats, req_parts, provides_attributes, provides_formats, provides_parts
     local_handlers = []
-    reqAttributes, reqFormats, reqParts, providesAttributes, providesFormats, providesParts = [],[],[],[],[],[]
+    req_attributes, req_formats, req_parts, providesAttributes, provides_formats, providesParts = [], [], [], [], [], []
     futil.log(f'{CMD_NAME} Command Destroy Event')
