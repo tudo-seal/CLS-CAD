@@ -60,13 +60,13 @@ def stop():
         command_definition.deleteMe()
 
 
-typeTextBoxInput = adsk.core.TextBoxCommandInput.cast(None)
+type_text_box_input = adsk.core.TextBoxCommandInput.cast(None)
 
 
 def command_created(args: adsk.core.CommandCreatedEventArgs):
     # General logging for debug.
     futil.log(f'{CMD_NAME} Command Created Event')
-    global typeTextBoxInput
+    global type_text_box_input
 
     # Handlers
     futil.add_handler(args.command.execute,
@@ -90,10 +90,10 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     args.command.setDialogInitialSize(800, 800)
 
     # UI
-    typeTextBoxInput = inputs.addTextBoxCommandInput('typeTextBox', 'Issues',
+    type_text_box_input = inputs.addTextBoxCommandInput('typeTextBox', 'Issues',
                                                      '', 1, True)
 
-    typeTextBoxInput.numRows = 12
+    type_text_box_input.numRows = 12
 
 
 def winapi_path(dos_path, encoding=None):
@@ -105,7 +105,7 @@ def winapi_path(dos_path, encoding=None):
     return u"\\\\?\\" + path
 
 
-def command_executePreview(args: adsk.core.CommandEventHandler):
+def command_execute_preview(args: adsk.core.CommandEventHandler):
     return
 
 
@@ -121,62 +121,62 @@ def command_execute(args: adsk.core.CommandEventArgs):
     app = adsk.core.Application.get()
     design = adsk.fusion.Design.cast(app.activeProduct)
 
-    providesAttributes = json.loads(
+    provides_attributes = json.loads(
         getattr(
             design.rootComponent.attributes.itemByName("CLS-PART",
                                                        "ProvidesAttributes"),
             "value", "[]"))
-    providesParts = json.loads(
+    provides_parts = json.loads(
         getattr(
             design.rootComponent.attributes.itemByName("CLS-PART",
                                                        "ProvidesParts"),
             "value", "[]"))
 
-    #Demo of data interchange to backend
-    joInfos = []
-    for jointTyping in design.findAttributes("CLS-INFO", "UUID"):
-        jo = jointTyping.parent
-        joUUID = jo.attributes.itemByName("CLS-INFO", "UUID").value
-        joReqFormats = json.loads(
+    #Demo of data interchange to backen
+    jo_infos = []
+    for joint_typing in design.findAttributes("CLS-INFO", "UUID"):
+        jo = joint_typing.parent
+        jo_uuid = jo.attributes.itemByName("CLS-INFO", "UUID").value
+        jo_req_formats = json.loads(
             jo.attributes.itemByName("CLS-JOINT", "RequiresFormats").value)
-        joReqParts = json.loads(
+        jo_req_parts = json.loads(
             jo.attributes.itemByName("CLS-JOINT", "RequiresParts").value)
-        joReqAttributes = json.loads(
+        jo_req_attributes = json.loads(
             jo.attributes.itemByName("CLS-JOINT", "RequiresAttributes").value)
-        joProvFormats = json.loads(
+        jo_prov_formats = json.loads(
             jo.attributes.itemByName("CLS-JOINT", "ProvidesFormats").value)
-        joConnectType = jo.attributes.itemByName(
+        jo_connect_type = jo.attributes.itemByName(
             "CLS-JOINT", "JointConnectType").value if jo.attributes.itemByName(
                 "CLS-JOINT", "JointConnectType") else "Rigid"
-        joInfos.append((joUUID, [s + "_format" for s in joReqFormats] +
-                        [s + "_part" for s in joReqParts] +
-                        [s + "_attribute" for s in joReqAttributes],
-                        [s + "_attribute" for s in providesAttributes] +
-                        [s + "_part" for s in providesParts] +
-                        [s + "_format" for s in joProvFormats], joConnectType))
+        jo_infos.append((jo_uuid, [s + "_format" for s in jo_req_formats] +
+                        [s + "_part" for s in jo_req_parts] +
+                        [s + "_attribute" for s in jo_req_attributes],
+                        [s + "_attribute" for s in provides_attributes] +
+                        [s + "_part" for s in provides_parts] +
+                        [s + "_format" for s in jo_prov_formats], jo_connect_type))
     configurations = []
-    partDict = {"partConfigs": []}
-    for info in joInfos:
-        reqJoints = [x for x in joInfos if x != info]
-        partDict["partConfigs"].append({
+    part_dict = {"partConfigs": []}
+    for info in jo_infos:
+        req_joints = [x for x in jo_infos if x != info]
+        part_dict["partConfigs"].append({
             "jointOrderInfo": [{
                 "uuid": x[0],
                 "connectType": x[3]
-            } for x in reqJoints],
+            } for x in req_joints],
             "providesUuid": info[0]
         })
         arrow = Type.intersect(info[2])
-        for reqJoint in reqJoints:
-            arrow = Arrow(Type.intersect(reqJoint[1]), arrow)
+        for req_joint in req_joints:
+            arrow = Arrow(Type.intersect(req_joint[1]), arrow)
         configurations.append(
-            Arrow("_".join([x[0] for x in reqJoints + [info]]), arrow))
-    partDict["combinator"] = CLSEncoder().default(
+            Arrow("_".join([x[0] for x in req_joints + [info]]), arrow))
+    part_dict["combinator"] = CLSEncoder().default(
         Type.intersect(configurations))
-    partDict["partName"] = app.activeDocument.name
+    part_dict["partName"] = app.activeDocument.name
     # this might be wrong and return the browsed ID
-    partDict["forgeProjectId"] = app.data.activeProject.id
-    partDict["forgeFolderId"] = app.data.activeFolder.id
-    partDict["forgeDocumentId"] = app.activeDocument.dataFile.id
+    part_dict["forgeProjectId"] = app.data.activeProject.id
+    part_dict["forgeFolderId"] = app.data.activeFolder.id
+    part_dict["forgeDocumentId"] = app.activeDocument.dataFile.id
 
     with open(
             winapi_path(
@@ -186,7 +186,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
                         app.activeDocument.dataFile.id
                     ]).replace(":", "-") + ".json")), "w+") as f:
         json.dump(
-            partDict,
+            part_dict,
             f,
             cls=CLSEncoder,
             indent=4,
@@ -201,12 +201,12 @@ def command_preview(args: adsk.core.CommandEventArgs):
 def command_validate(args: adsk.core.ValidateInputsEventArgs):
     app = adsk.core.Application.get()
     design = adsk.fusion.Design.cast(app.activeProduct)
-    global typeTextBoxInput
+    global type_text_box_input
     if design.findAttributes("CLS-JOINT", "ProvidesFormats"):
-        typeTextBoxInput.formattedText = ""
+        type_text_box_input.formatted_text = ""
         args.areInputsValid = True
     else:
-        typeTextBoxInput.formattedText = "Parts need to at least provide one joint origin that has a  \"Provides\" type."
+        type_text_box_input.formatted_text = "Parts need to at least provide one joint origin that has a  \"Provides\" type."
         args.areInputsValid = False
     futil.log(f'{CMD_NAME} Command Preview Event')
 

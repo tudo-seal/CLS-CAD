@@ -12,7 +12,7 @@ joint = None
 
 CMD_ID = f'{config.COMPANY_NAME}_{config.ADDIN_NAME}_crawl_project'
 CMD_NAME = 'Crawl Project'
-CMD_Description = 'Crawl project files and collect all types.'
+CMD_DESCRIPTION = 'Crawl project files and collect all types.'
 IS_PROMOTED = True
 
 WORKSPACE_ID = 'FusionSolidEnvironment'
@@ -30,7 +30,7 @@ local_handlers = []
 
 def start():
     cmd_def = ui.commandDefinitions.addButtonDefinition(CMD_ID, CMD_NAME,
-                                                        CMD_Description,
+                                                        CMD_DESCRIPTION,
                                                         ICON_FOLDER)
     futil.add_handler(cmd_def.commandCreated, command_created)
 
@@ -77,12 +77,12 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     inputs = args.command.commandInputs
 
     # UI
-    nestingInput = inputs.addBoolValueInput('nesting',
+    nesting_input = inputs.addBoolValueInput('nesting',
                                             'Crawl nested components?', True,
                                             '', False)
 
 
-def command_executePreview(args: adsk.core.CommandEventHandler):
+def command_execute_preview(args: adsk.core.CommandEventHandler):
     return
 
 

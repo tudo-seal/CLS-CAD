@@ -1,7 +1,5 @@
-from glob import glob1
 import json
-from typing import Iterable
-from uuid import uuid4
+
 from cls_python import *
 
 
@@ -43,7 +41,7 @@ class Part(object):
         return isinstance(other, Part)
 
     def __hash__(self):
-        return  ayload)
+        return  hash(self.payload)
 
     def __init__(self, payload):
         # Create combinator type here based on some JSON payload in future

@@ -10,13 +10,13 @@ app = adsk.core.Application.get()
 ui = app.userInterface
 joint = None
 
-CMD_ID = f'{config.COMPANY_NAME}_{config.ADDIN_NAME}_toggle_display'
-CMD_NAME = 'Toggle Display'
-CMD_Description = 'Toggle Display of Typing (default off).'
+CMD_ID = f'{config.COMPANY_NAME}_{config.ADDIN_NAME}_crawl_hub'
+CMD_NAME = 'Crawl Hub'
+CMD_DESCRIPTION = 'Crawl all hub files and collect all types.'
 IS_PROMOTED = True
 
 WORKSPACE_ID = 'FusionSolidEnvironment'
-PANEL_ID = 'VIZ'
+PANEL_ID = 'CRAWL'
 COMMAND_BESIDE_ID = 'ScriptsManagerCommand'
 
 # Resources
@@ -27,12 +27,10 @@ ICON_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)),
 # they are not released and garbage collected.
 local_handlers = []
 
-isDisplaying = False
-
 
 def start():
     cmd_def = ui.commandDefinitions.addButtonDefinition(CMD_ID, CMD_NAME,
-                                                        CMD_Description,
+                                                        CMD_DESCRIPTION,
                                                         ICON_FOLDER)
     futil.add_handler(cmd_def.commandCreated, command_created)
 
@@ -44,7 +42,7 @@ def start():
 
 
 def stop():
-    # Clean entire Panel
+    #Clean entire Panel
     workspace = ui.workspaces.itemById(WORKSPACE_ID)
     panel = workspace.toolbarPanels.itemById(PANEL_ID)
     command_definition = ui.commandDefinitions.itemById(CMD_ID)
@@ -76,10 +74,15 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
                       command_destroy,
                       local_handlers=local_handlers)
 
-    # No UI
+    inputs = args.command.commandInputs
+
+    # UI
+    nesting_input = inputs.addBoolValueInput('nesting',
+                                            'Crawl nested components?', True,
+                                            '', False)
 
 
-def command_executePreview(args: adsk.core.CommandEventHandler):
+def command_execute_preview(args: adsk.core.CommandEventHandler):
     return
 
 
@@ -88,37 +91,9 @@ def command_execute(args: adsk.core.CommandEventArgs):
     futil.log(f'{CMD_NAME} Command Execute Event')
 
     inputs = args.command.commandInputs
-    print("Executed")
-    global isDisplaying
-    app = adsk.core.Application.get()
-    design = adsk.fusion.Design.cast(app.activeProduct)
-    if config.customGraphicsDisplaying:
-        for i in range(design.rootComponent.customGraphicsGroups.count):
-            print("Deleted")
-            design.rootComponent.customGraphicsGroups.item(0).deleteMe()
-            config.customGraphicsDisplaying = False
-    else:
-        graphics = design.rootComponent.customGraphicsGroups.add()
-        for jointTyping in design.findAttributes("CLS-INFO", "UUID"):
-            jo = jointTyping.parent
-            jo_uuid = jo.attributes.itemByName("CLS-INFO", "UUID").value
-            tmatrix = adsk.core.Matrix3D.create()
-            tmatrix.setWithCoordinateSystem(jo.geometry.origin,
-                                            jo.geometry.secondaryAxisVector,
-                                            jo.geometry.thirdAxisVector,
-                                            jo.geometry.primaryAxisVector)
-            offset = jo.geometry.primaryAxisVector.copy()
-            offset.normalize()
-            offset.scaleBy(0.05)
-            offset.add(tmatrix.translation)
-            tmatrix.translation = offset
-            customText = graphics.addText(
-                f'Requires: {jo.attributes.itemByName("CLS-JOINT", "RequiresString").value}\n Provides: {jo.attributes.itemByName("CLS-JOINT", "ProvidesString").value or "None"}',
-                'Courier New', 0.2, tmatrix)
-            config.customTextDict[jo_uuid] = customText
-            config.customGraphicsDisplaying = True
 
-    # Recompute or hide all custom graphic objects
+    # Get Inputs
+    nesting_input: adsk.core.BoolValueCommandInput = inputs.itemById('nesting')
 
 
 def command_preview(args: adsk.core.CommandEventArgs):

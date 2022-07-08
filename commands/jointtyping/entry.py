@@ -15,7 +15,7 @@ ui = app.userInterface
 # TODO ********************* Change these names *********************
 CMD_ID = f'{config.COMPANY_NAME}_{config.ADDIN_NAME}_type_joint'
 CMD_NAME = 'Typed Joint'
-CMD_Description = 'Annotate joint origins with a combinatorial term, allowing combinatory logic to connect parts automatically.'
+CMD_DESCRIPTION = 'Annotate joint origins with a combinatorial term, allowing combinatory logic to connect parts automatically.'
 IS_PROMOTED = True
 
 WORKSPACE_ID = 'FusionSolidEnvironment'
@@ -53,7 +53,7 @@ local_handlers = []
 def start():
     # Command Definition.
     cmd_def = ui.commandDefinitions.addButtonDefinition(CMD_ID, CMD_NAME,
-                                                        CMD_Description,
+                                                        CMD_DESCRIPTION,
                                                         ICON_FOLDER)
     futil.add_handler(cmd_def.commandCreated, command_created)
 
@@ -85,16 +85,16 @@ def stop():
         command_definition.deleteMe()
 
 
-jointOrigin = adsk.fusion.JointOrigin.cast(None)
+joint_origin = adsk.fusion.JointOrigin.cast(None)
 
 # Unsure if this is a better approach than iterating over the actual selection_input
-selectedJointOrigins = []
+selected_joint_origins = []
 #Initializing like this is nice but not necessary I guess
 #typeTextBoxInput = adsk.core.TextBoxCommandInput.cast(None)
 #nameStringValueInput = adsk.core.StringValueCommandInput.cast(None)
 #partsTypeSelectionBrowserInput = adsk.core.BrowserCommandInput.cast(None)
 
-reqFormats, reqAttributes, reqParts, providesFormats, providesParts, providesAttributes = [], [], [], [], [], []
+reqFormats, reqAttributes, reqParts, providesFormats, provides_parts, provides_attributes = [], [], [], [], [], []
 
 kinding = "Light"
 typing = "Blocked"
@@ -118,16 +118,16 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
                       command_destroy,
                       local_handlers=local_handlers)
     futil.add_handler(args.command.preSelectMouseMove,
-                      command_preSelectMouseMove,
+                      command_preselect_mousemove,
                       local_handlers=local_handlers)
     futil.add_handler(args.command.preSelect,
-                      command_preSelect,
+                      command_preselect,
                       local_handlers=local_handlers)
     futil.add_handler(args.command.preSelectEnd,
-                      command_preSelectEnd,
+                      command_preselect_end,
                       local_handlers=local_handlers)
     futil.add_handler(args.command.executePreview,
-                      command_executePreview,
+                      command_execute_preview,
                       local_handlers=local_handlers)
     futil.add_handler(args.command.select,
                       command_select,
@@ -150,64 +150,64 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     args.command.setDialogInitialSize(600, 800)
 
     # UI DEF
-    global typeTextBoxInput, partsTypeSelectionBrowserInput, kindingSelectionDropDownInput, nameStringValueInput, providesTypeTextBoxInput, jointConnectTypeInput
+    global type_text_box_input,parts_type_selection_browser_input,kinding_selection_drop_down_input,name_string_value_input,provides_type_text_box_input,joint_connect_type_input
 
-    selectionTab = inputs.addTabCommandInput('selectionTab',
+    selection_tab = inputs.addTabCommandInput('selectionTab',
                                              'Select/Configure Joint')
-    requiresTab = inputs.addTabCommandInput('requiresTab',
+    requires_tab = inputs.addTabCommandInput('requiresTab',
                                             'Select Required Type')
-    providesTab = inputs.addTabCommandInput('providesTab',
+    provides_tab = inputs.addTabCommandInput('providesTab',
                                             'Select Provided Type')
-    selectionTabInputs = selectionTab.children
-    requiresTabInputs = requiresTab.children
-    providesTabInputs = providesTab.children
+    selection_tab_inputs = selection_tab.children
+    requires_tab_inputs = requires_tab.children
+    provides_tab_inputs = provides_tab.children
 
-    selectionInput = selectionTabInputs.addSelectionInput(
+    selection_input = selection_tab_inputs.addSelectionInput(
         'selection', 'Select', 'Basic select command input')
-    selectionInput.setSelectionLimits(0)
-    selectionInput.addSelectionFilter("JointOrigins")
+    selection_input.setSelectionLimits(0)
+    selection_input.addSelectionFilter("JointOrigins")
 
-    jointConnectTypeInput = selectionTabInputs.addButtonRowCommandInput(
+    joint_connect_type_input = selection_tab_inputs.addButtonRowCommandInput(
         'jointTypeSelection', 'Joint Type', False)
-    jointConnectTypeInput.listItems.add('Rigid', False, 'resources/lambda.png')
-    jointConnectTypeInput.listItems.add('Revolute', False,
+    joint_connect_type_input.listItems.add('Rigid', False, 'resources/lambda.png')
+    joint_connect_type_input.listItems.add('Revolute', False,
                                         'resources/lambda.png')
 
-    typeTextBoxInput = selectionTabInputs.addTextBoxCommandInput(
+    type_text_box_input = selection_tab_inputs.addTextBoxCommandInput(
         'typeTextBox', 'Requires Type', '', 2, True)
-    providesTypeTextBoxInput = selectionTabInputs.addTextBoxCommandInput(
+    provides_type_text_box_input = selection_tab_inputs.addTextBoxCommandInput(
         'providesTypeTextBox', 'Provides Type', '', 2, True)
-    nameStringValueInput = selectionTabInputs.addStringValueInput(
+    name_string_value_input = selection_tab_inputs.addStringValueInput(
         'nameTextBox', 'Set Name', '')
 
-    #groupTypingCmdInput = inputs.addGroupCommandInput('typingGroup', 'Typing')
-    #groupTypingCmdInput.isExpanded = True
-    #groupTypingChildren = groupTypingCmdInput.children
-    formatsTypeSelectionBrowserInput = requiresTabInputs.addBrowserCommandInput(
+    #group_typing_cmd_input = inputs.addGroupCommandInput('typingGroup', 'Typing')
+    #group_typing_cmd_input.is_expanded = True
+    #group_typing_children = group_typing_cmd_input.children
+    formats_type_selection_browser_input = requires_tab_inputs.addBrowserCommandInput(
         id=FORMATTYPES_ID,
         name='Select format/format family',
         htmlFileURL=PALETTE_URL,
         minimumHeight=300)
-    partsTypeSelectionBrowserInput = requiresTabInputs.addBrowserCommandInput(
+    parts_type_selection_browser_input = requires_tab_inputs.addBrowserCommandInput(
         id=PARTTYPES_ID,
         name='Select part/part family',
         htmlFileURL=PALETTE_URL,
         minimumHeight=300)
-    attributesTypeSelectionBrowserInput = requiresTabInputs.addBrowserCommandInput(
+    attributes_type_selection_browser_input = requires_tab_inputs.addBrowserCommandInput(
         id=ATTRIBUTETYPES_ID,
         name='Select attributes/attribute family',
         htmlFileURL=PALETTE_URL,
         minimumHeight=300)
 
     # Mot synced with other formats browser, figure that out still
-    providesTypeSelectionBrowserInput = providesTabInputs.addBrowserCommandInput(
+    provides_type_selection_browser_input = provides_tab_inputs.addBrowserCommandInput(
         id=FORMATPROVIDESTYPES_ID,
         name='Select format present at joint',
         htmlFileURL=PALETTE_URL,
         minimumHeight=300)
 
 
-def command_executePreview(args: adsk.core.CommandEventHandler):
+def command_execute_preview(args: adsk.core.CommandEventHandler):
     app = adsk.core.Application.get()
     design = adsk.fusion.Design.cast(app.activeProduct)
     if design:
@@ -224,69 +224,70 @@ def command_activate(args: adsk.core.CommandEventArgs):
 def command_select(args: adsk.core.SelectionEventArgs):
     app = adsk.core.Application.get()
     design = adsk.fusion.Design.cast(app.activeProduct)
-    selectedJointOrigin = adsk.fusion.JointOrigin.cast(args.selection.entity)
+    selected_joint_origin = adsk.fusion.JointOrigin.cast(args.selection.entity)
     global reqAttributes, reqFormats, reqParts, providesFormats
-    if design and selectedJointOrigin:
+    if design and selected_joint_origin:
         try:
-            typeTextBoxInput.text = selectedJointOrigin.attributes.itemByName(
+            type_text_box_input.text = selected_joint_origin.attributes.itemByName(
                 "CLS-JOINT", "RequiresString").value or "None"
-            providesTypeTextBoxInput.text = selectedJointOrigin.attributes.itemByName(
+            provides_type_text_box_input.text = selected_joint_origin.attributes.itemByName(
                 "CLS-JOINT", "ProvidesString").value or "None"
             providesFormats = json.loads(
-                selectedJointOrigin.attributes.itemByName(
+                selected_joint_origin.attributes.itemByName(
                     "CLS-JOINT", "ProvidesFormats").value)
             reqAttributes = json.loads(
-                selectedJointOrigin.attributes.itemByName(
+                selected_joint_origin.attributes.itemByName(
                     "CLS-JOINT", "RequiresAttributes").value)
             reqFormats = json.loads(
-                selectedJointOrigin.attributes.itemByName(
+                selected_joint_origin.attributes.itemByName(
                     "CLS-JOINT", "RequiresFormats").value)
             reqParts = json.loads(
-                selectedJointOrigin.attributes.itemByName(
+                selected_joint_origin.attributes.itemByName(
                     "CLS-JOINT", "RequiresParts").value)
             #If nothing went wrong here, properly generate the text
-            typeTextBoxInput.text = f'(({"∩".join(reqFormats)} ∩ ({"∩".join(reqParts)}) ∩ ({"∩".join(reqAttributes)}))'.replace(
+            type_text_box_input.text = f'(({"∩".join(reqFormats)} ∩ ({"∩".join(reqParts)}) ∩ ({"∩".join(reqAttributes)}))'.replace(
                 " ∩ ()", "")
-            providesTypeTextBoxInput.text = f'(({"∩".join(providesFormats)}) ∩ ({"∩".join(providesParts)}) ∩ ({"∩".join(providesAttributes)}))'.replace(
+            provides_type_text_box_input.text = f'(({"∩".join(providesFormats)}) ∩ ({"∩".join(provides_parts)}) ∩ ({"∩".join(provides_attributes)}))'.replace(
                 " ∩ ()", "")
         except:
             pass
-        selectedJointOrigins.append(selectedJointOrigin)
+        selected_joint_origins.append(selected_joint_origin)
 
 
 def command_unselect(args: adsk.core.SelectionEventArgs):
     app = adsk.core.Application.get()
     design = adsk.fusion.Design.cast(app.activeProduct)
-    selectedJointOrigin = adsk.fusion.JointOrigin.cast(args.selection.entity)
-    if design and selectedJointOrigin:
-        selectedJointOrigins.append(selectedJointOrigin)
-        selectedJointOrigins = [
-            x for x in selectedJointOrigins if x.id != selectedJointOrigin.id
+    selected_joint_origin = adsk.fusion.JointOrigin.cast(args.selection.entity)
+    global selected_joint_origins
+    if design and selected_joint_origin:
+        selected_joint_origins.append(selected_joint_origin)
+        selected_joint_origins = [
+            x for x in selected_joint_origins if x.id != selected_joint_origin.id
         ]
 
 
-def command_preSelectMouseMove(args: adsk.core.SelectionEventArgs):
+def command_preselect_mousemove(args: adsk.core.SelectionEventArgs):
     app = adsk.core.Application.get()
     design = adsk.fusion.Design.cast(app.activeProduct)
-    selectedJointOrigin = adsk.fusion.JointOrigin.cast(args.selection.entity)
-    if design and selectedJointOrigin:
+    selected_joint_origin = adsk.fusion.JointOrigin.cast(args.selection.entity)
+    if design and selected_joint_origin:
         cggroup = design.rootComponent.customGraphicsGroups.add()
         pass
 
 
-def command_preSelect(args: adsk.core.SelectionEventArgs):
+def command_preselect(args: adsk.core.SelectionEventArgs):
     app = adsk.core.Application.get()
     design = adsk.fusion.Design.cast(app.activeProduct)
-    selectedJointOrigin = adsk.fusion.JointOrigin.cast(args.selection.entity)
-    if design and selectedJointOrigin:
+    selected_joint_origin = adsk.fusion.JointOrigin.cast(args.selection.entity)
+    if design and selected_joint_origin:
         pass
 
 
-def command_preSelectEnd(args: adsk.core.SelectionEventArgs):
+def command_preselect_end(args: adsk.core.SelectionEventArgs):
     app = adsk.core.Application.get()
     design = adsk.fusion.Design.cast(app.activeProduct)
-    selectedEdge = adsk.fusion.BRepEdge.cast(args.selection.entity)
-    if design and selectedEdge:
+    selected_edge = adsk.fusion.BRepEdge.cast(args.selection.entity)
+    if design and selected_edge:
         for group in design.rootComponent.customGraphicsGroups:
             if group.id == str("the_relevant_group"):
                 group.deleteMe()
@@ -336,47 +337,47 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
             reqFormats = message_data['selections']
         elif html_args.browserCommandInput.id == FORMATPROVIDESTYPES_ID:
             providesFormats = message_data['selections']
-        typeTextBoxInput.text = f'( ({"∩".join(reqFormats)} ∩ ({"∩".join(reqParts)}) ∩ ({"∩".join(reqAttributes)}) )'.replace(
+        type_text_box_input.text = f'( ({"∩".join(reqFormats)} ∩ ({"∩".join(reqParts)}) ∩ ({"∩".join(reqAttributes)}) )'.replace(
             " ∩ ()", "")
-        providesTypeTextBoxInput.text = f'( ({"∩".join(providesFormats)}) ∩ ({"∩".join(providesParts)}) ∩ ({"∩".join(providesAttributes)}) )'.replace(
+        provides_type_text_box_input.text = f'( ({"∩".join(providesFormats)}) ∩ ({"∩".join(provides_parts)}) ∩ ({"∩".join(provides_attributes)}) )'.replace(
             " ∩ ()", "")
     if message_action == 'updateDataNotification':
         # Update loaded and saved taxonomies
 
         # The browser IDs should be refactored into constants
         if html_args.browserCommandInput.id == PARTTYPES_ID:
-            taxonomyID = "parts"
+            taxonomy_id = "parts"
         elif html_args.browserCommandInput.id == ATTRIBUTETYPES_ID:
-            taxonomyID = "attributes"
+            taxonomy_id = "attributes"
         elif html_args.browserCommandInput.id == FORMATTYPES_ID or html_args.browserCommandInput.id == FORMATPROVIDESTYPES_ID:
-            taxonomyID = "formats"
-        config.taxonomies[taxonomyID] = message_data
-        with open(os.path.join(ROOT_FOLDER, "%s.taxonomy" % taxonomyID),
+            taxonomy_id = "formats"
+        config.taxonomies[taxonomy_id] = message_data
+        with open(os.path.join(ROOT_FOLDER, "%s.taxonomy" % taxonomy_id),
                   "w+") as f:
             json.dump(message_data, f, ensure_ascii=False, indent=4)
 
     if message_action == 'readyNotification':
         # ADSK was injected, so now we send the payload
-        taxonomyID = None
-        taxonomyDataMessage = None
+        taxonomy_id = None
+        taxonomy_data_message = None
         if html_args.browserCommandInput.id == PARTTYPES_ID:
-            taxonomyDataMessage = config.taxonomies["parts"]
-            taxonomyID = "parts"
+            taxonomy_data_message = config.taxonomies["parts"]
+            taxonomy_id = "parts"
         elif html_args.browserCommandInput.id == ATTRIBUTETYPES_ID:
-            taxonomyDataMessage = config.taxonomies["attributes"]
-            taxonomyID = "attributes"
+            taxonomy_data_message = config.taxonomies["attributes"]
+            taxonomy_id = "attributes"
         elif html_args.browserCommandInput.id == FORMATTYPES_ID or html_args.browserCommandInput.id == FORMATPROVIDESTYPES_ID:
-            taxonomyDataMessage = config.taxonomies["formats"]
-            taxonomyID = "formats"
+            taxonomy_data_message = config.taxonomies["formats"]
+            taxonomy_id = "formats"
         html_args.browserCommandInput.sendInfoToHTML(
-            "taxonomyDataMessage", json.dumps(taxonomyDataMessage))
+            "taxonomyDataMessage", json.dumps(taxonomy_data_message))
         html_args.browserCommandInput.sendInfoToHTML("taxonomyIDMessage",
-                                                     taxonomyID)
+                                                     taxonomy_id)
 
     # Return value.
     now = datetime.now()
-    currentTime = now.strftime('%H:%M:%S')
-    html_args.returnData = f'OK - {currentTime}'
+    current_time = now.strftime('%H:%M:%S')
+    html_args.returnData = f'OK - {current_time}'
 
 
 # EXECUTE
@@ -395,21 +396,21 @@ def command_execute(args: adsk.core.CommandEventArgs):
     design = adsk.fusion.Design.cast(app.activeProduct)
     graphics = design.rootComponent.customGraphicsGroups.add()
 
-    billBoard = adsk.fusion.CustomGraphicsBillBoard.create(
+    bill_board = adsk.fusion.CustomGraphicsBillBoard.create(
         adsk.core.Point3D.create(0, 0, 0))
-    billBoard.billBoardStyle = adsk.fusion.CustomGraphicsBillBoardStyles.ScreenBillBoardStyle
+    bill_board.billBoardStyle = adsk.fusion.CustomGraphicsBillBoardStyles.ScreenBillBoardStyle
 
-    global typing, kinding, selectedJointOrigins, nameStringValueInput, partsTypeSelectionBrowserInput, jointConnectTypeInput
+    global typing, kinding, selected_joint_origins, nameStringValueInput, parts_type_selection_browser_input, joint_connect_type_input
 
     print("Trying to sync")
-    partsTypeSelectionBrowserInput.sendInfoToHTML("returnTaxonomyDataMessage",
+    parts_type_selection_browser_input.sendInfoToHTML("returnTaxonomyDataMessage",
                                                   "{}")
 
     selections = []
-    for jo in selectedJointOrigins:
+    for jo in selected_joint_origins:
 
         # Add typing information as string (this is kinda okay, because we'll send it via JSON to the backend anyway)
-        jo.attributes.add("CLS-JOINT", "RequiresString", typeTextBoxInput.text)
+        jo.attributes.add("CLS-JOINT", "RequiresString", type_text_box_input.text)
         jo.attributes.add(
             "CLS-JOINT", "ProvidesString",
             f'({"∩".join(providesFormats)})'.replace(" ∩ ()",
@@ -422,7 +423,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
         jo.attributes.add("CLS-JOINT", "ProvidesFormats",
                           json.dumps(providesFormats))
         jo.attributes.add("CLS-JOINT", "JointConnectType",
-                          jointConnectTypeInput.selectedItem.name)
+                          joint_connect_type_input.selectedItem.name)
 
         # The first time a joint is typed, assign a UUID and change its name
         if not jo.attributes.itemByName("CLS-INFO", "UUID"):
@@ -439,8 +440,8 @@ def command_execute(args: adsk.core.CommandEventArgs):
             jo.geometry.origin.x, jo.geometry.origin.y, jo.geometry.origin.z
         ]
         coords = adsk.fusion.CustomGraphicsCoordinates.create(coord_array)
-        if jo_uuid in config.customTextDict:
-            config.customTextDict[
+        if jo_uuid in config.custom_text_dict:
+            config.custom_text_dict[
                 jo_uuid].formattedText = f'Requires: {jo.attributes.itemByName("CLS-JOINT", "RequiresString").value}\nProvides: {jo.attributes.itemByName("CLS-JOINT", "ProvidesString").value or "None"}'
         else:
             tmatrix = adsk.core.Matrix3D.create()
@@ -453,14 +454,14 @@ def command_execute(args: adsk.core.CommandEventArgs):
             offset.scaleBy(0.05)
             offset.add(tmatrix.translation)
             tmatrix.translation = offset
-            customText = graphics.addText(
+            custom_text = graphics.addText(
                 f'Requires: {jo.attributes.itemByName("CLS-JOINT", "RequiresString").value}\nProvides: {jo.attributes.itemByName("CLS-JOINT", "ProvidesString").value or "None"}',
                 'Courier New', 0.2, tmatrix)
-            config.customTextDict[jo_uuid] = customText
+            config.custom_text_dict[jo_uuid] = custom_text
 
-    design.selectionSets.add(selectedJointOrigins, nameStringValueInput.value)
+    design.selectionSets.add(selected_joint_origins, nameStringValueInput.value)
 
-    selectedJointOrigins = []
+    selected_joint_origins = []
     # Should probably be a toggle under visualisation section
     #graphicsText.billBoarding = billBoard
 
@@ -471,7 +472,7 @@ def command_preview(args: adsk.core.CommandEventArgs):
 
 
 def command_destroy(args: adsk.core.CommandEventArgs):
-    global local_handlers, reqAttributes, reqFormats, reqParts, providesAttributes, providesFormats, providesParts
+    global local_handlers, reqAttributes, reqFormats, reqParts, provides_attributes, providesFormats, provides_parts
     local_handlers = []
     reqAttributes, reqFormats, reqParts, providesAttributes, providesFormats, providesParts = [],[],[],[],[],[]
     futil.log(f'{CMD_NAME} Command Destroy Event')

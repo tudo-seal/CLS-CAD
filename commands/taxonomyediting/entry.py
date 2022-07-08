@@ -11,7 +11,7 @@ ui = app.userInterface
 # TODO ********************* Change these names *********************
 CMD_ID = f'{config.COMPANY_NAME}_{config.ADDIN_NAME}_taxonomy_edit'
 CMD_NAME = 'Edit Taxonomy'
-CMD_Description = 'Allows selecting or adding new taxonomy from the taxonomy tree'
+CMD_DESCRIPTION = 'Allows selecting or adding new taxonomy from the taxonomy tree'
 PALETTE_NAME = 'Taxonomy'
 IS_PROMOTED = True
 
@@ -48,7 +48,7 @@ local_handlers = []
 
 def start():
     cmd_def = ui.commandDefinitions.addButtonDefinition(CMD_ID, CMD_NAME,
-                                                        CMD_Description,
+                                                        CMD_DESCRIPTION,
                                                         ICON_FOLDER)
 
     futil.add_handler(cmd_def.commandCreated, command_created)
@@ -101,9 +101,9 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     else:
         palette = ui.palettes.itemById(PALETTE_ID)
         # ADSK was injected, so now we send the payload
-        taxonomyDataMessage = config.taxonomies["parts"]
+        taxonomy_data_message = config.taxonomies["parts"]
         palette.sendInfoToHTML("taxonomyDataMessage",
-                               json.dumps(taxonomyDataMessage))
+                               json.dumps(taxonomy_data_message))
     inputs = args.command.commandInputs
     args.command.setDialogMinimumSize(1200, 800)
     args.command.setDialogInitialSize(1200, 800)
@@ -152,13 +152,13 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
     if message_action == 'readyNotification':
         palette = ui.palettes.itemById(PALETTE_ID)
         # ADSK was injected, so now we send the payload
-        taxonomyDataMessage = config.taxonomies["parts"]
+        taxonomy_data_message = config.taxonomies["parts"]
         palette.sendInfoToHTML("taxonomyDataMessage",
-                               json.dumps(taxonomyDataMessage))
+                               json.dumps(taxonomy_data_message))
     # Return value.
     now = datetime.now()
-    currentTime = now.strftime('%H:%M:%S')
-    html_args.returnData = f'OK - {currentTime}'
+    current_time = now.strftime('%H:%M:%S')
+    html_args.returnData = f'OK - {current_time}'
 
 
 def command_destroy(args: adsk.core.CommandEventArgs):
