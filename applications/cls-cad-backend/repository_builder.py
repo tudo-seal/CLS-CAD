@@ -1,35 +1,46 @@
+import json
+import os
+from pathlib import Path
+
 from cls_python import *
+from lib.util import combine_motions
+from lib.set_json import SetDecoder
 
 
 class Jsonify:
     def __call__(self, x):
-        return Jsonify(self.config, [*self.data, x], self.description)
+        return Jsonify(self.config, [*self.data, x], self.info)
 
     def __str__(self):
         return deep_str(self.data)
 
-    def __init__(self, config, data, description):
+    def __init__(self, config, data, info):
         self.config = config
         self.data = data
-        self.description = description
+        self.info = info
 
-    def to_dict(self):
+    def to_dict(self, motion="Rigid"):
         return dict(
-            part=self.description,
-            provides=self.config.provides,
-            forgeDocumentId=self.config.forgeDocumentID,
-            forgeFolderId=self.config.forgeFolderId,
-            forgeProjectId=self.config.forgeProjectID,
-            **{
-                label: part.to_dict()
-                for (label, part) in zip(self.config.jointOrder, self.data)
-            }
+            name=self.info["name"],
+            provides=self.config.provides["uuid"],
+            forgeDocumentId=self.info["forgeDocumentID"],
+            forgeFolderId=self.info["forgeFolderId"],
+            forgeProjectId=self.info["forgeProjectID"],
+            motion=motion
+            ** {
+                jo_info["uuid"]: part.to_dict(
+                    motion=combine_motions(
+                        self.config.provides["motion"], jo_info["motion"]
+                    )
+                )
+                for (jo_info, part) in zip(self.config.joint_order_info, self.data)
+            },
         )
 
 
 class Part(object):
     def __call__(self, x):
-        return Jsonify(x, [], self.payload)
+        return Jsonify(x, [], self.info)
 
     def __repr__(self):
         return ""
@@ -41,21 +52,55 @@ class Part(object):
         return isinstance(other, Part)
 
     def __hash__(self):
-        return hash(self.payload)
+        return hash(self.info)
 
-    def __init__(self, payload):
+    def __init__(self, info):
         # Create combinator type here based on some JSON payload in future
-        self.payload = payload
+        self.info = info
 
 
 # additional info about the parts configuration options
 class PartConfig:
     def __init__(
-        self, jointOrder, provides, forgeProjectId, forgeFolderId, forgeDocumentId
+        self,
+        joint_order_info: list,
+        provides,
     ):
         # Create combinator type here based on some JSON payload in future
-        self.forgeDocumentId = forgeDocumentId
-        self.forgeFolderId = forgeFolderId
-        self.forgeProjectId = forgeProjectId
-        self.jointOrder = jointOrder
+        self.joint_order_info = joint_order_info
         self.provides = provides
+
+
+class RepositoryBuilder:
+    @staticmethod
+    def add_part_to_repository(part: dict, repository: dict):
+        for pc in part["partConfigs"]:
+            repository[PartConfig(pc["jointOrderInfo"], pc["provides"])] = Constructor(
+                "_".join([x["uuid"] for x in pc["jointOrderInfo"]])
+                + "_"
+                + pc["provides"]["uuid"]
+            )
+        repository[Part(part["meta"])] = json.loads(
+            json.dumps(part["combinator"]), cls=CLSDecoder
+        )
+        pass
+
+    @staticmethod
+    def add_all_to_repository(index):
+        repository = {}
+        with open("Repositories/CAD/index.dat", "a+") as f:
+            data = json.load(f, cls=SetDecoder)
+            part = None
+            for key, value in data["parts"]:
+                p = Path(
+                    os.path.join(
+                        "Repositories",
+                        "CAD",
+                        value["forgeProjectId"],
+                        value["forgeFolderId"],
+                    ).replace(":", "-")
+                )
+                with (p / key.replace(":", "-")).open("r") as fp:
+                    part = json.load(fp)
+                    RepositoryBuilder.add_part_to_repository(part, repository)
+        return repository
