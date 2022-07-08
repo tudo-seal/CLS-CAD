@@ -1,4 +1,5 @@
 import json
+
 import adsk.core
 import os
 import inspect
@@ -6,6 +7,7 @@ import copy
 from ...lib.cls_python_compat import *
 from ...lib import fusion360utils as futil
 from ... import config
+import urllib.request
 
 app = adsk.core.Application.get()
 ui = app.userInterface
@@ -91,7 +93,7 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
 
     # UI
     type_text_box_input = inputs.addTextBoxCommandInput('typeTextBox', 'Issues',
-                                                     '', 1, True)
+                                                        '', 1, True)
 
     type_text_box_input.numRows = 12
 
@@ -148,12 +150,13 @@ def command_execute(args: adsk.core.CommandEventArgs):
         jo_connect_type = jo.attributes.itemByName(
             "CLS-JOINT", "JointConnectType").value if jo.attributes.itemByName(
                 "CLS-JOINT", "JointConnectType") else "Rigid"
-        jo_infos.append((jo_uuid, [s + "_format" for s in jo_req_formats] +
-                        [s + "_part" for s in jo_req_parts] +
-                        [s + "_attribute" for s in jo_req_attributes],
-                        [s + "_attribute" for s in provides_attributes] +
-                        [s + "_part" for s in provides_parts] +
-                        [s + "_format" for s in jo_prov_formats], jo_connect_type))
+        jo_infos.append(
+            (jo_uuid, [s + "_format" for s in jo_req_formats] +
+             [s + "_part" for s in jo_req_parts] +
+             [s + "_attribute" for s in jo_req_attributes],
+             [s + "_attribute" for s in provides_attributes] +
+             [s + "_part" for s in provides_parts] +
+             [s + "_format" for s in jo_prov_formats], jo_connect_type))
     configurations = []
     part_dict = {"partConfigs": []}
     for info in jo_infos:
@@ -161,9 +164,12 @@ def command_execute(args: adsk.core.CommandEventArgs):
         part_dict["partConfigs"].append({
             "jointOrderInfo": [{
                 "uuid": x[0],
-                "connectType": x[3]
+                "motion": x[3]
             } for x in req_joints],
-            "providesUuid": info[0]
+            "provides": {
+                "uuid": info[0],
+                "motion": info[3]
+            }
         })
         arrow = Type.intersect(info[2])
         for req_joint in req_joints:
@@ -172,11 +178,14 @@ def command_execute(args: adsk.core.CommandEventArgs):
             Arrow("_".join([x[0] for x in req_joints + [info]]), arrow))
     part_dict["combinator"] = CLSEncoder().default(
         Type.intersect(configurations))
-    part_dict["partName"] = app.activeDocument.name
+    part_dict["meta"] = {}
+    part_dict["meta"]["partName"] = app.activeDocument.name
     # this might be wrong and return the browsed ID
-    part_dict["forgeProjectId"] = app.data.activeProject.id
-    part_dict["forgeFolderId"] = app.data.activeFolder.id
-    part_dict["forgeDocumentId"] = app.activeDocument.dataFile.id
+    part_dict["meta"][
+        "forgeProjectId"] = app.activeDocument.dataFile.parentProject.id
+    part_dict["meta"][
+        "forgeFolderId"] = app.activeDocument.dataFile.parentFolder.id
+    part_dict["meta"]["forgeDocumentId"] = app.activeDocument.dataFile.id
 
     with open(
             winapi_path(
@@ -191,6 +200,16 @@ def command_execute(args: adsk.core.CommandEventArgs):
             cls=CLSEncoder,
             indent=4,
         )
+    req = urllib.request.Request("http://127.0.0.1:8000/submit/part")
+    req.add_header('Content-Type', 'application/json; charset=utf-8')
+    payload = json.dumps(
+        part_dict,
+        cls=CLSEncoder,
+        indent=4,
+    ).encode('utf-8')
+    req.add_header('Content-Length', len(payload))
+    response = urllib.request.urlopen(req, payload)
+    print(response)
 
 
 def command_preview(args: adsk.core.CommandEventArgs):
