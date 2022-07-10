@@ -235,7 +235,7 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
         )
         doc = app.documents.add(adsk.core.DocumentTypes.FusionDesignDocumentType)
         # Naming and stuff will need to be cleaned up, and multi-assembly
-        doc.saveAs(str(uuid.uuid1()), request_folder, "", "")
+        doc.saveAs(str(uuid.uuid4()), request_folder, "", "")
         assemble_recursively(message_data)
 
     # Return value.
