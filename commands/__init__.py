@@ -14,20 +14,27 @@ from .jointtyping import entry as joint_typing
 from .parttyping import entry as part_typing
 from .typecrawlingproject import entry as type_crawling_project
 from .typecrawlinghub import entry as type_crawling_hub
-from .checkAndSubmit import entry as check_and_submit
+from .checkandsubmit import entry as check_and_submit
 from .togglecustomgraphics import entry as toggle_custom_graphics
 from .taxonomyediting import entry as taxonomy_editing
+from .assembleresult import entry as assemble_result
 
 app = adsk.core.Application.get()
 ui = app.userInterface
 
-ROOT_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
+ROOT_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 
 # TODO add your imported modules to this list.
 # Fusion will automatically call the start() and stop() functions.
 commands = [
-    joint_typing,part_typing,check_and_submit,type_crawling_project,
-type_crawling_hub,toggle_custom_graphics,taxonomy_editing
+    joint_typing,
+    part_typing,
+    check_and_submit,
+    type_crawling_project,
+    type_crawling_hub,
+    toggle_custom_graphics,
+    taxonomy_editing,
+    assemble_result,
 ]
 
 
@@ -45,8 +52,9 @@ def add_tab() -> adsk.core.ToolbarTab:
     return None
 
 
-def add_panel(parent_tab: adsk.core.ToolbarTab, panel_id: str,
-             panel_name: str) -> adsk.core.ToolbarPanel:
+def add_panel(
+    parent_tab: adsk.core.ToolbarTab, panel_id: str, panel_name: str
+) -> adsk.core.ToolbarPanel:
     new_panel = parent_tab.toolbarPanels.itemById(panel_id)
 
     if new_panel is None:
@@ -67,8 +75,7 @@ def start():
 
     path_part_taxonomy = Path(os.path.join(ROOT_FOLDER, "parts.taxonomy"))
     path_format_taxonomy = Path(os.path.join(ROOT_FOLDER, "formats.taxonomy"))
-    path_attribute_taxonomy = Path(
-        os.path.join(ROOT_FOLDER, "attributes.taxonomy"))
+    path_attribute_taxonomy = Path(os.path.join(ROOT_FOLDER, "attributes.taxonomy"))
 
     if path_part_taxonomy.is_file():
         with open(path_part_taxonomy) as json_file:
@@ -80,13 +87,14 @@ def start():
         with open(path_attribute_taxonomy) as json_file:
             config.taxonomies["attributes"] = json.load(json_file)
 
-    futil.add_handler(app.documentOpened,
-                      application_document_opened,
-                      local_handlers=local_handlers)
+    futil.add_handler(
+        app.documentOpened, application_document_opened, local_handlers=local_handlers
+    )
     add_panel(main_tab, "TYPES", "Typing Tools")
     add_panel(main_tab, "CRAWL", "Setup Tools")
     add_panel(main_tab, "TAXONOMY", "Taxonomy")
     add_panel(main_tab, "VIZ", "Visualisation")
+    add_panel(main_tab, "SYNTH_ASSEMBLY", "Synthesis Results")
     for command in commands:
         command.start()
 
@@ -95,7 +103,8 @@ def application_document_opened(args: adsk.core.DocumentEventArgs):
     # Restore custom graphics
     config.custom_graphics_displaying = False
     cmd = ui.commandDefinitions.itemById(
-        f'{config.COMPANY_NAME}_{config.ADDIN_NAME}_toggle_display')
+        f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_toggle_display"
+    )
     cmd.execute()
 
 
