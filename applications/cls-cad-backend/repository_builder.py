@@ -27,13 +27,15 @@ class Jsonify:
             forgeFolderId=self.info["forgeFolderId"],
             forgeProjectId=self.info["forgeProjectId"],
             motion=motion,
-            **{
-                jo_info["uuid"]: part.to_dict(
-                    motion=combine_motions(
-                        self.config.provides["motion"], jo_info["motion"]
+            connections={
+                **{
+                    jo_info["uuid"]: part.to_dict(
+                        motion=combine_motions(
+                            self.config.provides["motion"], jo_info["motion"]
+                        )
                     )
-                )
-                for (jo_info, part) in zip(self.config.joint_order_info, self.data)
+                    for (jo_info, part) in zip(self.config.joint_order_info, self.data)
+                }
             },
         )
 

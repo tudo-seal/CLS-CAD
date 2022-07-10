@@ -1,16 +1,34 @@
+import glob
 import json
 import os
+import typing
 from collections import defaultdict
 from json import JSONDecodeError
+from uuid import uuid4
 
 from fastapi import FastAPI, Body
 from pathlib import Path
+
+from starlette.responses import Response
 
 from cls_python import deep_str, CLSDecoder, FiniteCombinatoryLogic, Subtypes
 from lib.set_json import SetEncoder, SetDecoder
 from repository_builder import RepositoryBuilder
 
 app = FastAPI()
+
+# Response that is easy to debug
+class IndentedResponse(Response):
+    media_type = "application/json"
+
+    def render(self, content: typing.Any) -> bytes:
+        return json.dumps(
+            content,
+            ensure_ascii=False,
+            allow_nan=False,
+            indent=4,
+            separators=(", ", ": "),
+        ).encode("utf-8")
 
 
 @app.get("/")
@@ -101,12 +119,35 @@ async def synthesize_assembly(
     gamma = FiniteCombinatoryLogic(
         RepositoryBuilder.add_all_to_repository(), taxonomy, processes=1
     )
-    print(deep_str(RepositoryBuilder.add_all_to_repository()))
     result = gamma.inhabit(json.loads(json.dumps(payload), cls=CLSDecoder))
     if result.size() != 0:
+        request_id = uuid4()
+        p = Path(os.path.join("Results", "CAD", str(request_id)))
+        p.mkdir(parents=True, exist_ok=True)
+        # Maybe also add an index.dat to results, priority low
         if result.size() != -1:
             for i in range(result.size()):
-                print(json.dumps(result.evaluated[i].to_dict(), indent=4))
-        return "OK"
+                with (p / f"{i}.json").open("w+") as f:
+                    json.dump(result.evaluated[i].to_dict(), f, indent=4)
+        return str(request_id)
     else:
         return "FAIL"
+
+
+@app.get("/results", response_class=IndentedResponse)
+async def list_result_ids():
+    cad_dir = "Results/CAD"
+    return [
+        item
+        for item in os.listdir(cad_dir)
+        if os.path.isdir(os.path.join(cad_dir, item))
+    ]
+
+
+@app.get("/results/{request_id}", response_class=IndentedResponse)
+async def results_for_id(request_id: str):
+    results = []
+    for filename in glob.glob(os.path.join(f"Results/CAD/{request_id}", "*.json")):
+        with open(os.path.join(os.getcwd(), filename), "r") as f:
+            results.append(json.load(f))
+    return results
