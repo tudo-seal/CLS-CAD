@@ -151,12 +151,12 @@ def command_execute(args: adsk.core.CommandEventArgs):
             "CLS-JOINT", "JointConnectType").value if jo.attributes.itemByName(
                 "CLS-JOINT", "JointConnectType") else "Rigid"
         jo_infos.append(
-            (jo_uuid, [s + "_format" for s in jo_req_formats] +
-             [s + "_part" for s in jo_req_parts] +
-             [s + "_attribute" for s in jo_req_attributes],
-             [s + "_attribute" for s in provides_attributes] +
-             [s + "_part" for s in provides_parts] +
-             [s + "_format" for s in jo_prov_formats], jo_connect_type))
+            (jo_uuid, [s + "_formats" for s in jo_req_formats] +
+             [s + "_parts" for s in jo_req_parts] +
+             [s + "_attributes" for s in jo_req_attributes],
+             [s + "_attributes" for s in provides_attributes] +
+             [s + "_parts" for s in provides_parts] +
+             [s + "_formats" for s in jo_prov_formats], jo_connect_type))
     configurations = []
     part_dict = {"partConfigs": []}
     for info in jo_infos:
@@ -207,6 +207,19 @@ def command_execute(args: adsk.core.CommandEventArgs):
         cls=CLSEncoder,
         indent=4,
     ).encode('utf-8')
+    req.add_header('Content-Length', len(payload))
+    response = urllib.request.urlopen(req, payload)
+    print(response)
+
+    #why not also update the taxonomy in the backend while we are at it?
+    suffixed_taxonomy = {}
+    print(config.taxonomies)
+    for key, value in config.taxonomies.items():
+        suffixed_taxonomy.update(TaxonomyConverter.convert(value, key))
+    print(suffixed_taxonomy)
+    req = urllib.request.Request("http://127.0.0.1:8000/submit/taxonomy")
+    req.add_header('Content-Type', 'application/json; charset=utf-8')
+    payload = json.dumps(suffixed_taxonomy, indent=4).encode('utf-8')
     req.add_header('Content-Length', len(payload))
     response = urllib.request.urlopen(req, payload)
     print(response)

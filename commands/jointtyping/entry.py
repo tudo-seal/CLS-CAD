@@ -150,14 +150,14 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     args.command.setDialogInitialSize(600, 800)
 
     # UI DEF
-    global type_text_box_input,parts_type_selection_browser_input,kinding_selection_drop_down_input,name_string_value_input,provides_type_text_box_input,joint_connect_type_input
+    global type_text_box_input, parts_type_selection_browser_input, kinding_selection_drop_down_input, name_string_value_input, provides_type_text_box_input, joint_connect_type_input
 
     selection_tab = inputs.addTabCommandInput('selectionTab',
-                                             'Select/Configure Joint')
+                                              'Select/Configure Joint')
     requires_tab = inputs.addTabCommandInput('requiresTab',
-                                            'Select Required Type')
+                                             'Select Required Type')
     provides_tab = inputs.addTabCommandInput('providesTab',
-                                            'Select Provided Type')
+                                             'Select Provided Type')
     selection_tab_inputs = selection_tab.children
     requires_tab_inputs = requires_tab.children
     provides_tab_inputs = provides_tab.children
@@ -169,9 +169,9 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
 
     joint_connect_type_input = selection_tab_inputs.addButtonRowCommandInput(
         'jointTypeSelection', 'Joint Type', False)
-    joint_connect_type_input.listItems.add('Rigid', False, 'resources/lambda.png')
-    joint_connect_type_input.listItems.add('Revolute', False,
-                                        'resources/lambda.png')
+    joint_connect_type_input.listItems.add('Rigid', False, 'resources')
+    joint_connect_type_input.listItems.item(0).isSelected = True
+    joint_connect_type_input.listItems.add('Revolute', False, 'resources')
 
     type_text_box_input = selection_tab_inputs.addTextBoxCommandInput(
         'typeTextBox', 'Requires Type', '', 2, True)
@@ -262,7 +262,8 @@ def command_unselect(args: adsk.core.SelectionEventArgs):
     if design and selected_joint_origin:
         selected_joint_origins.append(selected_joint_origin)
         selected_joint_origins = [
-            x for x in selected_joint_origins if x.id != selected_joint_origin.id
+            x for x in selected_joint_origins
+            if x.id != selected_joint_origin.id
         ]
 
 
@@ -400,21 +401,23 @@ def command_execute(args: adsk.core.CommandEventArgs):
         adsk.core.Point3D.create(0, 0, 0))
     bill_board.billBoardStyle = adsk.fusion.CustomGraphicsBillBoardStyles.ScreenBillBoardStyle
 
-    global typing, kinding, selected_joint_origins, nameStringValueInput, parts_type_selection_browser_input, joint_connect_type_input
+    global typing, kinding, selected_joint_origins, name_string_value_input, parts_type_selection_browser_input, joint_connect_type_input
+    global req_formats, req_attributes, req_parts, provides_formats, provides_parts, provides_attributes
 
     print("Trying to sync")
-    parts_type_selection_browser_input.sendInfoToHTML("returnTaxonomyDataMessage",
-                                                  "{}")
+    parts_type_selection_browser_input.sendInfoToHTML(
+        "returnTaxonomyDataMessage", "{}")
 
     selections = []
     for jo in selected_joint_origins:
 
         # Add typing information as string (this is kinda okay, because we'll send it via JSON to the backend anyway)
-        jo.attributes.add("CLS-JOINT", "RequiresString", type_text_box_input.text)
+        jo.attributes.add("CLS-JOINT", "RequiresString",
+                          type_text_box_input.text)
         jo.attributes.add(
             "CLS-JOINT", "ProvidesString",
             f'({"∩".join(provides_formats)})'.replace(" ∩ ()",
-                                                     "").replace("()", ""))
+                                                      "").replace("()", ""))
         jo.attributes.add("CLS-JOINT", "RequiresFormats",
                           json.dumps(req_formats))
         jo.attributes.add("CLS-JOINT", "RequiresParts", json.dumps(req_parts))
@@ -459,9 +462,11 @@ def command_execute(args: adsk.core.CommandEventArgs):
                 'Courier New', 0.2, tmatrix)
             config.custom_text_dict[jo_uuid] = custom_text
 
-    design.selectionSets.add(selected_joint_origins, nameStringValueInput.value)
+    design.selectionSets.add(selected_joint_origins,
+                             name_string_value_input.value or "Typed Joint Set")
 
     selected_joint_origins = []
+    req_formats,req_attributes,req_parts,provides_attributes,provides_formats,provides_parts = [],[],[],[],[],[]
     # Should probably be a toggle under visualisation section
     #graphicsText.billBoarding = billBoard
 

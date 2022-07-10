@@ -25,10 +25,7 @@ custom_graphics_displaying = False
 
 taxonomies = {
     "parts": {
-        "AnyPart": ["A", "B"],
-        "A": ["B", "C"],
-        "B": ["C"],
-        "C": ["D", "E"]
+        "AnyPart": []
     },
     "formats": {
         "AnyFormat": []
