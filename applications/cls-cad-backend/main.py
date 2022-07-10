@@ -6,8 +6,9 @@ from json import JSONDecodeError
 from fastapi import FastAPI, Body
 from pathlib import Path
 
-from cls_python import deep_str
+from cls_python import deep_str, CLSDecoder, FiniteCombinatoryLogic, Subtypes
 from lib.set_json import SetEncoder, SetDecoder
+from repository_builder import RepositoryBuilder
 
 app = FastAPI()
 
@@ -47,7 +48,7 @@ async def save_part(
     p.mkdir(parents=True, exist_ok=True)
     with (p / payload["meta"]["forgeDocumentId"].replace(":", "-")).open("w+") as f:
         json.dump(payload, f, indent=4)
-    with open("Repositories/CAD/index.dat", "a+") as f:
+    with open("Repositories/CAD/index.dat", "r+") as f:
         data = defaultdict(lambda: defaultdict(lambda: defaultdict(set)))
         data["folders"][payload["meta"]["forgeFolderId"]] = set()
 
@@ -57,7 +58,8 @@ async def save_part(
         except EOFError:
             pass
         except JSONDecodeError:
-            pass
+            # ToDo: Implement reindexing
+            print("JSON wouldn't decode. Probably tampered, re-indexing...")
 
         data["parts"][payload["meta"]["forgeDocumentId"]] = {
             "forgeProjectId": payload["meta"]["forgeProjectId"],
@@ -72,8 +74,39 @@ async def save_part(
         data["folders"][payload["meta"]["forgeFolderId"]].add(
             payload["meta"]["forgeDocumentId"]
         )
-
+        f.seek(0)
+        f.truncate()
         json.dump(data, f, cls=SetEncoder, indent=4)
+
     # Data is sane and can be decoded, so from this we can construct all necessary combinators
     # print(json.loads(json.dumps(payload["combinator"]), cls=CLSDecoder))
     return "OK"
+
+
+@app.post("/submit/taxonomy")
+async def save_taxonomy(
+    payload: dict = Body(...),
+):
+    with open("Repositories/CAD/taxonomy.dat", "w+") as f:
+        json.dump(payload, f, cls=SetEncoder, indent=4)
+
+
+@app.post("/request/assembly")
+async def synthesize_assembly(
+    payload: dict = Body(...),
+):
+    taxonomy = Subtypes(
+        json.load(open("Repositories/CAD/taxonomy.dat", "r"), cls=SetDecoder)
+    )
+    gamma = FiniteCombinatoryLogic(
+        RepositoryBuilder.add_all_to_repository(), taxonomy, processes=1
+    )
+    print(deep_str(RepositoryBuilder.add_all_to_repository()))
+    result = gamma.inhabit(json.loads(json.dumps(payload), cls=CLSDecoder))
+    if result.size() != 0:
+        if result.size() != -1:
+            for i in range(result.size()):
+                print(json.dumps(result.evaluated[i].to_dict(), indent=4))
+        return "OK"
+    else:
+        return "FAIL"

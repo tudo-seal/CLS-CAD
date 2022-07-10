@@ -21,13 +21,13 @@ class Jsonify:
 
     def to_dict(self, motion="Rigid"):
         return dict(
-            name=self.info["name"],
+            name=self.info["partName"],
             provides=self.config.provides["uuid"],
-            forgeDocumentId=self.info["forgeDocumentID"],
+            forgeDocumentId=self.info["forgeDocumentId"],
             forgeFolderId=self.info["forgeFolderId"],
-            forgeProjectId=self.info["forgeProjectID"],
-            motion=motion
-            ** {
+            forgeProjectId=self.info["forgeProjectId"],
+            motion=motion,
+            **{
                 jo_info["uuid"]: part.to_dict(
                     motion=combine_motions(
                         self.config.provides["motion"], jo_info["motion"]
@@ -52,7 +52,7 @@ class Part(object):
         return isinstance(other, Part)
 
     def __hash__(self):
-        return hash(self.info)
+        return hash(json.dumps(self.info))
 
     def __init__(self, info):
         # Create combinator type here based on some JSON payload in future
@@ -76,8 +76,11 @@ class RepositoryBuilder:
     def add_part_to_repository(part: dict, repository: dict):
         for pc in part["partConfigs"]:
             repository[PartConfig(pc["jointOrderInfo"], pc["provides"])] = Constructor(
-                "_".join([x["uuid"] for x in pc["jointOrderInfo"]])
-                + "_"
+                (
+                    "_".join([x["uuid"] for x in pc["jointOrderInfo"]]) + "_"
+                    if pc["jointOrderInfo"]
+                    else ""
+                )
                 + pc["provides"]["uuid"]
             )
         repository[Part(part["meta"])] = json.loads(
@@ -86,12 +89,12 @@ class RepositoryBuilder:
         pass
 
     @staticmethod
-    def add_all_to_repository(index):
+    def add_all_to_repository():
         repository = {}
-        with open("Repositories/CAD/index.dat", "a+") as f:
+        with open("Repositories/CAD/index.dat", "r+") as f:
             data = json.load(f, cls=SetDecoder)
             part = None
-            for key, value in data["parts"]:
+            for key, value in data["parts"].items():
                 p = Path(
                     os.path.join(
                         "Repositories",
