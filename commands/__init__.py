@@ -1,23 +1,20 @@
 # Here you define the commands that will be added to your add-in.
 import json
-from pathlib import Path
-import adsk.core
 import os
+from pathlib import Path
 
-from ..lib import fusion360utils as futil
-from .. import config
+import adsk.core
 
-# TODO Import the modules corresponding to the commands you created.
-# If you want to add an additional command, duplicate one of the existing directories and import it here.
-# You need to use aliases (import "entry" as "my_module") assuming you have the default module named "entry".
+from .assembleresult import entry as assemble_result
+from .checkandsubmit import entry as check_and_submit
 from .jointtyping import entry as joint_typing
 from .parttyping import entry as part_typing
-from .typecrawlingproject import entry as type_crawling_project
-from .typecrawlinghub import entry as type_crawling_hub
-from .checkandsubmit import entry as check_and_submit
-from .togglecustomgraphics import entry as toggle_custom_graphics
 from .taxonomyediting import entry as taxonomy_editing
-from .assembleresult import entry as assemble_result
+from .togglecustomgraphics import entry as toggle_custom_graphics
+from .typecrawlinghub import entry as type_crawling_hub
+from .typecrawlingproject import entry as type_crawling_project
+from .. import config
+from ..lib import fusion360utils as futil
 
 app = adsk.core.Application.get()
 ui = app.userInterface

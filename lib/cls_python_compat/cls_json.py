@@ -1,8 +1,9 @@
 import json
+
 from .types import Arrow, Intersection, Product, Omega, Constructor
 
-class CLSEncoder(json.JSONEncoder):
 
+class CLSEncoder(json.JSONEncoder):
     def __init__(self, **kwargs):
         super(CLSEncoder, self).__init__(**kwargs)
 
@@ -14,7 +15,7 @@ class CLSEncoder(json.JSONEncoder):
 
     @staticmethod
     def tpe(o):
-        #return f"{o.__class__.__module__}.{o.__class__.__qualname__}"
+        # return f"{o.__class__.__module__}.{o.__class__.__qualname__}"
         return f"{o.__class__.__qualname__}"
 
     def default(self, o):
@@ -22,19 +23,19 @@ class CLSEncoder(json.JSONEncoder):
             return {
                 "__type__": CLSEncoder.tpe(o),
                 "source": self.default(o.source),
-                "target": self.default(o.target)
+                "target": self.default(o.target),
             }
         elif isinstance(o, Intersection):
             return {
                 "__type__": CLSEncoder.tpe(o),
                 "left": self.default(o.left),
-                "right": self.default(o.right)
+                "right": self.default(o.right),
             }
         elif isinstance(o, Product):
             return {
                 "__type__": CLSEncoder.tpe(o),
                 "left": self.default(o.left),
-                "right": self.default(o.right)
+                "right": self.default(o.right),
             }
         elif isinstance(o, Omega):
             return {"__type__": CLSEncoder.tpe(o)}
@@ -42,13 +43,13 @@ class CLSEncoder(json.JSONEncoder):
             return {
                 "__type__": CLSEncoder.tpe(o),
                 "name": o.name,
-                "arg": self.default(o.arg)
+                "arg": self.default(o.arg),
             }
         elif isinstance(o, str):
             return {
                 "__type__": CLSEncoder.tpe(Constructor("")),
                 "name": o,
-                "arg": Omega()
+                "arg": Omega(),
             }
         else:
             return json.JSONEncoder.default(self, o)
