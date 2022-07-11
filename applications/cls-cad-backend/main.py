@@ -12,7 +12,7 @@ from pathlib import Path
 from starlette.responses import Response
 
 from cls_python import deep_str, CLSDecoder, FiniteCombinatoryLogic, Subtypes
-from lib.set_json import SetEncoder, SetDecoder
+from util.set_json import SetEncoder, SetDecoder
 from repository_builder import RepositoryBuilder
 
 app = FastAPI()
@@ -66,6 +66,8 @@ async def save_part(
     p.mkdir(parents=True, exist_ok=True)
     with (p / payload["meta"]["forgeDocumentId"].replace(":", "-")).open("w+") as f:
         json.dump(payload, f, indent=4)
+
+    Path("Repositories/CAD/index.dat").touch(exist_ok=True)
     with open("Repositories/CAD/index.dat", "r+") as f:
         data = defaultdict(lambda: defaultdict(lambda: defaultdict(set)))
         data["folders"][payload["meta"]["forgeFolderId"]] = set()

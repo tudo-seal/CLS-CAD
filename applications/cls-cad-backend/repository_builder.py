@@ -3,8 +3,8 @@ import os
 from pathlib import Path
 
 from cls_python import *
-from lib.util import combine_motions
-from lib.set_json import SetDecoder
+from util.motion import combine_motions
+from util.set_json import SetDecoder
 
 
 class Jsonify:
