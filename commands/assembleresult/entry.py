@@ -3,6 +3,9 @@ import uuid
 
 import adsk.core
 import os
+
+from adsk.fusion import DesignTypes
+
 from ...lib import fusion360utils as futil
 from ... import config
 from datetime import datetime
@@ -22,9 +25,8 @@ PALETTE_ID = "ResultSelector"
 
 # Specify the full path to the local html. You can also use a web URL
 # such as 'https://www.autodesk.com/'
-PALETTE_URL = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "resources", "html", "index.html"
-)
+PALETTE_URL = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           "resources", "html", "index.html")
 
 # The path function builds a valid OS path. This fixes it to be a valid local URL.
 PALETTE_URL = PALETTE_URL.replace("\\", "/")
@@ -32,13 +34,13 @@ PALETTE_URL = PALETTE_URL.replace("\\", "/")
 # Set a default docking behavior for the palette
 PALETTE_DOCKING = adsk.core.PaletteDockingStates.PaletteDockStateRight
 
-
 WORKSPACE_ID = "FusionSolidEnvironment"
 PANEL_ID = "SYNTH_ASSEMBLY"
 COMMAND_BESIDE_ID = "ScriptsManagerCommand"
 
 # Resource location for command icons, here we assume a sub folder in this directory named "resources".
-ICON_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources", "")
+ICON_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           "resources", "")
 
 # Local list of event handlers used to maintain a reference so
 # they are not released and garbage collected.
@@ -48,9 +50,9 @@ local_handlers = []
 # Executed when add-in is run.
 def start():
     # Create a command Definition.
-    cmd_def = ui.commandDefinitions.addButtonDefinition(
-        CMD_ID, CMD_NAME, CMD_Description, ICON_FOLDER
-    )
+    cmd_def = ui.commandDefinitions.addButtonDefinition(CMD_ID, CMD_NAME,
+                                                        CMD_Description,
+                                                        ICON_FOLDER)
 
     # Add command created handler. The function passed here will be executed when the command is executed.
     futil.add_handler(cmd_def.commandCreated, command_created)
@@ -100,12 +102,12 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     futil.log(f"{CMD_NAME}: Command created event.")
 
     # Create the event handlers you will need for this instance of the command
-    futil.add_handler(
-        args.command.execute, command_execute, local_handlers=local_handlers
-    )
-    futil.add_handler(
-        args.command.destroy, command_destroy, local_handlers=local_handlers
-    )
+    futil.add_handler(args.command.execute,
+                      command_execute,
+                      local_handlers=local_handlers)
+    futil.add_handler(args.command.destroy,
+                      command_destroy,
+                      local_handlers=local_handlers)
 
 
 # Because no command inputs are being added in the command created event, the execute
@@ -168,11 +170,7 @@ def palette_navigating(args: adsk.core.NavigationEventArgs):
 def assemble_recursively(part: dict):
     design = adsk.fusion.Design.cast(app.activeProduct)
     root = design.rootComponent
-    root.occurrences.addByInsert(
-        app.data.findFileById(part["forgeDocumentId"]),
-        adsk.core.Matrix3D.create(),
-        False,
-    )
+
     for key, value in part["connections"].items():
         attributes = design.findAttributes("CLS-INFO", "UUID")
         joint_origins_1 = [x.parent for x in attributes if x.value == key]
@@ -184,21 +182,31 @@ def assemble_recursively(part: dict):
             )
         # Re-query for newly inserted
         attributes = design.findAttributes("CLS-INFO", "UUID")
-        joint_origins_2 = [x.parent for x in attributes if x.value == value["provides"]]
+        joint_origins_2 = [
+            x.parent for x in attributes if x.value == value["provides"]
+        ]
         if len(joint_origins_1) != len(joint_origins_2):
             ui.messageBox(
                 f"Critical Error. Number Required: {len(joint_origins_1)} Number Provided: {len(joint_origins_2)}"
             )
             return
+
+        # This is a completely different design, so the uuids need to be changed to be unique
+        uuid_requires = str(uuid.uuid4())
+        uuid_provides = str(uuid.uuid4())
+        for joint_origin in joint_origins_1:
+            joint_origin.attributes.add("CLS-INFO", "UUID", uuid_requires)
+        for joint_origin in joint_origins_2:
+            joint_origin.attributes.add("CLS-INFO", "UUID", uuid_provides)
+
         # Create all joints
         for requires, provides in zip(joint_origins_1, joint_origins_2):
             joints = root.joints
-            joint_input = joints.createInput(requires, provides)
+            joint_input = joints.createInput(provides, requires)
             joint_input.isFlipped = True
             if value["motion"] == "Revolute":
                 joint_input.setAsRevoluteJointMotion(
-                    adsk.fusion.JointDirections.ZAxisJointDirection
-                )
+                    adsk.fusion.JointDirections.ZAxisJointDirection)
             joints.add(joint_input)
         # This is in outer, because inner just targets all UUIDs
         # If the previous step inserted six times, the next step
@@ -228,21 +236,49 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
         palette.isVisible = False
         root_folder_children = (
             app.activeDocument.dataFile.parentProject.rootFolder.dataFolders
-        )
+            if app.activeDocument.dataFile is not None else
+            app.data.activeProject.rootFolder.dataFolders)
         results_folder = (
             root_folder_children.itemByName("Synthesized Assemblies")
-            if root_folder_children.itemByName("Synthesized Assemblies")
-            else root_folder_children.add("Synthesized Assemblies")
-        )
+            if root_folder_children.itemByName("Synthesized Assemblies") else
+            root_folder_children.add("Synthesized Assemblies"))
         request_folder = (
             results_folder.dataFolders.itemByName("User Picked Name")
-            if results_folder.dataFolders.itemByName("User Picked Name")
-            else results_folder.dataFolders.add("User Picked Name")
-        )
-        doc = app.documents.add(adsk.core.DocumentTypes.FusionDesignDocumentType)
+            if results_folder.dataFolders.itemByName("User Picked Name") else
+            results_folder.dataFolders.add("User Picked Name"))
+        doc = app.documents.add(
+            adsk.core.DocumentTypes.FusionDesignDocumentType)
         # Naming and stuff will need to be cleaned up, and multi-assembly
         doc.saveAs(str(uuid.uuid4()), request_folder, "", "")
-        assemble_recursively(message_data)
+        design = adsk.fusion.Design.cast(app.activeProduct)
+        root = design.rootComponent
+        root.occurrences.addByInsert(
+            app.data.findFileById(message_data["forgeDocumentId"]),
+            adsk.core.Matrix3D.create(),
+            False,
+        )
+        attributes = design.findAttributes("CLS-INFO", "UUID")
+        root_joint_origin = [
+            x.parent for x in attributes if x.value == message_data["provides"]
+        ]
+        if len(root_joint_origin) == 1:
+            # Anchor base of assembly to origin (optional)
+            joints = root.joints
+            joint_input = joints.createInput(
+                root_joint_origin[0],
+                adsk.fusion.JointGeometry.createByPoint(
+                    design.rootComponent.originConstructionPoint),
+            )
+            joint_input.isFlipped = True
+            joints.add(joint_input)
+
+            assemble_recursively(message_data)
+        else:
+            # ToDo: Query Yes/No continue anyways
+            ui.messageBox("Multiple root joint origins.")
+
+        # Maybe necessary for performance on assembly
+        # design.designType = DesignTypes.DirectDesignType
 
     # Return value.
     now = datetime.now()
