@@ -163,6 +163,8 @@ def palette_navigating(args: adsk.core.NavigationEventArgs):
         args.launchExternally = True
 
 
+# Validation is optional, because we know the UUIDs exist, and if they don't
+# the backend is out of date, making the only fix to recrawl or reupdate part
 def assemble_recursively(part: dict):
     design = adsk.fusion.Design.cast(app.activeProduct)
     root = design.rootComponent
@@ -172,31 +174,35 @@ def assemble_recursively(part: dict):
         False,
     )
     for key, value in part["connections"].items():
-
-        root.occurrences.addByInsert(
-            app.data.findFileById(value["forgeDocumentId"]),
-            adsk.core.Matrix3D.create(),
-            False,
-        )
         attributes = design.findAttributes("CLS-INFO", "UUID")
-        joint_origin_1, joint_origin_2 = None, None
-        if len(attributes) > 0:
-            joint_origin_1 = next(
-                (x for x in attributes if x.value == key), None
-            ).parent
-            joint_origin_2 = next(
-                (x for x in attributes if x.value == value["provides"]), None
-            ).parent
-            if joint_origin_1 and joint_origin_2:
-                joints = root.joints
-                joint_input = joints.createInput(joint_origin_1, joint_origin_2)
-                # The expected behaviour is exactly reverse in F360. Weird, but okay
-                joint_input.isFlipped = True
-                if value["motion"] == "Revolute":
-                    joint_input.setAsRevoluteJointMotion(
-                        adsk.fusion.JointDirections.ZAxisJointDirection
-                    )
-                joints.add(joint_input)
+        joint_origins_1 = [x.parent for x in attributes if x.value == key]
+        for i in range(len(joint_origins_1)):
+            root.occurrences.addByInsert(
+                app.data.findFileById(value["forgeDocumentId"]),
+                adsk.core.Matrix3D.create(),
+                False,
+            )
+        # Re-query for newly inserted
+        attributes = design.findAttributes("CLS-INFO", "UUID")
+        joint_origins_2 = [x.parent for x in attributes if x.value == value["provides"]]
+        if len(joint_origins_1) != len(joint_origins_2):
+            ui.messageBox(
+                f"Critical Error. Number Required: {len(joint_origins_1)} Number Provided: {len(joint_origins_2)}"
+            )
+            return
+        # Create all joints
+        for requires, provides in zip(joint_origins_1, joint_origins_2):
+            joints = root.joints
+            joint_input = joints.createInput(requires, provides)
+            joint_input.isFlipped = True
+            if value["motion"] == "Revolute":
+                joint_input.setAsRevoluteJointMotion(
+                    adsk.fusion.JointDirections.ZAxisJointDirection
+                )
+            joints.add(joint_input)
+        # This is in outer, because inner just targets all UUIDs
+        # If the previous step inserted six times, the next step
+        # Will have six requires present instead of one
         assemble_recursively(value)
 
 
