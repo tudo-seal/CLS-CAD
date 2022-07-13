@@ -2,6 +2,7 @@ import json
 import os
 import uuid
 from datetime import datetime
+from functools import reduce
 
 import adsk.core
 from adsk.fusion import DesignTypes
@@ -11,6 +12,10 @@ from ...lib import fusion360utils as futil
 
 app = adsk.core.Application.get()
 ui = app.userInterface
+
+# CONFIG #
+# Setting to True switches Design to Direct Edit Mode while assembling, allowing for dirtier hacks.
+INSERT_LINKED = False
 
 # TODO ********************* Change these names *********************
 CMD_ID = f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_assemble_results"
@@ -168,7 +173,8 @@ def palette_navigating(args: adsk.core.NavigationEventArgs):
 
 # Validation is optional, because we know the UUIDs exist, and if they don't
 # the backend is out of date, making the only fix to recrawl or reupdate part
-def assemble_recursively(part: dict):
+# ToDo: Split into seperate methods, one for merging and one for regular assembly
+def assemble_recursively(part: dict, previous_occurrences: list):
     design = adsk.fusion.Design.cast(app.activeProduct)
     root = design.rootComponent
     global progressDialog
@@ -176,20 +182,45 @@ def assemble_recursively(part: dict):
     for key, value in part["connections"].items():
         attributes = design.findAttributes("CLS-INFO", "UUID")
         joint_origins_1 = [x.parent for x in attributes if x.value == key]
-        for attribute in attributes:
-            print(attribute.value)
+        requires_occurrences = []
         progressDialog.message = "Inserting Components..."
         progressDialog.maximumValue = len(joint_origins_1)
         progressDialog.progressValue = 0
-        for i in range(len(joint_origins_1)):
-            root.occurrences.addByInsert(
+        if not value["merges"]:
+            for i in range(len(joint_origins_1)):
+                occurrence = root.occurrences.addByInsert(
+                    app.data.findFileById(value["forgeDocumentId"]),
+                    adsk.core.Matrix3D.create(),
+                    INSERT_LINKED,
+                )
+                if INSERT_LINKED:
+                    occurrence.breakLink()
+                requires_occurrences.append(occurrence)
+                progressDialog.progressValue += 1
+            # Re-query for newly inserted
+        else:
+            # Calculate averaged origin point
+            # This si spaghetti, but an unfortunate consequence of add returning bool
+            averaged_origin_1 = reduce(
+                lambda a, b: a.add(b) and a,
+                [x.geometry.origin.asVector() for x in joint_origins_1],
+                adsk.core.Vector3D.create(),
+            )
+            averaged_origin_1.scaleBy(1.0 / len(joint_origins_1))
+
+            occurrence = root.occurrences.addByInsert(
                 app.data.findFileById(value["forgeDocumentId"]),
                 adsk.core.Matrix3D.create(),
-                False,
+                INSERT_LINKED,
             )
+            if INSERT_LINKED:
+                occurrence.breakLink()
+            requires_occurrences.append(occurrence)
             progressDialog.progressValue += 1
-        # Re-query for newly inserted
+
         attributes = design.findAttributes("CLS-INFO", "UUID")
+        for attrib in attributes:
+            print(attrib.value)
         joint_origins_2 = [x.parent for x in attributes if x.value == value["provides"]]
         if len(joint_origins_1) != len(joint_origins_2):
             ui.messageBox(
@@ -200,6 +231,7 @@ def assemble_recursively(part: dict):
         # This is a completely different design, so the uuids need to be changed to be unique
         uuid_requires = str(uuid.uuid4())
         uuid_provides = str(uuid.uuid4())
+
         progressDialog.message = "Setting new attributes..."
         progressDialog.maximumValue = len(joint_origins_1) * 2
         progressDialog.progressValue = 0
@@ -210,26 +242,88 @@ def assemble_recursively(part: dict):
             joint_origin.attributes.add("CLS-INFO", "UUID", uuid_provides)
             progressDialog.progressValue += 1
 
-        # Create all joints
-        progressDialog.message = "Creating joints..."
-        progressDialog.maximumValue = len(joint_origins_1)
-        progressDialog.progressValue = 0
-        for requires, provides in zip(joint_origins_1, joint_origins_2):
+        if not value["merges"]:
+            # Create all joints
+            progressDialog.message = "Creating joints..."
+            progressDialog.maximumValue = len(joint_origins_1)
+            progressDialog.progressValue = 0
+            for requires, provides in zip(joint_origins_1, joint_origins_2):
+                joints = root.joints
+                joint_input = joints.createInput(provides, requires)
+                joint_input.isFlipped = True
+                if value["motion"] == "Revolute":
+                    joint_input.setAsRevoluteJointMotion(
+                        adsk.fusion.JointDirections.ZAxisJointDirection
+                    )
+                joints.add(joint_input)
+                progressDialog.progressValue += 1
+        else:
+            # Create all joints
+            progressDialog.message = "Creating joints..."
+            progressDialog.maximumValue = 1
+            progressDialog.progressValue = 0
+            averaged_origin_2 = reduce(
+                lambda a, b: a.add(b) and a,
+                [x.geometry.origin.asVector() for x in joint_origins_2],
+                adsk.core.Vector3D.create(),
+            )
+            averaged_origin_2.scaleBy(1.0 / len(joint_origins_2))
+
+            offset_origin_1 = averaged_origin_1
+            offset_origin_1.subtract(joint_origins_1[0].geometry.origin.asVector())
+            offset_origin_2 = averaged_origin_2
+            offset_origin_2.subtract(joint_origins_2[0].geometry.origin.asVector())
+            # Move all previous layer occurrences into a merged one
+            occ = root.occurrences.addNewComponent(adsk.core.Matrix3D.create())
+            occ.component.name = joint_origins_1[0].parentComponent.name + "_merged"
+            for occurrence in previous_occurrences:
+                occurrence.moveToComponent(occ)
+            # Use geometry of point that calculated offset as source geometry
+            merge_joint_origin_1 = create_offset_joint_origin_in_occurence(
+                joint_origins_1[0], offset_origin_1, occ
+            )
+            merge_joint_origin_1.attributes.add("CLS-INFO", "UUID", uuid_requires)
+            merge_joint_origin_2 = create_offset_joint_origin_in_occurence(
+                joint_origins_2[0], offset_origin_2, requires_occurrences[0]
+            )
+            merge_joint_origin_2.attributes.add("CLS-INFO", "UUID", uuid_provides)
             joints = root.joints
-            joint_input = joints.createInput(provides, requires)
+            joint_input = joints.createInput(merge_joint_origin_1, merge_joint_origin_2)
             joint_input.isFlipped = True
             if value["motion"] == "Revolute":
                 joint_input.setAsRevoluteJointMotion(
                     adsk.fusion.JointDirections.ZAxisJointDirection
                 )
             joints.add(joint_input)
-            progressDialog.progressValue += 1
+
+            progressDialog.message = "Cleaning merged joints..."
+            progressDialog.maximumValue = len(joint_origins_1) * 2
+            progressDialog.progressValue = 0
+            for joint_origin in joint_origins_1:
+                joint_origin.deleteMe()
+                progressDialog.progressValue += 1
+            for joint_origin in joint_origins_2:
+                joint_origin.deleteMe()
+                progressDialog.progressValue += 1
+
         # This is in outer, because inner just targets all UUIDs
         # If the previous step inserted six times, the next step
         # Will have six requires present instead of one
         progressDialog.message = "Proceeding to next layer..."
         progressDialog.progressValue = 0
-        assemble_recursively(value)
+        assemble_recursively(value, requires_occurrences)
+
+
+def create_offset_joint_origin_in_occurence(
+    source_joint_origin, offset_vector, occurrence
+):
+    joint_origin_input = occurrence.component.jointOrigins.createInput(
+        source_joint_origin.geometry
+    )
+    joint_origin_input.offsetX = adsk.core.ValueInput.createByReal(offset_vector.x)
+    joint_origin_input.offsetY = adsk.core.ValueInput.createByReal(offset_vector.y)
+    joint_origin_input.offsetZ = adsk.core.ValueInput.createByReal(offset_vector.z)
+    return occurrence.component.jointOrigins.add(joint_origin_input)
 
 
 # Use this to handle events sent from javascript in your palette.
@@ -279,12 +373,18 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
         progressDialog.message = "Inserting assembly base..."
         progressDialog.progressValue = 0
         design = adsk.fusion.Design.cast(app.activeProduct)
+        if INSERT_LINKED:
+            design.designType = DesignTypes.DirectDesignType
+
         root = design.rootComponent
-        root.occurrences.addByInsert(
+        occurrence = root.occurrences.addByInsert(
             app.data.findFileById(message_data["forgeDocumentId"]),
             adsk.core.Matrix3D.create(),
-            False,
+            INSERT_LINKED,
         )
+        if INSERT_LINKED:
+            occurrence.breakLink()
+
         progressDialog.progressValue = 1
         progressDialog.message = "Verifying base provides count..."
         progressDialog.progressValue = 0
@@ -311,7 +411,9 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
             progressDialog.message = "Beginning assembly..."
             progressDialog.progressValue = 0
 
-            assemble_recursively(message_data)
+            assemble_recursively(message_data, [occurrence])
+            if INSERT_LINKED:
+                design.designType = DesignTypes.ParametricDesignType
 
             progressDialog.hide()
         else:

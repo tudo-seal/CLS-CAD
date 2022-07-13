@@ -139,6 +139,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
     # Demo of data interchange to backend
     jo_infos = []
+    jo_merges = False
     # Remove duplicate UUIDs, as they must be identical per convention
     # (could be checked for, but in reality should be prevented instead)
     for joint_typing in list(
@@ -163,6 +164,16 @@ def command_execute(args: adsk.core.CommandEventArgs):
             if jo.attributes.itemByName("CLS-JOINT", "JointConnectType")
             else "Rigid"
         )
+        if jo.attributes.itemByName("CLS-JOINT", "ProvidesString").value:
+            jo_merges = (
+                True
+                if sum(
+                    x.value == jo_uuid
+                    for x in design.findAttributes("CLS-INFO", "UUID")
+                )
+                > 1
+                else False
+            )
         jo_infos.append(
             (
                 jo_uuid,
@@ -173,6 +184,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
                 + [s + "_parts" for s in provides_parts]
                 + [s + "_formats" for s in jo_prov_formats],
                 jo_connect_type,
+                jo_merges,
             )
         )
     configurations = []
@@ -183,11 +195,13 @@ def command_execute(args: adsk.core.CommandEventArgs):
             {
                 "jointOrderInfo": [{"uuid": x[0], "motion": x[3]} for x in req_joints],
                 "provides": {"uuid": info[0], "motion": info[3]},
+                "merges": info[4],
             }
         )
         arrow = Type.intersect(info[2])
         for req_joint in req_joints:
-            arrow = Arrow(Type.intersect(req_joint[1]), arrow)
+            if len(req_joint[1]) > 0:
+                arrow = Arrow(Type.intersect(req_joint[1]), arrow)
         configurations.append(
             Arrow("_".join([x[0] for x in req_joints + [info]]), arrow)
         )
