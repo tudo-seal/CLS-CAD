@@ -1,5 +1,7 @@
 import json
 
+import jsonpickle
+
 from .fcl import (
     Combinator,
     Tree,
@@ -17,10 +19,10 @@ class CLSEncoder(json.JSONEncoder):
         super(CLSEncoder, self).__init__(**kwargs)
 
     def combinator_hook(self, o):
-        return json.JSONEncoder.default(self, o)
+        return jsonpickle.encode(o)
 
     def constructor_hook(self, o):
-        return json.JSONEncoder.default(self, o)
+        return o
 
     @staticmethod
     def tpe(o):
@@ -86,7 +88,7 @@ class CLSEncoder(json.JSONEncoder):
         elif isinstance(o, InhabitationResult):
             return {
                 "__type__": CLSEncoder.tpe(o),
-                "targets": [t for t in self.default(o.targets)],
+                "targets": [self.default(t) for t in o.targets],
                 "rules": [self.default(r) for r in o.rules],
             }
         elif isinstance(o, FiniteCombinatoryLogic):
@@ -107,7 +109,7 @@ class CLSDecoder(json.JSONDecoder):
         super(CLSDecoder, self).__init__(object_hook=self, **kwargs)
 
     def combinator_hook(self, dct):
-        return dct
+        return jsonpickle.decode(dct)
 
     def constructor_hook(self, dct):
         return dct

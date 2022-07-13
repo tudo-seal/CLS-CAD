@@ -1,6 +1,7 @@
 import glob
 import json
 import os
+import pickle
 import typing
 from collections import defaultdict
 from json import JSONDecodeError
@@ -11,7 +12,13 @@ from pathlib import Path
 
 from starlette.responses import Response
 
-from cls_python import deep_str, CLSDecoder, FiniteCombinatoryLogic, Subtypes
+from cls_python import (
+    deep_str,
+    CLSDecoder,
+    FiniteCombinatoryLogic,
+    Subtypes,
+    CLSEncoder,
+)
 from util.set_json import SetEncoder, SetDecoder
 from repository_builder import RepositoryBuilder
 
@@ -127,6 +134,8 @@ async def synthesize_assembly(
         p = Path(os.path.join("Results", "CAD", str(request_id)))
         p.mkdir(parents=True, exist_ok=True)
         # Maybe also add an index.dat to results, priority low
+        with (p / f"result.dat").open("w+") as f:
+            json.dump(result, f, cls=CLSEncoder, indent=4)
         if result.size() != -1:
             for i in range(result.size()):
                 with (p / f"{i}.json").open("w+") as f:
@@ -153,3 +162,12 @@ async def results_for_id(request_id: str):
         with open(os.path.join(os.getcwd(), filename), "r") as f:
             results.append(json.load(f))
     return results
+
+
+@app.get("/results/{request_id}/{result_id}", response_class=IndentedResponse)
+async def results_for_id(request_id: str, result_id: int):
+    result = json.load(
+        open(os.path.join(f"Results/CAD/{request_id}", "result.dat"), "r"),
+        cls=CLSDecoder,
+    )
+    return result.evaluated[result_id].to_dict()
