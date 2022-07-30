@@ -23,7 +23,6 @@ class Jsonify:
         return dict(
             name=self.info["partName"],
             provides=self.config.provides["uuid"],
-            merges=self.config.merges,
             forgeDocumentId=self.info["forgeDocumentId"],
             forgeFolderId=self.info["forgeFolderId"],
             forgeProjectId=self.info["forgeProjectId"],
@@ -64,20 +63,17 @@ class Part(object):
 
 # additional info about the parts configuration options
 class PartConfig:
-    def __init__(self, joint_order_info: list, provides, merges):
+    def __init__(self, joint_order_info: list, provides):
         # Create combinator type here based on some JSON payload in future
         self.joint_order_info = joint_order_info
         self.provides = provides
-        self.merges = merges
 
 
 class RepositoryBuilder:
     @staticmethod
     def add_part_to_repository(part: dict, repository: dict):
         for pc in part["partConfigs"]:
-            repository[
-                PartConfig(pc["jointOrderInfo"], pc["provides"], pc["merges"])
-            ] = Constructor(
+            repository[PartConfig(pc["jointOrderInfo"], pc["provides"])] = Constructor(
                 (
                     "_".join([x["uuid"] for x in pc["jointOrderInfo"]]) + "_"
                     if pc["jointOrderInfo"]
