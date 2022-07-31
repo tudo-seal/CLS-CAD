@@ -51,6 +51,7 @@
                 }
                 );
                 $.get("http://127.0.0.1:8000/results/" + window.result_ids[0], function (data) {
+                    console.log(data.length)
                     for (let i = 0; i < data.length; i++) {
                         $('#result-select')
                             .append($('<option>', {
@@ -63,6 +64,16 @@
 
 
             $('#results-select').on('change', function () {
+                $.get("http://127.0.0.1:8000/results/" + $('#results-select').value, function (data) {
+                    console.log(data.length)
+                    for (let i = 0; i < data.length; i++) {
+                        $('#result-select')
+                            .append($('<option>', {
+                                value: i,
+                                text: i
+                            }));
+                    }
+                }, "json");
             });
         </script>
 

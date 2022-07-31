@@ -39,9 +39,11 @@ PALETTE_URL = os.path.join(
 PALETTE_URL = PALETTE_URL.replace("\\", "/")
 
 # Resource location
-ICON_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources", "")
+ICON_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           "resources", "")
 
-ROOT_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+ROOT_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..",
+                           "..")
 
 # Local list of event handlers used to maintain a reference so
 # they are not released and garbage collected.
@@ -53,9 +55,9 @@ provides_parts, provides_attributes = [], []
 
 def start():
     # Command Definition.
-    cmd_def = ui.commandDefinitions.addButtonDefinition(
-        CMD_ID, CMD_NAME, CMD_DESCRIPTION, ICON_FOLDER
-    )
+    cmd_def = ui.commandDefinitions.addButtonDefinition(CMD_ID, CMD_NAME,
+                                                        CMD_DESCRIPTION,
+                                                        ICON_FOLDER)
     futil.add_handler(cmd_def.commandCreated, command_created)
 
     # Register
@@ -96,39 +98,35 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     futil.log(f"{CMD_NAME} Command Created Event")
 
     # Handlers
-    futil.add_handler(
-        args.command.execute, command_execute, local_handlers=local_handlers
-    )
+    futil.add_handler(args.command.execute,
+                      command_execute,
+                      local_handlers=local_handlers)
     # futil.add_handler(args.command.inputChanged,
     #                   command_input_changed,
     #                   local_handlers=local_handlers)
-    futil.add_handler(
-        args.command.executePreview, command_preview, local_handlers=local_handlers
-    )
-    futil.add_handler(
-        args.command.destroy, command_destroy, local_handlers=local_handlers
-    )
-    futil.add_handler(
-        args.command.incomingFromHTML, palette_incoming, local_handlers=local_handlers
-    )
-    futil.add_handler(
-        args.command.activate, command_activate, local_handlers=local_handlers
-    )
+    futil.add_handler(args.command.executePreview,
+                      command_preview,
+                      local_handlers=local_handlers)
+    futil.add_handler(args.command.destroy,
+                      command_destroy,
+                      local_handlers=local_handlers)
+    futil.add_handler(args.command.incomingFromHTML,
+                      palette_incoming,
+                      local_handlers=local_handlers)
+    futil.add_handler(args.command.activate,
+                      command_activate,
+                      local_handlers=local_handlers)
 
     app = adsk.core.Application.get()
     design = adsk.fusion.Design.cast(app.activeProduct)
     provides_attributes = json.loads(
         design.rootComponent.attributes.itemByName(
-            "CLS-PART", "ProvidesAttributes"
-        ).value
-        if design.rootComponent.attributes.itemByName("CLS-PART", "ProvidesAttributes")
-        else "[]"
-    )
+            "CLS-PART", "ProvidesAttributes").value if design.rootComponent.
+        attributes.itemByName("CLS-PART", "ProvidesAttributes") else "[]")
     provides_parts = json.loads(
-        design.rootComponent.attributes.itemByName("CLS-PART", "ProvidesParts").value
-        if design.rootComponent.attributes.itemByName("CLS-PART", "ProvidesParts")
-        else "[]"
-    )
+        design.rootComponent.attributes.itemByName("CLS-PART", "ProvidesParts").
+        value if design.rootComponent.attributes.
+        itemByName("CLS-PART", "ProvidesParts") else "[]")
 
     inputs = args.command.commandInputs
     args.command.setDialogMinimumSize(1200, 800)
@@ -136,9 +134,9 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
 
     # UI DEF
 
-    type_text_box_input = inputs.addTextBoxCommandInput(
-        "typeTextBox", "Part Type", "", 1, True
-    )
+    type_text_box_input = inputs.addTextBoxCommandInput("typeTextBox",
+                                                        "Part Type", "", 1,
+                                                        True)
     type_text_box_input.numRows = 12
 
     # groupTypingCmdInput = inputs.addGroupCommandInput('typingGroup', 'Typing')
@@ -176,10 +174,14 @@ def generate_type_text():
     design = adsk.fusion.Design.cast(app.activeProduct)
     typed_jos = []
     guarded_types = []
-    for jointTyping in design.findAttributes("CLS-INFO", "UUID"):
-        jo = jointTyping.parent
-        req_string = jo.attributes.itemByName("CLS-JOINT", "RequiresString").value
-        prov_string = jo.attributes.itemByName("CLS-JOINT", "ProvidesString").value
+    for joint_typing in list({
+            x.value: x for x in design.findAttributes("CLS-INFO", "UUID")
+    }.values()):
+        jo = joint_typing.parent
+        req_string = jo.attributes.itemByName("CLS-JOINT",
+                                              "RequiresString").value
+        prov_string = jo.attributes.itemByName("CLS-JOINT",
+                                               "ProvidesString").value
         jo_uuid = jo.attributes.itemByName("CLS-INFO", "UUID").value[0:4]
         typed_jos.append((req_string, prov_string, jo_uuid))
     print(typed_jos)
@@ -189,14 +191,11 @@ def generate_type_text():
         req_list = [x[0] for x in typed_jos if x != joInfo]
         uuid_list = [x[2] for x in typed_jos if x != joInfo]
         guarded_types.append(
-            f'(Constructor("Config",{"×".join(uuid_list)})) → '
-            + "→".join(req_list)
-            + " → ("
-            + joInfo[1]
-            + f' ∩ ({"∩".join(provides_parts)}) ∩ ({"∩".join(provides_attributes)}))'
+            f'(Constructor("Config",{"×".join(uuid_list)})) → ' +
+            "→".join(req_list) + " → (" + joInfo[1] +
+            f' ∩ ({"∩".join(provides_parts)}) ∩ ({"∩".join(provides_attributes)}))'
         )
-    return (
-        """<style>
+    return ("""<style>
                 pre {
                     white-space:pre-wrap;
                     tab-size: 2;
@@ -204,10 +203,8 @@ def generate_type_text():
                     line-height: 100%;
                     font-family: Courier;
                 }
-                </style><pre>("""
-        + ") ∩ \n".join(guarded_types).replace(" ∩ ()", "")
-        + "</pre>"
-    )
+                </style><pre>(""" +
+            ") ∩ \n".join(guarded_types).replace(" ∩ ()", "") + "</pre>")
 
 
 def palette_incoming(html_args: adsk.core.HTMLEventArgs):
@@ -236,7 +233,8 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
         elif html_args.browserCommandInput.id == ATTRIBUTETYPES_ID:
             taxonomy_id = "attributes"
         config.taxonomies[taxonomy_id] = message_data
-        with open(os.path.join(ROOT_FOLDER, "%s.taxonomy" % taxonomy_id), "w+") as f:
+        with open(os.path.join(ROOT_FOLDER, "%s.taxonomy" % taxonomy_id),
+                  "w+") as f:
             json.dump(message_data, f, ensure_ascii=False, indent=4)
 
     if message_action == "readyNotification":
@@ -250,9 +248,9 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
             taxonomy_data_message = config.taxonomies["attributes"]
             taxonomy_id = "attributes"
         html_args.browserCommandInput.sendInfoToHTML(
-            "taxonomyDataMessage", json.dumps(taxonomy_data_message)
-        )
-        html_args.browserCommandInput.sendInfoToHTML("taxonomyIDMessage", taxonomy_id)
+            "taxonomyDataMessage", json.dumps(taxonomy_data_message))
+        html_args.browserCommandInput.sendInfoToHTML("taxonomyIDMessage",
+                                                     taxonomy_id)
 
     # Return value.
     now = datetime.now()
@@ -284,10 +282,10 @@ def command_execute(args: adsk.core.CommandEventArgs):
         "ProvidesString",
         f'({"∩".join(provides_parts)}) ∩ ({"∩".join(provides_attributes)})',
     )
-    root_comp.attributes.add(
-        "CLS-PART", "ProvidesAttributes", json.dumps(provides_attributes)
-    )
-    root_comp.attributes.add("CLS-PART", "ProvidesParts", json.dumps(provides_parts))
+    root_comp.attributes.add("CLS-PART", "ProvidesAttributes",
+                             json.dumps(provides_attributes))
+    root_comp.attributes.add("CLS-PART", "ProvidesParts",
+                             json.dumps(provides_parts))
 
 
 def command_preview(args: adsk.core.CommandEventArgs):

@@ -47,6 +47,8 @@ local_handlers = []
 
 progressDialog = None
 
+USE_NO_HISTORY = True
+
 
 # Executed when add-in is run.
 def start():
@@ -176,27 +178,37 @@ def assemble_recursively(part: dict):
     for key, value in part["connections"].items():
         attributes = design.findAttributes("CLS-INFO", "UUID")
         joint_origins_1 = [x.parent for x in attributes if x.value == key]
-        for attribute in attributes:
-            print(attribute.value)
         progressDialog.message = "Inserting Components..."
         progressDialog.maximumValue = len(joint_origins_1)
         progressDialog.progressValue = 0
-        for i in range(len(joint_origins_1)):
-            root.occurrences.addByInsert(
-                app.data.findFileById(value["forgeDocumentId"]),
-                adsk.core.Matrix3D.create(),
-                False,
-            )
+        insertedDesign = root.occurrences.addByInsert(
+            app.data.findFileById(value["forgeDocumentId"]),
+            adsk.core.Matrix3D.create(),
+            True,
+        )
+        progressDialog.progressValue += 1
+        for i in range(len(joint_origins_1) - 1):
+            copiedOccurence = root.occurrences.addExistingComponent(
+                insertedDesign.component, adsk.core.Matrix3D.create())
+            copiedOccurence.breakLink()
             progressDialog.progressValue += 1
+        if USE_NO_HISTORY:
+            insertedDesign.breakLink()
+
         # Re-query for newly inserted
         attributes = design.findAttributes("CLS-INFO", "UUID")
         joint_origins_2 = [
             x.parent for x in attributes if x.value == value["provides"]
         ]
         if len(joint_origins_1) != len(joint_origins_2):
+            print("Critical Error")
             ui.messageBox(
-                f"Critical Error. Number Required: {len(joint_origins_1)} Number Provided: {len(joint_origins_2)}"
+                f'Critical Error. Number Required: {len(joint_origins_1)}  for {key}\n Number Provided: {len(joint_origins_2)} for {value["provides"]}'
             )
+            joint_origins_2 = [
+                x.parent for x in attributes if x.value == value["provides"]
+            ]
+            print(len(joint_origins_2))
             return
 
         # This is a completely different design, so the uuids need to be changed to be unique
@@ -229,6 +241,11 @@ def assemble_recursively(part: dict):
         # If the previous step inserted six times, the next step
         # Will have six requires present instead of one
         progressDialog.message = "Proceeding to next layer..."
+        progressDialog.maximumValue = 1000
+        progressDialog.progressValue = 0
+        for i in range(1000):
+            progressDialog.progressValue += 1
+        progressDialog.message = ""
         progressDialog.progressValue = 0
         assemble_recursively(value)
 
@@ -321,6 +338,9 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
             progressDialog.message = "Beginning assembly..."
             progressDialog.progressValue = 0
 
+            if USE_NO_HISTORY:
+                design.designType = DesignTypes.DirectDesignType
+
             assemble_recursively(message_data)
 
             progressDialog.hide()
@@ -329,7 +349,7 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
             ui.messageBox("Multiple root joint origins.")
 
         # Maybe necessary for performance on assembly
-        # design.designType = DesignTypes.DirectDesignType
+        #
 
     # Return value.
     now = datetime.now()

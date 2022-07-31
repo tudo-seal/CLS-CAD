@@ -21,9 +21,11 @@ PANEL_ID = "CRAWL"
 COMMAND_BESIDE_ID = "ScriptsManagerCommand"
 
 # Resources
-ICON_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources", "")
+ICON_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           "resources", "")
 
-ROOT_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+ROOT_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..",
+                           "..")
 
 # Local list of event handlers used to maintain a reference so
 # they are not released and garbage collected.
@@ -31,9 +33,9 @@ local_handlers = []
 
 
 def start():
-    cmd_def = ui.commandDefinitions.addButtonDefinition(
-        CMD_ID, CMD_NAME, CMD_Description, ICON_FOLDER
-    )
+    cmd_def = ui.commandDefinitions.addButtonDefinition(CMD_ID, CMD_NAME,
+                                                        CMD_Description,
+                                                        ICON_FOLDER)
     futil.add_handler(cmd_def.commandCreated, command_created)
 
     # UI Register
@@ -67,30 +69,29 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     global type_text_box_input
 
     # Handlers
-    futil.add_handler(
-        args.command.execute, command_execute, local_handlers=local_handlers
-    )
-    futil.add_handler(
-        args.command.inputChanged, command_input_changed, local_handlers=local_handlers
-    )
-    futil.add_handler(
-        args.command.executePreview, command_preview, local_handlers=local_handlers
-    )
-    futil.add_handler(
-        args.command.destroy, command_destroy, local_handlers=local_handlers
-    )
-    futil.add_handler(
-        args.command.validateInputs, command_validate, local_handlers=local_handlers
-    )
+    futil.add_handler(args.command.execute,
+                      command_execute,
+                      local_handlers=local_handlers)
+    futil.add_handler(args.command.inputChanged,
+                      command_input_changed,
+                      local_handlers=local_handlers)
+    futil.add_handler(args.command.executePreview,
+                      command_preview,
+                      local_handlers=local_handlers)
+    futil.add_handler(args.command.destroy,
+                      command_destroy,
+                      local_handlers=local_handlers)
+    futil.add_handler(args.command.validateInputs,
+                      command_validate,
+                      local_handlers=local_handlers)
 
     inputs = args.command.commandInputs
     args.command.setDialogMinimumSize(800, 800)
     args.command.setDialogInitialSize(800, 800)
 
     # UI
-    type_text_box_input = inputs.addTextBoxCommandInput(
-        "typeTextBox", "Issues", "", 1, True
-    )
+    type_text_box_input = inputs.addTextBoxCommandInput("typeTextBox", "Issues",
+                                                        "", 1, True)
 
     type_text_box_input.numRows = 12
 
@@ -122,98 +123,89 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
     provides_attributes = json.loads(
         getattr(
-            design.rootComponent.attributes.itemByName(
-                "CLS-PART", "ProvidesAttributes"
-            ),
+            design.rootComponent.attributes.itemByName("CLS-PART",
+                                                       "ProvidesAttributes"),
             "value",
             "[]",
-        )
-    )
+        ))
     provides_parts = json.loads(
         getattr(
-            design.rootComponent.attributes.itemByName("CLS-PART", "ProvidesParts"),
+            design.rootComponent.attributes.itemByName("CLS-PART",
+                                                       "ProvidesParts"),
             "value",
             "[]",
-        )
-    )
+        ))
 
     # Demo of data interchange to backend
     jo_infos = []
     # Remove duplicate UUIDs, as they must be identical per convention
     # (could be checked for, but in reality should be prevented instead)
-    for joint_typing in list(
-        {x.value: x for x in design.findAttributes("CLS-INFO", "UUID")}.values()
-    ):
+    for joint_typing in list({
+            x.value: x for x in design.findAttributes("CLS-INFO", "UUID")
+    }.values()):
         jo = joint_typing.parent
         jo_uuid = jo.attributes.itemByName("CLS-INFO", "UUID").value
         jo_req_formats = json.loads(
-            jo.attributes.itemByName("CLS-JOINT", "RequiresFormats").value
-        )
+            jo.attributes.itemByName("CLS-JOINT", "RequiresFormats").value)
         jo_req_parts = json.loads(
-            jo.attributes.itemByName("CLS-JOINT", "RequiresParts").value
-        )
+            jo.attributes.itemByName("CLS-JOINT", "RequiresParts").value)
         jo_req_attributes = json.loads(
-            jo.attributes.itemByName("CLS-JOINT", "RequiresAttributes").value
-        )
+            jo.attributes.itemByName("CLS-JOINT", "RequiresAttributes").value)
         jo_prov_formats = json.loads(
-            jo.attributes.itemByName("CLS-JOINT", "ProvidesFormats").value
-        )
-        jo_connect_type = (
-            jo.attributes.itemByName("CLS-JOINT", "JointConnectType").value
-            if jo.attributes.itemByName("CLS-JOINT", "JointConnectType")
-            else "Rigid"
-        )
+            jo.attributes.itemByName("CLS-JOINT", "ProvidesFormats").value)
+        jo_connect_type = (jo.attributes.itemByName(
+            "CLS-JOINT", "JointConnectType").value if jo.attributes.itemByName(
+                "CLS-JOINT", "JointConnectType") else "Rigid")
         jo_infos.append(
-            (
-                jo_uuid,
-                [s + "_formats" for s in jo_req_formats]
-                + [s + "_parts" for s in jo_req_parts]
-                + [s + "_attributes" for s in jo_req_attributes],
-                [s + "_attributes" for s in provides_attributes]
-                + [s + "_parts" for s in provides_parts]
-                + [s + "_formats" for s in jo_prov_formats],
-                jo_connect_type,
-            )
-        )
+            (jo_uuid, [s + "_formats" for s in jo_req_formats] +
+             [s + "_parts" for s in jo_req_parts] +
+             [s + "_attributes" for s in jo_req_attributes],
+             [s + "_attributes" for s in provides_attributes] +
+             [s + "_parts" for s in provides_parts] +
+             [s + "_formats" for s in jo_prov_formats], jo_connect_type,
+             len(jo_prov_formats)))
     configurations = []
     part_dict = {"partConfigs": []}
-    for info in jo_infos:
+    # Only add to top-level intersection per provide
+    for info in [x for x in jo_infos if x[4]]:
         req_joints = [x for x in jo_infos if x != info]
-        part_dict["partConfigs"].append(
-            {
-                "jointOrderInfo": [{"uuid": x[0], "motion": x[3]} for x in req_joints],
-                "provides": {"uuid": info[0], "motion": info[3]},
-            }
-        )
+        part_dict["partConfigs"].append({
+            "jointOrderInfo": [{
+                "uuid": x[0],
+                "motion": x[3]
+            } for x in req_joints],
+            "provides": {
+                "uuid": info[0],
+                "motion": info[3]
+            },
+        })
         arrow = Type.intersect(info[2])
-        for req_joint in req_joints:
+        for req_joint in reversed(req_joints):
             arrow = Arrow(Type.intersect(req_joint[1]), arrow)
         configurations.append(
-            Arrow("_".join([x[0] for x in req_joints + [info]]), arrow)
-        )
-    part_dict["combinator"] = CLSEncoder().default(Type.intersect(configurations))
+            Arrow("_".join([x[0] for x in req_joints + [info]]), arrow))
+    part_dict["combinator"] = CLSEncoder().default(
+        Type.intersect(configurations))
     part_dict["meta"] = {}
     part_dict["meta"]["partName"] = app.activeDocument.name
     # this might be wrong and return the browsed ID
-    part_dict["meta"]["forgeProjectId"] = app.activeDocument.dataFile.parentProject.id
-    part_dict["meta"]["forgeFolderId"] = app.activeDocument.dataFile.parentFolder.id
+    part_dict["meta"][
+        "forgeProjectId"] = app.activeDocument.dataFile.parentProject.id
+    part_dict["meta"][
+        "forgeFolderId"] = app.activeDocument.dataFile.parentFolder.id
     part_dict["meta"]["forgeDocumentId"] = app.activeDocument.dataFile.id
 
     with open(
-        winapi_path(
-            os.path.join(
-                ROOT_FOLDER,
-                "_".join(
-                    [
+            winapi_path(
+                os.path.join(
+                    ROOT_FOLDER,
+                    "_".join([
                         app.data.activeProject.id,
                         app.data.activeFolder.id,
                         app.activeDocument.dataFile.id,
-                    ]
-                ).replace(":", "-")
-                + ".json",
-            )
-        ),
-        "w+",
+                    ]).replace(":", "-") + ".json",
+                )),
+            "w+",
     ) as f:
         json.dump(
             part_dict,

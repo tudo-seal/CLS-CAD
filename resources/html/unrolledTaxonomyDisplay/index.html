@@ -217,6 +217,9 @@
                 else {
                     console.log("This happened")
                     window.taxonomyData[$('#data').jstree(true).get_node(change["node"].parent).text].push(change["text"]);
+
+                    let idx = window.taxonomyData[$('#data').jstree(true).get_node(change["node"].parent).text].indexOf(change["old"])
+                    window.taxonomyData[$('#data').jstree(true).get_node(change["node"].parent).text].splice(idx, 1)
                     // This works but isn't exactly clean, properly updating the tree would be better
                 }
                 for (const [key, value] of Object.entries(window.taxonomyData)) {

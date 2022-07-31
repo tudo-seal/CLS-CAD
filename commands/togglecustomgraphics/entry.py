@@ -19,7 +19,8 @@ PANEL_ID = "VIZ"
 COMMAND_BESIDE_ID = "ScriptsManagerCommand"
 
 # Resources
-ICON_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources", "")
+ICON_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                           "resources", "")
 
 # Local list of event handlers used to maintain a reference so
 # they are not released and garbage collected.
@@ -29,9 +30,9 @@ isDisplaying = False
 
 
 def start():
-    cmd_def = ui.commandDefinitions.addButtonDefinition(
-        CMD_ID, CMD_NAME, CMD_DESCRIPTION, ICON_FOLDER
-    )
+    cmd_def = ui.commandDefinitions.addButtonDefinition(CMD_ID, CMD_NAME,
+                                                        CMD_DESCRIPTION,
+                                                        ICON_FOLDER)
     futil.add_handler(cmd_def.commandCreated, command_created)
 
     # UI Register
@@ -61,18 +62,18 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     futil.log(f"{CMD_NAME} Command Created Event")
 
     # Handlers
-    futil.add_handler(
-        args.command.execute, command_execute, local_handlers=local_handlers
-    )
-    futil.add_handler(
-        args.command.inputChanged, command_input_changed, local_handlers=local_handlers
-    )
-    futil.add_handler(
-        args.command.executePreview, command_preview, local_handlers=local_handlers
-    )
-    futil.add_handler(
-        args.command.destroy, command_destroy, local_handlers=local_handlers
-    )
+    futil.add_handler(args.command.execute,
+                      command_execute,
+                      local_handlers=local_handlers)
+    futil.add_handler(args.command.inputChanged,
+                      command_input_changed,
+                      local_handlers=local_handlers)
+    futil.add_handler(args.command.executePreview,
+                      command_preview,
+                      local_handlers=local_handlers)
+    futil.add_handler(args.command.destroy,
+                      command_destroy,
+                      local_handlers=local_handlers)
 
     # No UI
 
@@ -107,13 +108,15 @@ def command_execute(args: adsk.core.CommandEventArgs):
                 jo.geometry.thirdAxisVector,
                 jo.geometry.primaryAxisVector,
             )
+            # ToDo: Also respect x and y offsets
             offset = jo.geometry.primaryAxisVector.copy()
             offset.normalize()
-            offset.scaleBy(0.05)
+            offset.scaleBy((1 if not jo.isFlipped else -1) *
+                           ((jo.offsetZ.value if jo.offsetZ else 0) + 0.05))
             offset.add(tmatrix.translation)
             tmatrix.translation = offset
             custom_text = graphics.addText(
-                f'Requires: {jo.attributes.itemByName("CLS-JOINT", "RequiresString").value}\n Provides: {jo.attributes.itemByName("CLS-JOINT", "ProvidesString").value or "None"}',
+                f'Requires: {jo.attributes.itemByName("CLS-JOINT", "RequiresString").value or "None"}\n Provides: {jo.attributes.itemByName("CLS-JOINT", "ProvidesString").value or "None"}',
                 "Courier New",
                 0.2,
                 tmatrix,
