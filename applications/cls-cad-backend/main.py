@@ -77,8 +77,6 @@ async def save_part(
     Path("Repositories/CAD/index.dat").touch(exist_ok=True)
     with open("Repositories/CAD/index.dat", "r+") as f:
         data = defaultdict(lambda: defaultdict(lambda: defaultdict(set)))
-        data["folders"][payload["meta"]["forgeFolderId"]] = set()
-
         try:
             data = json.load(f, cls=SetDecoder)
         # incase we switch to pickle later on
@@ -87,6 +85,8 @@ async def save_part(
         except JSONDecodeError:
             # ToDo: Implement reindexing
             print("JSON wouldn't decode. Probably tampered, re-indexing...")
+
+        data["folders"][payload["meta"]["forgeFolderId"]] = set()
 
         data["parts"][payload["meta"]["forgeDocumentId"]] = {
             "forgeProjectId": payload["meta"]["forgeProjectId"],
@@ -170,4 +170,4 @@ async def results_for_id(request_id: str, result_id: int):
         open(os.path.join(f"Results/CAD/{request_id}", "result.dat"), "r"),
         cls=CLSDecoder,
     )
-    return result.evaluated[result_id].to_dict()
+    return result.evaluated[result_id]
