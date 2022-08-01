@@ -24,8 +24,9 @@ PALETTE_ID = "ResultSelector"
 
 # Specify the full path to the local html. You can also use a web URL
 # such as 'https://www.autodesk.com/'
-PALETTE_URL = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                           "resources", "html", "index.html")
+PALETTE_URL = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "resources", "html", "index.html"
+)
 
 # The path function builds a valid OS path. This fixes it to be a valid local URL.
 PALETTE_URL = PALETTE_URL.replace("\\", "/")
@@ -38,8 +39,7 @@ PANEL_ID = "SYNTH_ASSEMBLY"
 COMMAND_BESIDE_ID = "ScriptsManagerCommand"
 
 # Resource location for command icons, here we assume a sub folder in this directory named "resources".
-ICON_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                           "resources", "")
+ICON_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources", "")
 
 # Local list of event handlers used to maintain a reference so
 # they are not released and garbage collected.
@@ -53,9 +53,9 @@ USE_NO_HISTORY = True
 # Executed when add-in is run.
 def start():
     # Create a command Definition.
-    cmd_def = ui.commandDefinitions.addButtonDefinition(CMD_ID, CMD_NAME,
-                                                        CMD_Description,
-                                                        ICON_FOLDER)
+    cmd_def = ui.commandDefinitions.addButtonDefinition(
+        CMD_ID, CMD_NAME, CMD_Description, ICON_FOLDER
+    )
 
     # Add command created handler. The function passed here will be executed when the command is executed.
     futil.add_handler(cmd_def.commandCreated, command_created)
@@ -105,12 +105,12 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     futil.log(f"{CMD_NAME}: Command created event.")
 
     # Create the event handlers you will need for this instance of the command
-    futil.add_handler(args.command.execute,
-                      command_execute,
-                      local_handlers=local_handlers)
-    futil.add_handler(args.command.destroy,
-                      command_destroy,
-                      local_handlers=local_handlers)
+    futil.add_handler(
+        args.command.execute, command_execute, local_handlers=local_handlers
+    )
+    futil.add_handler(
+        args.command.destroy, command_destroy, local_handlers=local_handlers
+    )
 
 
 # Because no command inputs are being added in the command created event, the execute
@@ -176,6 +176,7 @@ def assemble_recursively(part: dict):
     global progressDialog
 
     for key, value in part["connections"].items():
+        progressDialog.show("Assembly Progress", "Initialising layer...", 0, 1)
         attributes = design.findAttributes("CLS-INFO", "UUID")
         joint_origins_1 = [x.parent for x in attributes if x.value == key]
         progressDialog.message = "Inserting Components..."
@@ -189,7 +190,8 @@ def assemble_recursively(part: dict):
         progressDialog.progressValue += 1
         for i in range(len(joint_origins_1) - 1):
             copiedOccurence = root.occurrences.addExistingComponent(
-                insertedDesign.component, adsk.core.Matrix3D.create())
+                insertedDesign.component, adsk.core.Matrix3D.create()
+            )
             copiedOccurence.breakLink()
             progressDialog.progressValue += 1
         if USE_NO_HISTORY:
@@ -197,9 +199,7 @@ def assemble_recursively(part: dict):
 
         # Re-query for newly inserted
         attributes = design.findAttributes("CLS-INFO", "UUID")
-        joint_origins_2 = [
-            x.parent for x in attributes if x.value == value["provides"]
-        ]
+        joint_origins_2 = [x.parent for x in attributes if x.value == value["provides"]]
         if len(joint_origins_1) != len(joint_origins_2):
             print("Critical Error")
             ui.messageBox(
@@ -234,7 +234,8 @@ def assemble_recursively(part: dict):
             joint_input.isFlipped = True
             if value["motion"] == "Revolute":
                 joint_input.setAsRevoluteJointMotion(
-                    adsk.fusion.JointDirections.ZAxisJointDirection)
+                    adsk.fusion.JointDirections.ZAxisJointDirection
+                )
             joints.add(joint_input)
             progressDialog.progressValue += 1
         # This is in outer, because inner just targets all UUIDs
@@ -247,19 +248,19 @@ def assemble_recursively(part: dict):
             progressDialog.progressValue += 1
         progressDialog.message = ""
         progressDialog.progressValue = 0
+        progressDialog.hide()
         assemble_recursively(value)
 
 
-def create_offset_joint_origin_in_occurence(source_joint_origin, offset_vector,
-                                            occurrence):
+def create_offset_joint_origin_in_occurence(
+    source_joint_origin, offset_vector, occurrence
+):
     joint_origin_input = occurrence.component.jointOrigins.createInput(
-        source_joint_origin.geometry)
-    joint_origin_input.offsetX = adsk.core.ValueInput.createByReal(
-        offset_vector.x)
-    joint_origin_input.offsetY = adsk.core.ValueInput.createByReal(
-        offset_vector.y)
-    joint_origin_input.offsetZ = adsk.core.ValueInput.createByReal(
-        offset_vector.z)
+        source_joint_origin.geometry
+    )
+    joint_origin_input.offsetX = adsk.core.ValueInput.createByReal(offset_vector.x)
+    joint_origin_input.offsetY = adsk.core.ValueInput.createByReal(offset_vector.y)
+    joint_origin_input.offsetZ = adsk.core.ValueInput.createByReal(offset_vector.z)
     return occurrence.component.jointOrigins.add(joint_origin_input)
 
 
@@ -285,22 +286,25 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
         palette.isVisible = False
         root_folder_children = (
             app.activeDocument.dataFile.parentProject.rootFolder.dataFolders
-            if app.activeDocument.dataFile is not None else
-            app.data.activeProject.rootFolder.dataFolders)
+            if app.activeDocument.dataFile is not None
+            else app.data.activeProject.rootFolder.dataFolders
+        )
         results_folder = (
             root_folder_children.itemByName("Synthesized Assemblies")
-            if root_folder_children.itemByName("Synthesized Assemblies") else
-            root_folder_children.add("Synthesized Assemblies"))
+            if root_folder_children.itemByName("Synthesized Assemblies")
+            else root_folder_children.add("Synthesized Assemblies")
+        )
         request_folder = (
             results_folder.dataFolders.itemByName("User Picked Name")
-            if results_folder.dataFolders.itemByName("User Picked Name") else
-            results_folder.dataFolders.add("User Picked Name"))
+            if results_folder.dataFolders.itemByName("User Picked Name")
+            else results_folder.dataFolders.add("User Picked Name")
+        )
         global progressDialog
         progressDialog = ui.createProgressDialog()
-        progressDialog.show("Progress Dialog",
-                            "Creating new assembly document...", 0, 1)
-        doc = app.documents.add(
-            adsk.core.DocumentTypes.FusionDesignDocumentType)
+        progressDialog.show(
+            "Assembly Progress", "Creating new assembly document...", 0, 1
+        )
+        doc = app.documents.add(adsk.core.DocumentTypes.FusionDesignDocumentType)
         # Naming and stuff will need to be cleaned up, and multi-assembly
         doc.saveAs(str(uuid.uuid4()), request_folder, "", "")
         progressDialog.progressValue = 1
@@ -330,7 +334,8 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
             joint_input = joints.createInput(
                 root_joint_origin[0],
                 adsk.fusion.JointGeometry.createByPoint(
-                    design.rootComponent.originConstructionPoint),
+                    design.rootComponent.originConstructionPoint
+                ),
             )
             joint_input.isFlipped = True
             joints.add(joint_input)
