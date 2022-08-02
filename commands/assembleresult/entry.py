@@ -188,14 +188,23 @@ def assemble_recursively(part: dict):
             True,
         )
         progressDialog.progressValue += 1
-        for i in range(len(joint_origins_1) - 1):
-            copiedOccurence = root.occurrences.addExistingComponent(
-                insertedDesign.component, adsk.core.Matrix3D.create()
+        if len(joint_origins_1) > 1:
+            assembly_layer_container = root.occurrences.addNewComponent(
+                adsk.core.Matrix3D.create()
             )
-            copiedOccurence.breakLink()
-            progressDialog.progressValue += 1
+            assembly_layer_container.component.name = insertedDesign.name + " Group"
+            for i in range(len(joint_origins_1) - 1):
+                copiedOccurence = root.occurrences.addExistingComponent(
+                    insertedDesign.component, adsk.core.Matrix3D.create()
+                )
+                copiedOccurence.breakLink()
+                copiedOccurence.moveToComponent(assembly_layer_container)
+                progressDialog.progressValue += 1
         if USE_NO_HISTORY:
             insertedDesign.breakLink()
+        # Fusion360 forbids ordering these differently
+        if len(joint_origins_1) > 1:
+            insertedDesign.moveToComponent(assembly_layer_container)
 
         # Re-query for newly inserted
         attributes = design.findAttributes("CLS-INFO", "UUID")

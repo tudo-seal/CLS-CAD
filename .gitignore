@@ -256,3 +256,5 @@ fabric.properties
 .idea
 *.sqlite
 migrations/
+
+Taxonomies/

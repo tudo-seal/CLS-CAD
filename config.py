@@ -18,6 +18,7 @@ DEBUG = True
 # part of the ID to better ensure the ID is unique.
 ADDIN_NAME = os.path.basename(os.path.dirname(__file__))
 COMPANY_NAME = "ACME"
+ROOT_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)))
 
 # Palettes
 taxonomy_palette_id = f"{COMPANY_NAME}_{ADDIN_NAME}_palette_taxonomy"

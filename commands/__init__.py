@@ -9,6 +9,7 @@ from .assembleresult import entry as assemble_result
 from .checkandsubmit import entry as check_and_submit
 from .jointtyping import entry as joint_typing
 from .parttyping import entry as part_typing
+from .requestsynthesis import entry as request_synthesis
 from .taxonomyediting import entry as taxonomy_editing
 from .togglecustomgraphics import entry as toggle_custom_graphics
 from .typecrawlinghub import entry as type_crawling_hub
@@ -31,6 +32,7 @@ commands = [
     type_crawling_hub,
     toggle_custom_graphics,
     taxonomy_editing,
+    request_synthesis,
     assemble_result,
 ]
 
@@ -69,20 +71,6 @@ def start():
     main_tab = add_tab()
     if not main_tab.isActive:
         main_tab.activate
-
-    path_part_taxonomy = Path(os.path.join(ROOT_FOLDER, "parts.taxonomy"))
-    path_format_taxonomy = Path(os.path.join(ROOT_FOLDER, "formats.taxonomy"))
-    path_attribute_taxonomy = Path(os.path.join(ROOT_FOLDER, "attributes.taxonomy"))
-
-    if path_part_taxonomy.is_file():
-        with open(path_part_taxonomy) as json_file:
-            config.taxonomies["parts"] = json.load(json_file)
-    if path_format_taxonomy.is_file():
-        with open(path_format_taxonomy) as json_file:
-            config.taxonomies["formats"] = json.load(json_file)
-    if path_attribute_taxonomy.is_file():
-        with open(path_attribute_taxonomy) as json_file:
-            config.taxonomies["attributes"] = json.load(json_file)
 
     futil.add_handler(
         app.documentOpened, application_document_opened, local_handlers=local_handlers

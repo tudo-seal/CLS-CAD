@@ -1,4 +1,5 @@
 import os
+import urllib
 from datetime import datetime
 from pathlib import Path
 
@@ -13,13 +14,13 @@ app = adsk.core.Application.get()
 ui = app.userInterface
 
 # TODO ********************* Change these names *********************
-CMD_ID = f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_type_part"
-CMD_NAME = "Typed Part"
-CMD_DESCRIPTION = "Annotate Parts with Attribute and Type information."
+CMD_ID = f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_request_synthesis"
+CMD_NAME = "Request Synthesis"
+CMD_DESCRIPTION = "Put in a synthesis request"
 IS_PROMOTED = True
 
 WORKSPACE_ID = "FusionSolidEnvironment"
-PANEL_ID = "TYPES"
+PANEL_ID = "SYNTH_ASSEMBLY"
 COMMAND_BESIDE_ID = "ScriptsManagerCommand"
 
 PARTTYPES_ID = "partsTaxonomyBrowser_Part"
@@ -139,16 +140,7 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     args.command.setDialogMinimumSize(1200, 800)
     args.command.setDialogInitialSize(1200, 800)
 
-    # UI DEF
-
-    type_text_box_input = inputs.addTextBoxCommandInput(
-        "typeTextBox", "Part Type", "", 1, True
-    )
-    type_text_box_input.numRows = 12
-
-    # groupTypingCmdInput = inputs.addGroupCommandInput('typingGroup', 'Typing')
-    # groupTypingCmdInput.isExpanded = True
-    # groupTypingChildren = groupTypingCmdInput.children
+    # UI DEFdren
 
     parts_type_selection_browser_input = inputs.addBrowserCommandInput(
         id=PARTTYPES_ID,
@@ -167,54 +159,12 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
 def command_execute_preview(args: adsk.core.CommandEventHandler):
     app = adsk.core.Application.get()
     design = adsk.fusion.Design.cast(app.activeProduct)
-    type_text_box_input.text = generate_type_text()
 
 
 def command_activate(args: adsk.core.CommandEventArgs):
     app = adsk.core.Application.get()
     design = adsk.fusion.Design.cast(app.activeProduct)
     app.log("In command_activate event handler.")
-
-
-def generate_type_text():
-    app = adsk.core.Application.get()
-    design = adsk.fusion.Design.cast(app.activeProduct)
-    typed_jos = []
-    guarded_types = []
-    for joint_typing in list(
-        {x.value: x for x in design.findAttributes("CLS-INFO", "UUID")}.values()
-    ):
-        jo = joint_typing.parent
-        req_string = jo.attributes.itemByName("CLS-JOINT", "RequiresString").value
-        prov_string = jo.attributes.itemByName("CLS-JOINT", "ProvidesString").value
-        jo_uuid = jo.attributes.itemByName("CLS-INFO", "UUID").value[0:4]
-        typed_jos.append((req_string, prov_string, jo_uuid))
-    print(typed_jos)
-    for joInfo in typed_jos:
-        if joInfo[1].strip() == "":
-            continue
-        req_list = [x[0] for x in typed_jos if x != joInfo]
-        uuid_list = [x[2] for x in typed_jos if x != joInfo]
-        guarded_types.append(
-            f'(Constructor("Config",{"×".join(uuid_list)})) → '
-            + "→".join(req_list)
-            + " → ("
-            + joInfo[1]
-            + f' ∩ ({"∩".join(provides_parts)}) ∩ ({"∩".join(provides_attributes)}))'
-        )
-    return (
-        """<style>
-                pre {
-                    white-space:pre-wrap;
-                    tab-size: 2;
-                    display: block;
-                    line-height: 100%;
-                    font-family: Courier;
-                }
-                </style><pre>("""
-        + ") ∩ \n".join(guarded_types).replace(" ∩ ()", "")
-        + "</pre>"
-    )
 
 
 def palette_incoming(html_args: adsk.core.HTMLEventArgs):
@@ -233,7 +183,6 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
             provides_parts = message_data["selections"]
         elif html_args.browserCommandInput.id == ATTRIBUTETYPES_ID:
             provides_attributes = message_data["selections"]
-        type_text_box_input.formattedText = generate_type_text()
     if message_action == "updateDataNotification":
         # Update loaded and saved taxonomies
 
@@ -307,21 +256,26 @@ def command_execute(args: adsk.core.CommandEventArgs):
     inputs = args.command.commandInputs
     app = adsk.core.Application.get()
     design = adsk.fusion.Design.cast(app.activeProduct)
-    root_comp = design.rootComponent
-    root_comp.attributes.add(
-        "CLS-PART",
-        "ProvidesString",
-        f'({"∩".join(provides_parts)}) ∩ ({"∩".join(provides_attributes)})',
-    )
-    root_comp.attributes.add(
-        "CLS-PART", "ProvidesAttributes", json.dumps(provides_attributes)
-    )
-    root_comp.attributes.add("CLS-PART", "ProvidesParts", json.dumps(provides_parts))
+    request_dict = {
+        "target": Type.intersect(
+            [Constructor(f"{x}_parts") for x in provides_parts]
+            + [Constructor(f"{x}_attributes") for x in provides_attributes]
+        ),
+        "forgeProjectId": app.activeDocument.dataFile.parentProject.id,
+    }
+    payload = json.dumps(
+        request_dict,
+        cls=CLSEncoder,
+        indent=4,
+    ).encode("utf-8")
+    req = urllib.request.Request("http://127.0.0.1:8000/request/assembly")
+    req.add_header("Content-Type", "application/json; charset=utf-8")
+    req.add_header("Content-Length", len(payload))
+    response = urllib.request.urlopen(req, payload)
 
 
 def command_preview(args: adsk.core.CommandEventArgs):
     inputs = args.command.commandInputs
-    type_text_box_input.formattedText = generate_type_text()
     futil.log(f"{CMD_NAME} Command Preview Event")
 
 
