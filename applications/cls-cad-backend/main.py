@@ -114,8 +114,16 @@ async def save_part(
 async def save_taxonomy(
     payload: dict = Body(...),
 ):
-    with open("Repositories/CAD/taxonomy.dat", "w+") as f:
-        json.dump(payload, f, cls=SetEncoder, indent=4)
+    p = Path(
+        os.path.join(
+            "Taxonomies",
+            "CAD",
+            payload["forgeProjectId"],
+        ).replace(":", "-")
+    )
+    p.mkdir(parents=True, exist_ok=True)
+    with open(f'Taxonomies/CAD/{payload["forgeProjectId"]}/taxonomy.dat', "w+") as f:
+        json.dump(payload["taxonomy"], f, cls=SetEncoder, indent=4)
 
 
 @app.post("/request/assembly")
@@ -123,12 +131,15 @@ async def synthesize_assembly(
     payload: dict = Body(...),
 ):
     taxonomy = Subtypes(
-        json.load(open("Repositories/CAD/taxonomy.dat", "r"), cls=SetDecoder)
+        json.load(
+            open(f'Taxonomies/CAD/{payload["forgeProjectId"]}/taxonomy.dat', "r"),
+            cls=SetDecoder,
+        )
     )
     gamma = FiniteCombinatoryLogic(
         RepositoryBuilder.add_all_to_repository(), taxonomy, processes=1
     )
-    result = gamma.inhabit(json.loads(json.dumps(payload), cls=CLSDecoder))
+    result = gamma.inhabit(json.loads(json.dumps(payload["target"]), cls=CLSDecoder))
     if result.size() != 0:
         request_id = uuid4()
         p = Path(os.path.join("Results", "CAD", str(request_id)))
