@@ -419,7 +419,7 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
                     ROOT_FOLDER,
                     "Taxonomies",
                     "CAD",
-                    app.activeDocument.dataFile.parentProject.id,
+                    app.activeDocument.dataFile.parentProject.id.replace(":", "-"),
                     "%s.taxonomy" % taxonomy_id,
                 )
             ),

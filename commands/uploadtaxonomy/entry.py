@@ -4,25 +4,23 @@ import adsk.core
 
 from ... import config
 from ...lib import fusion360utils as futil
+from ...lib.general_utils import *
 
 app = adsk.core.Application.get()
 ui = app.userInterface
 joint = None
 
-CMD_ID = f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_toggle_display"
-CMD_NAME = "Toggle Display"
-CMD_DESCRIPTION = "Toggle Display of Typing (default off)."
+CMD_ID = f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_upload_taxonomy"
+CMD_NAME = "Upload Taxonomy"
+CMD_DESCRIPTION = "Upload Taxonomy to current workspace"
 IS_PROMOTED = True
 
 WORKSPACE_ID = "FusionSolidEnvironment"
-PANEL_ID = "VIZ"
+PANEL_ID = "TAXONOMY"
 COMMAND_BESIDE_ID = "ScriptsManagerCommand"
 
 # Resources
 ICON_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources", "")
-DISABLED_ICON_FOLDER = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "disabled-resources", ""
-)
 
 # Local list of event handlers used to maintain a reference so
 # they are not released and garbage collected.
@@ -84,53 +82,38 @@ def command_execute_preview(args: adsk.core.CommandEventHandler):
     return
 
 
+def upload_taxonomy_to_forge(taxonomy_folder, taxonomy_name: str):
+    taxonomy_folder.uploadFile(
+        winapi_path(
+            os.path.join(
+                config.ROOT_FOLDER,
+                "Taxonomies",
+                "CAD",
+                app.activeDocument.dataFile.parentProject.id.replace(":", "-"),
+                f"{taxonomy_name}.taxonomy",
+            )
+        )
+    )
+
+
 def command_execute(args: adsk.core.CommandEventArgs):
     # General logging for debug
     futil.log(f"{CMD_NAME} Command Execute Event")
-    command_definition = ui.commandDefinitions.itemById(CMD_ID)
 
-    inputs = args.command.commandInputs
-    print("Executed")
-    global isDisplaying
-    app = adsk.core.Application.get()
-    design = adsk.fusion.Design.cast(app.activeProduct)
-    if config.custom_graphics_displaying:
-        for i in range(design.rootComponent.customGraphicsGroups.count):
-            print("Deleted")
-            design.rootComponent.customGraphicsGroups.item(0).deleteMe()
-            config.custom_graphics_displaying = False
-
-    else:
-        graphics = design.rootComponent.customGraphicsGroups.add()
-        for jointTyping in design.findAttributes("CLS-INFO", "UUID"):
-            jo = jointTyping.parent
-            jo_uuid = jo.attributes.itemByName("CLS-INFO", "UUID").value
-            tmatrix = adsk.core.Matrix3D.create()
-            tmatrix.setWithCoordinateSystem(
-                jo.geometry.origin,
-                jo.geometry.secondaryAxisVector,
-                jo.geometry.thirdAxisVector,
-                jo.geometry.primaryAxisVector,
-            )
-            # ToDo: Also respect x and y offsets
-            offset = jo.geometry.primaryAxisVector.copy()
-            offset.normalize()
-            offset.scaleBy(
-                (1 if not jo.isFlipped else -1)
-                * ((jo.offsetZ.value if jo.offsetZ else 0) + 0.05)
-            )
-            offset.add(tmatrix.translation)
-            tmatrix.translation = offset
-            custom_text = graphics.addText(
-                f'Requires: {jo.attributes.itemByName("CLS-JOINT", "RequiresString").value or "None"}\n Provides: {jo.attributes.itemByName("CLS-JOINT", "ProvidesString").value or "None"}',
-                "Courier New",
-                0.2,
-                tmatrix,
-            )
-            config.custom_text_dict[jo_uuid] = custom_text
-            config.custom_graphics_displaying = True
-
-    # Recompute or hide all custom graphic objects
+    # If file active, use that files project, else use current sidebar project
+    root_folder_children = (
+        app.activeDocument.dataFile.parentProject.rootFolder.dataFolders
+        if app.activeDocument.dataFile is not None
+        else app.data.activeProject.rootFolder.dataFolders
+    )
+    taxonomy_folder = (
+        root_folder_children.itemByName("Taxonomies")
+        if root_folder_children.itemByName("Taxonomies")
+        else root_folder_children.add("Taxonomies")
+    )
+    upload_taxonomy_to_forge(taxonomy_folder, "attributes")
+    upload_taxonomy_to_forge(taxonomy_folder, "parts")
+    upload_taxonomy_to_forge(taxonomy_folder, "formats")
 
 
 def command_preview(args: adsk.core.CommandEventArgs):

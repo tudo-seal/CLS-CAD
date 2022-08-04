@@ -12,7 +12,7 @@ joint = None
 CMD_ID = f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_crawl_hub"
 CMD_NAME = "Crawl Hub"
 CMD_DESCRIPTION = "Crawl all hub files and collect all types."
-IS_PROMOTED = True
+IS_PROMOTED = False
 
 WORKSPACE_ID = "FusionSolidEnvironment"
 PANEL_ID = "CRAWL"
