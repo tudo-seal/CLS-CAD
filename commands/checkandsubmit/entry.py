@@ -32,6 +32,13 @@ local_handlers = []
 
 
 def start():
+    """
+    Creates the promoted Check and Submit command in the CLS-CAD tab.
+    Registers the commandCreated handler.
+
+    Returns:
+
+    """
     cmd_def = ui.commandDefinitions.addButtonDefinition(
         CMD_ID, CMD_NAME, CMD_Description, ICON_FOLDER
     )
@@ -45,6 +52,13 @@ def start():
 
 
 def stop():
+    """
+    Removes this command from the CLS-CAD tab along with all others it shares a panel with.
+    This does not fail, even if the panel is emptied by multiple commands.
+
+    Returns:
+
+    """
     # Clean entire Panel
     workspace = ui.workspaces.itemById(WORKSPACE_ID)
     panel = workspace.toolbarPanels.itemById(PANEL_ID)
@@ -63,6 +77,16 @@ type_text_box_input = adsk.core.TextBoxCommandInput.cast(None)
 
 
 def command_created(args: adsk.core.CommandCreatedEventArgs):
+    """
+    Called when the user clicks the command in CLS-CAD tab.
+    Registers execute, destroy and most importantly validate handlers.
+
+    Args:
+        args: A CommandCreatedEventArgs that allows access to the commands properties and inputs.
+
+    Returns:
+
+    """
     # General logging for debug.
     futil.log(f"{CMD_NAME} Command Created Event")
     global type_text_box_input
@@ -70,12 +94,6 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     # Handlers
     futil.add_handler(
         args.command.execute, command_execute, local_handlers=local_handlers
-    )
-    futil.add_handler(
-        args.command.inputChanged, command_input_changed, local_handlers=local_handlers
-    )
-    futil.add_handler(
-        args.command.executePreview, command_preview, local_handlers=local_handlers
     )
     futil.add_handler(
         args.command.destroy, command_destroy, local_handlers=local_handlers
@@ -96,11 +114,26 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     type_text_box_input.numRows = 12
 
 
-def command_execute_preview(args: adsk.core.CommandEventHandler):
-    return
-
-
 def command_execute(args: adsk.core.CommandEventArgs):
+    """
+    This method is called when the user clicks the "OK" button.
+    It concatenates the singular taxonomies into a combined one by suffixing them.
+    It assembles the JSON representing the part by creating a type for every "provides" joint.
+    These types are then intersected. A constructor with the ordered UUIDs as string acts as guard per configuration.
+
+    The method connects to the backend at /submit/part and submit/taxonomy and posts the created JSON files.
+
+    Attributes:
+        Reads: (CLS-INFO, UUID),(CLS-JOINT,*)
+        Sets: None
+
+
+    Args:
+        args: A CommandEventArgs that allows access to the commands properties and inputs.
+
+    Returns:
+
+    """
     # General logging for debug
     futil.log(f"{CMD_NAME} Command Execute Event")
 
@@ -243,12 +276,17 @@ def command_execute(args: adsk.core.CommandEventArgs):
     print(response)
 
 
-def command_preview(args: adsk.core.CommandEventArgs):
-    inputs = args.command.commandInputs
-    futil.log(f"{CMD_NAME} Command Preview Event")
-
-
 def command_validate(args: adsk.core.ValidateInputsEventArgs):
+    """
+    The method checks if there is at least one JointOrigin present that has received a ProvidesFormat.
+    This implies the part can be connected at that JointOrigin, making it usable.
+
+    Args:
+        args: A ValidateInputsEventArgs that allows setting the current validity state.
+
+    Returns:
+
+    """
     app = adsk.core.Application.get()
     design = adsk.fusion.Design.cast(app.activeProduct)
     global type_text_box_input
@@ -261,15 +299,16 @@ def command_validate(args: adsk.core.ValidateInputsEventArgs):
     futil.log(f"{CMD_NAME} Command Preview Event")
 
 
-def command_input_changed(args: adsk.core.InputChangedEventArgs):
-    changed_input = args.input
-    inputs = args.inputs
-    futil.log(
-        f"{CMD_NAME} Input Changed Event fired from a change to {changed_input.id}"
-    )
-
-
 def command_destroy(args: adsk.core.CommandEventArgs):
+    """
+    Logs that the command was destroyed (window closed). Currently, does not clean up anything.
+
+    Args:
+        args: A CommandEventArgs that allows access to the commands properties and inputs.
+
+    Returns:
+
+    """
     global local_handlers
     local_handlers = []
     futil.log(f"{CMD_NAME} Command Destroy Event")

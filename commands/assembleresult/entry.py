@@ -12,18 +12,14 @@ from ...lib import fusion360utils as futil
 app = adsk.core.Application.get()
 ui = app.userInterface
 
-# TODO ********************* Change these names *********************
 CMD_ID = f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_assemble_results"
 CMD_NAME = "Assemble"
 CMD_Description = "Assembly synthesized results."
 PALETTE_NAME = "Pick results for assembly"
 IS_PROMOTED = True
 
-# Using "global" variables by referencing values from /config.py
 PALETTE_ID = "ResultSelector"
 
-# Specify the full path to the local html. You can also use a web URL
-# such as 'https://www.autodesk.com/'
 PALETTE_URL = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "resources", "html", "index.html"
 )
@@ -37,8 +33,6 @@ PALETTE_DOCKING = adsk.core.PaletteDockingStates.PaletteDockStateRight
 WORKSPACE_ID = "FusionSolidEnvironment"
 PANEL_ID = "SYNTH_ASSEMBLY"
 COMMAND_BESIDE_ID = "ScriptsManagerCommand"
-
-# Resource location for command icons, here we assume a sub folder in this directory named "resources".
 ICON_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources", "")
 
 # Local list of event handlers used to maintain a reference so
@@ -52,6 +46,13 @@ USE_NO_HISTORY = True
 
 # Executed when add-in is run.
 def start():
+    """
+    Creates the promoted assemble result command in the CLS-CAD tab.
+    Registers the commandCreated handler.
+
+    Returns:
+
+    """
     # Create a command Definition.
     cmd_def = ui.commandDefinitions.addButtonDefinition(
         CMD_ID, CMD_NAME, CMD_Description, ICON_FOLDER
@@ -76,6 +77,12 @@ def start():
 
 # Executed when add-in is stopped.
 def stop():
+    """
+    Removes this command from the CLS-CAD tab. Also removes the associated palette.
+
+    Returns:
+
+    """
     # Get the various UI elements for this command
     workspace = ui.workspaces.itemById(WORKSPACE_ID)
     panel = workspace.toolbarPanels.itemById(PANEL_ID)
@@ -96,12 +103,17 @@ def stop():
         palette.deleteMe()
 
 
-# Event handler that is called when the user clicks the command button in the UI.
-# To have a dialog, you create the desired command inputs here. If you don't need
-# a dialog, don't create any inputs and the execute event will be immediately fired.
-# You also need to connect to any command related events here.
 def command_created(args: adsk.core.CommandCreatedEventArgs):
-    # General logging for debug.
+    """
+    Called when the user clicks the command in CLS-CAD tab.
+    Registers execute and destroy handlers.
+
+    Args:
+        args: A CommandCreatedEventArgs that allows access to the commands properties and inputs.
+
+    Returns:
+
+    """
     futil.log(f"{CMD_NAME}: Command created event.")
 
     # Create the event handlers you will need for this instance of the command
@@ -113,10 +125,18 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     )
 
 
-# Because no command inputs are being added in the command created event, the execute
-# event is immediately fired.
 def command_execute(args: adsk.core.CommandEventArgs):
-    # General logging for debug.
+    """
+    Executes immediately when the command is clicked in the CLS-CAD tab, since there are no inputs.
+    If the palette does not already exist, it is created.
+    The palette is sets to be visible and docked.
+
+    Args:
+        args: A CommandEventArgs that allows access to the commands properties and inputs.
+
+    Returns:
+
+    """
     futil.log(f"{CMD_NAME}: Command execute event.")
 
     palettes = ui.palettes
@@ -148,13 +168,29 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
 # Use this to handle a user closing your palette.
 def palette_closed(args: adsk.core.UserInterfaceGeneralEventArgs):
-    # General logging for debug.
+    """
+    Logs that the palette was closed by the user.
+
+    Args:
+        args: Unused
+
+    Returns:
+
+    """
     futil.log(f"{CMD_NAME}: Palette was closed.")
 
 
 # Use this to handle a user navigating to a new page in your palette.
 def palette_navigating(args: adsk.core.NavigationEventArgs):
-    # General logging for debug.
+    """
+    Logs that the palette url has changed.
+
+    Args:
+        args:
+
+    Returns:
+
+    """
     futil.log(f"{CMD_NAME}: Palette navigating event.")
 
     # Get the URL the user is navigating to:
@@ -171,6 +207,22 @@ def palette_navigating(args: adsk.core.NavigationEventArgs):
 # Validation is optional, because we know the UUIDs exist, and if they don't
 # the backend is out of date, making the only fix to recrawl or reupdate part
 def assemble_recursively(part: dict):
+    """
+    For the given part, checks the specified connections.
+    For each connection, inserts that part for every matching UUID found.
+    If that count is more than one, create a new Component to hold the inserted parts.
+    Create a joint (rigid or revolute) between the matching UUID joint origin and the "provides" UUID joint origin.
+    Then, new UUIDs are assigned to these JointOrigins, to prevent them being "reused".
+
+    The assembly is DFS traversal of the result JSON object/tree, as the recursion happens on every connection,
+    not after the loop completes. This avoids edge-cases of identical parts with different sub-trees being present.
+
+    Args:
+        part: Contains the current part of the assembly that is being processed.
+
+    Returns:
+
+    """
     design = adsk.fusion.Design.cast(app.activeProduct)
     root = design.rootComponent
     global progressDialog
@@ -264,6 +316,18 @@ def assemble_recursively(part: dict):
 def create_offset_joint_origin_in_occurence(
     source_joint_origin, offset_vector, occurrence
 ):
+    """
+    Creates a JointOrigin that is offset from its parent geometry by specified vector.
+    The JointOrigin is created in specified occurrence.
+
+    Args:
+        source_joint_origin: The JointOrigin the new JointOrigin is an offset copy off.
+        offset_vector: The offset Vector3D {x, y, z}
+        occurrence: The occurrence to create the JointOrigin in
+
+    Returns:
+
+    """
     joint_origin_input = occurrence.component.jointOrigins.createInput(
         source_joint_origin.geometry
     )
@@ -273,8 +337,21 @@ def create_offset_joint_origin_in_occurence(
     return occurrence.component.jointOrigins.add(joint_origin_input)
 
 
-# Use this to handle events sent from javascript in your palette.
 def palette_incoming(html_args: adsk.core.HTMLEventArgs):
+    """
+    Handles incoming messages from the JavaScript portion of the palette.
+    Receives an "assembleMessage" that contains the JSON representation of the assembly as data.
+    If not present, the necessary folders in the project are created.
+    The initial part of the assembly is inserted and then assemble_recursively is called to start the assembly process.
+
+    Sets the document to direct modeling mode during assembly to improve performance and avoid congested history.
+
+    Args:
+        html_args:
+
+    Returns:
+
+    """
     # General logging for debug.
     futil.log(f"{CMD_NAME}: Palette incoming event.")
 
@@ -362,17 +439,22 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
             # ToDo: Query Yes/No continue anyways
             ui.messageBox("Multiple root joint origins.")
 
-        # Maybe necessary for performance on assembly
-        #
-
     # Return value.
     now = datetime.now()
     currentTime = now.strftime("%H:%M:%S")
     html_args.returnData = f"OK - {currentTime}"
 
 
-# This event handler is called when the command terminates.
 def command_destroy(args: adsk.core.CommandEventArgs):
+    """
+    Logs the command terminating. This is instantly the case upon clicking, as the command only opens the palette.
+
+    Args:
+        args: Unused
+
+    Returns:
+
+    """
     # General logging for debug.
     futil.log(f"{CMD_NAME}: Command destroy event.")
 
