@@ -1,3 +1,5 @@
 fastapi==0.78.0
 uvicorn==0.18.2
 jsonpickle==2.2.0
+
+starlette~=0.19.1

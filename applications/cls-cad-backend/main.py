@@ -22,7 +22,8 @@ from cls_python import (
 from util.set_json import SetEncoder, SetDecoder
 from repository_builder import RepositoryBuilder
 
-app = FastAPI()
+
+app = FastAPI(title="CLS-CPS (Cyberphysical System Synthesis Backend)")
 
 # Response that is easy to debug
 class IndentedResponse(Response):
@@ -167,12 +168,33 @@ async def list_result_ids():
 
 
 @app.get("/results/{request_id}", response_class=IndentedResponse)
-async def results_for_id(request_id: str):
+async def results_for_id(
+    request_id: str, skip: int | None = None, limit: int | None = None
+):
     results = []
-    for filename in glob.glob(os.path.join(f"Results/CAD/{request_id}", "*.json")):
-        with open(os.path.join(os.getcwd(), filename), "r") as f:
-            results.append(json.load(f))
-    return results
+    if limit == 0:
+        return results
+    if skip is not None and limit is not None:
+        result = json.load(
+            open(os.path.join(f"Results/CAD/{request_id}", "result.dat"), "r"),
+            cls=CLSDecoder,
+        )
+        return [
+            result.evaluated[result_id]
+            for result_id in (
+                range(skip, skip + limit)
+                if result.size() == -1
+                else range(
+                    skip if skip < result.size() else result.size() - 1,
+                    skip + limit if (skip + limit) <= result.size() else result.size(),
+                )
+            )
+        ]
+    else:
+        for filename in glob.glob(os.path.join(f"Results/CAD/{request_id}", "*.json")):
+            with open(os.path.join(os.getcwd(), filename), "r") as f:
+                results.append(json.load(f))
+        return results
 
 
 @app.get("/results/{request_id}/{result_id}", response_class=IndentedResponse)
@@ -181,4 +203,7 @@ async def results_for_id(request_id: str, result_id: int):
         open(os.path.join(f"Results/CAD/{request_id}", "result.dat"), "r"),
         cls=CLSDecoder,
     )
-    return result.evaluated[result_id]
+    if result_id < result.size() or result.size() == -1:
+        return result.evaluated[result_id]
+    else:
+        return dict()
