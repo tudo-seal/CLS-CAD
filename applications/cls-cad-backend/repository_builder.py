@@ -19,20 +19,22 @@ class Jsonify:
         self.data = data
         self.info = info
 
-    def to_dict(self, motion="Rigid"):
+    def to_dict(self, motion="Rigid", count=1):
         return dict(
             name=self.info["partName"],
             provides=self.config.provides["uuid"],
             forgeDocumentId=self.info["forgeDocumentId"],
             forgeFolderId=self.info["forgeFolderId"],
             forgeProjectId=self.info["forgeProjectId"],
+            count=count,
             motion=motion,
             connections={
                 **{
                     jo_info["uuid"]: part.to_dict(
                         motion=combine_motions(
                             self.config.provides["motion"], jo_info["motion"]
-                        )
+                        ),
+                        count=count * jo_info["count"],
                     )
                     for (jo_info, part) in zip(self.config.joint_order_info, self.data)
                 }
