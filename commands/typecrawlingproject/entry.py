@@ -8,6 +8,7 @@ from ..checkandsubmit.entry import create_backend_json, create_backend_taxonomy
 from ... import config
 from ...lib import fusion360utils as futil
 from ...lib.cls_python_compat import *
+from ...lib.general_utils import *
 
 app = adsk.core.Application.get()
 ui = app.userInterface
@@ -183,6 +184,9 @@ def command_execute(args: adsk.core.CommandEventArgs):
             else app.data.activeProject.rootFolder.dataFolders
         )
         recursively_submit(root_folder_children)
+
+        # Load correct project taxonomies before submitting
+        load_project_taxonomy_to_config()
 
         # Also update the taxonomy to be safe
         progressDialog.message = "Sending current taxonomy to backend..."
