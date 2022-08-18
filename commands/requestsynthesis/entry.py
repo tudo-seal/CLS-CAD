@@ -261,7 +261,9 @@ def command_execute(args: adsk.core.CommandEventArgs):
             [Constructor(f"{x}_parts") for x in provides_parts]
             + [Constructor(f"{x}_attributes") for x in provides_attributes]
         ),
-        "forgeProjectId": app.activeDocument.dataFile.parentProject.id,
+        "forgeProjectId": app.activeDocument.dataFile.parentProject.id
+        if app.activeDocument.dataFile is not None
+        else app.data.activeProject.id,
     }
     payload = json.dumps(
         request_dict,

@@ -11,12 +11,17 @@ ROOT_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..
 
 def load_project_taxonomy_to_config():
     app = adsk.core.Application.get()
+    active_id = (
+        app.activeDocument.dataFile.parentProject.id
+        if app.activeDocument.dataFile is not None
+        else app.data.activeProject.id
+    )
     path_part_taxonomy = Path(
         os.path.join(
             ROOT_FOLDER,
             "Taxonomies",
             "CAD",
-            app.activeDocument.dataFile.parentProject.id,
+            active_id,
             "parts.taxonomy",
         )
     )
@@ -25,7 +30,7 @@ def load_project_taxonomy_to_config():
             ROOT_FOLDER,
             "Taxonomies",
             "CAD",
-            app.activeDocument.dataFile.parentProject.id,
+            active_id,
             "formats.taxonomy",
         )
     )
@@ -34,7 +39,7 @@ def load_project_taxonomy_to_config():
             ROOT_FOLDER,
             "Taxonomies",
             "CAD",
-            app.activeDocument.dataFile.parentProject.id,
+            active_id,
             "attributes.taxonomy",
         )
     )

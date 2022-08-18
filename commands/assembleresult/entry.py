@@ -47,7 +47,7 @@ USE_NO_HISTORY = True
 # Executed when add-in is run.
 def start():
     """
-    Creates the promoted assemble result command in the CLS-CAD tab.
+    Creates the promoted "Assemble Result" command in the CLS-CAD tab.
     Registers the commandCreated handler.
 
     Returns:

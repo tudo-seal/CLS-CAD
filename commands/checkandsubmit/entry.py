@@ -33,7 +33,7 @@ local_handlers = []
 
 def start():
     """
-    Creates the promoted Check and Submit command in the CLS-CAD tab.
+    Creates the promoted "Check and Submit" command in the CLS-CAD tab.
     Registers the commandCreated handler.
 
     Returns:
@@ -117,8 +117,8 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
 def command_execute(args: adsk.core.CommandEventArgs):
     """
     This method is called when the user clicks the "OK" button.
-    It concatenates the singular taxonomies into a combined one by suffixing them.
-    It assembles the JSON representing the part by creating a type for every "provides" joint.
+    It concatenates the singular taxonomies into a combined one. For details see ~create_backend_taxonomy.
+    It assembles the JSON representing the part. For details see ~create_backend_json.
     These types are then intersected. A constructor with the ordered UUIDs as string acts as guard per configuration.
 
     The method connects to the backend at /submit/part and submit/taxonomy and posts the created JSON files.
@@ -126,7 +126,6 @@ def command_execute(args: adsk.core.CommandEventArgs):
     Attributes:
         Reads: (CLS-INFO, UUID),(CLS-JOINT,*)
         Sets: None
-
 
     Args:
         args: A CommandEventArgs that allows access to the commands properties and inputs.
@@ -139,12 +138,62 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
     inputs = args.command.commandInputs
 
-    # Get Inputs
-    nesting_input: adsk.core.BoolValueCommandInput = inputs.itemById("nesting")
+    part_dict = create_backend_json()
 
+    req = urllib.request.Request("http://127.0.0.1:8000/submit/part")
+    req.add_header("Content-Type", "application/json; charset=utf-8")
+    payload = json.dumps(
+        part_dict,
+        cls=CLSEncoder,
+        indent=4,
+    ).encode("utf-8")
+    req.add_header("Content-Length", len(payload))
+    response = urllib.request.urlopen(req, payload)
+    print(response)
+
+    # Load correct project taxonomies before submitting
+    load_project_taxonomy_to_config()
+
+    # why not also update the taxonomy in the backend while we are at it?
+    payload_dict = create_backend_taxonomy()
+    req = urllib.request.Request("http://127.0.0.1:8000/submit/taxonomy")
+    req.add_header("Content-Type", "application/json; charset=utf-8")
+    payload = json.dumps(payload_dict, indent=4).encode("utf-8")
+    req.add_header("Content-Length", len(payload))
+    response = urllib.request.urlopen(req, payload)
+    print(response)
+
+
+def create_backend_taxonomy():
+    """
+    Creates a taxonomy in the format that the backend expects. Each individual taxonomy is suffixed with its identifier,
+    guaranteeing that namespaces don't overlap. The Forge ProjectID is also added to the JSON.
+
+    Returns: The created JSON/dict.
+
+    """
+    suffixed_taxonomy = {}
+    for key, value in config.taxonomies.items():
+        suffixed_taxonomy.update(TaxonomyConverter.convert(value, key))
+    payload_dict = {
+        "taxonomy": suffixed_taxonomy,
+        "forgeProjectId": app.activeDocument.dataFile.parentProject.id
+        if app.activeDocument.dataFile is not None
+        else app.data.activeProject.id,
+    }
+    return payload_dict
+
+
+def create_backend_json():
+    """
+     Assembles the JSON representing the part by creating a type for every "provides" joint.
+     Duplicate UUIDs are removed and instead added as "count" to the jointOrderInfo objects.
+
+    Returns: The created JSON/dict.
+
+    """
     app = adsk.core.Application.get()
     design = adsk.fusion.Design.cast(app.activeProduct)
-
     provides_attributes = json.loads(
         getattr(
             design.rootComponent.attributes.itemByName(
@@ -161,7 +210,6 @@ def command_execute(args: adsk.core.CommandEventArgs):
             "[]",
         )
     )
-
     # Demo of data interchange to backend
     jo_infos = []
     # Remove duplicate UUIDs, as they must be identical per convention
@@ -208,8 +256,25 @@ def command_execute(args: adsk.core.CommandEventArgs):
         req_joints = [x for x in jo_infos if x != info]
         part_dict["partConfigs"].append(
             {
-                "jointOrderInfo": [{"uuid": x[0], "motion": x[3]} for x in req_joints],
-                "provides": {"uuid": info[0], "motion": info[3]},
+                "jointOrderInfo": [
+                    {
+                        "uuid": x[0],
+                        "motion": x[3],
+                        "count": sum(
+                            cnt_uuid.value == x[0]
+                            for cnt_uuid in design.findAttributes("CLS-INFO", "UUID")
+                        ),
+                    }
+                    for x in req_joints
+                ],
+                "provides": {
+                    "uuid": info[0],
+                    "motion": info[3],
+                    "count": sum(
+                        cnt_uuid.value == info[0]
+                        for cnt_uuid in design.findAttributes("CLS-INFO", "UUID")
+                    ),
+                },
             }
         )
         arrow = Type.intersect(info[2])
@@ -225,55 +290,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
     part_dict["meta"]["forgeProjectId"] = app.activeDocument.dataFile.parentProject.id
     part_dict["meta"]["forgeFolderId"] = app.activeDocument.dataFile.parentFolder.id
     part_dict["meta"]["forgeDocumentId"] = app.activeDocument.dataFile.id
-
-    # with open(
-    #        winapi_path(
-    #            os.path.join(
-    #                ROOT_FOLDER,
-    #                "_".join([
-    #                    app.data.activeProject.id,
-    #                    app.data.activeFolder.id,
-    #                    app.activeDocument.dataFile.id,
-    #                ]).replace(":", "-") + ".json",
-    #            )),
-    #        "w+",
-    # ) as f:
-    #    json.dump(
-    #        part_dict,
-    #        f,
-    #        cls=CLSEncoder,
-    #        indent=4,
-    #    )
-
-    req = urllib.request.Request("http://127.0.0.1:8000/submit/part")
-    req.add_header("Content-Type", "application/json; charset=utf-8")
-    payload = json.dumps(
-        part_dict,
-        cls=CLSEncoder,
-        indent=4,
-    ).encode("utf-8")
-    req.add_header("Content-Length", len(payload))
-    response = urllib.request.urlopen(req, payload)
-    print(response)
-
-    # Load correct project taxonomies before submitting
-    load_project_taxonomy_to_config()
-
-    # why not also update the taxonomy in the backend while we are at it?
-    suffixed_taxonomy = {}
-    for key, value in config.taxonomies.items():
-        suffixed_taxonomy.update(TaxonomyConverter.convert(value, key))
-    print(suffixed_taxonomy)
-    payload_dict = {
-        "taxonomy": suffixed_taxonomy,
-        "forgeProjectId": app.activeDocument.dataFile.parentProject.id,
-    }
-    req = urllib.request.Request("http://127.0.0.1:8000/submit/taxonomy")
-    req.add_header("Content-Type", "application/json; charset=utf-8")
-    payload = json.dumps(payload_dict, indent=4).encode("utf-8")
-    req.add_header("Content-Length", len(payload))
-    response = urllib.request.urlopen(req, payload)
-    print(response)
+    return part_dict
 
 
 def command_validate(args: adsk.core.ValidateInputsEventArgs):
