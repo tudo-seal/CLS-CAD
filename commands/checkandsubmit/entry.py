@@ -264,6 +264,7 @@ def create_backend_json():
                             cnt_uuid.value == x[0]
                             for cnt_uuid in design.findAttributes("CLS-INFO", "UUID")
                         ),
+                        "types": x[1],
                     }
                     for x in req_joints
                 ],
@@ -274,6 +275,7 @@ def create_backend_json():
                         cnt_uuid.value == info[0]
                         for cnt_uuid in design.findAttributes("CLS-INFO", "UUID")
                     ),
+                    "types": info[2],
                 },
             }
         )
