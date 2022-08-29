@@ -20,9 +20,7 @@ IS_PROMOTED = True
 
 PALETTE_ID = "ResultSelector"
 
-PALETTE_URL = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "resources", "html", "index.html"
-)
+PALETTE_URL = "http://localhost:3000/assembleResult/index.html"
 
 # The path function builds a valid OS path. This fixes it to be a valid local URL.
 PALETTE_URL = PALETTE_URL.replace("\\", "/")

@@ -1,13 +1,14 @@
 # Application Global Variables
 # This module serves as a way to share variables across different
 # modules (global variables).
-
+import http
 import os
 
 # Flag that indicates to run in Debug mode or not. When running in Debug mode
 # more information is written to the Text Command window. Generally, it's useful
 # to set this to True while developing an add-in and set it to False when you
 # are ready to distribute it.
+import socketserver
 from collections import defaultdict
 
 DEBUG = True
@@ -31,3 +32,18 @@ taxonomies = {
     "formats": {"AnyFormat": []},
     "attributes": {"AnyAttrib": []},
 }
+
+PORT = 3000
+DIRECTORY = ROOT_FOLDER + "/resources/html"
+
+
+class Handler(http.server.SimpleHTTPRequestHandler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, directory=DIRECTORY, **kwargs)
+
+    def address_string(self):
+        host, port = self.client_address[:2]
+        return host
+
+
+server = socketserver.TCPServer(("", PORT), Handler)

@@ -2,6 +2,7 @@
 import json
 import os
 from pathlib import Path
+from threading import Thread
 
 import adsk.core
 
@@ -67,11 +68,16 @@ def add_panel(
 
 
 local_handlers = []
+thread = None
 
 
 # Assumes you defined a "start" function in each of your modules.
 # The start function will be run when the add-in is started.
 def start():
+    global thread
+    thread = Thread(target=config.server.serve_forever, args=())
+    thread.daemon = True
+    thread.start()
     main_tab = add_tab()
     if not main_tab.isActive:
         main_tab.activate
@@ -102,3 +108,7 @@ def application_document_opened(args: adsk.core.DocumentEventArgs):
 def stop():
     for command in commands:
         command.stop()
+    # If the server is still open in a browser somewhere that keeps alive,
+    # the add-in won't exit until the page is refreshed
+    # That's fine, the user isn't supposed to know what is going on to begin with
+    config.server.shutdown()
