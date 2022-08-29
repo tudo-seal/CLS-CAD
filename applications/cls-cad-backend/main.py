@@ -21,9 +21,18 @@ from cls_python import (
 )
 from util.set_json import SetEncoder, SetDecoder
 from repository_builder import RepositoryBuilder
+from fastapi.middleware.cors import CORSMiddleware
 
+origins = ["http://localhost:3000"]
 
 app = FastAPI(title="CLS-CPS (Cyberphysical System Synthesis Backend)")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Response that is easy to debug
 class IndentedResponse(Response):
