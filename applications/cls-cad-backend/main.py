@@ -152,7 +152,9 @@ async def synthesize_assembly(
     result = gamma.inhabit(json.loads(json.dumps(payload["target"]), cls=CLSDecoder))
     if result.size() != 0:
         request_id = uuid4()
-        p = Path(os.path.join("Results", "CAD", str(request_id)))
+        p = Path(
+            os.path.join("Results", "CAD", payload["forgeProjectId"], str(request_id))
+        )
         p.mkdir(parents=True, exist_ok=True)
         # Maybe also add an index.dat to results, priority low
         with (p / f"result.dat").open("w+") as f:
@@ -176,16 +178,29 @@ async def list_result_ids():
     ]
 
 
-@app.get("/results/{request_id}", response_class=IndentedResponse)
+@app.get("/results/{project_id}", response_class=IndentedResponse)
+async def list_result_ids(project_id: str):
+    cad_dir = f"Results/CAD/{project_id}"
+    return [
+        item
+        for item in os.listdir(cad_dir)
+        if os.path.isdir(os.path.join(cad_dir, item))
+    ]
+
+
+@app.get("/results/{project_id}/{request_id}", response_class=IndentedResponse)
 async def results_for_id(
-    request_id: str, skip: int | None = None, limit: int | None = None
+    project_id: str, request_id: str, skip: int | None = None, limit: int | None = None
 ):
     results = []
     if limit == 0:
         return results
     if skip is not None and limit is not None:
         result = json.load(
-            open(os.path.join(f"Results/CAD/{request_id}", "result.dat"), "r"),
+            open(
+                os.path.join(f"Results/CAD/{project_id}/{request_id}", "result.dat"),
+                "r",
+            ),
             cls=CLSDecoder,
         )
         return [
@@ -200,16 +215,20 @@ async def results_for_id(
             )
         ]
     else:
-        for filename in glob.glob(os.path.join(f"Results/CAD/{request_id}", "*.json")):
+        for filename in glob.glob(
+            os.path.join(f"Results/CAD/{project_id}/{request_id}", "*.json")
+        ):
             with open(os.path.join(os.getcwd(), filename), "r") as f:
                 results.append(json.load(f))
         return results
 
 
-@app.get("/results/{request_id}/{result_id}", response_class=IndentedResponse)
-async def results_for_id(request_id: str, result_id: int):
+@app.get(
+    "/results/{project_id}/{request_id}/{result_id}", response_class=IndentedResponse
+)
+async def results_for_id(project_id: str, request_id: str, result_id: int):
     result = json.load(
-        open(os.path.join(f"Results/CAD/{request_id}", "result.dat"), "r"),
+        open(os.path.join(f"Results/CAD/{project_id}/{request_id}", "result.dat"), "r"),
         cls=CLSDecoder,
     )
     if result_id < result.size() or result.size() == -1:
