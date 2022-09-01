@@ -19,7 +19,13 @@ function sendInfoToFusion() {
         arg2: document.getElementById("result-select").value
     };
 
+}
 
+function sendReadyToFusion() {
+    // Send the data to Fusion as a JSON string. The return value is a Promise.
+    adsk.fusionSendData("readyNotification", "{}").then((result) =>
+        console.log(result)
+    );
 }
 
 function updateMessage(messageString) {

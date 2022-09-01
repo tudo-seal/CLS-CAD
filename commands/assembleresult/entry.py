@@ -139,7 +139,11 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
     palettes = ui.palettes
     palette = palettes.itemById(PALETTE_ID)
-    if palette is None:
+    if palette is not None:
+        palette.deleteMe()
+        futil.log("Deleted palette.")
+
+    if palette is None or not palette.isValid:
         palette = palettes.add(
             id=PALETTE_ID,
             name=PALETTE_NAME,
@@ -436,6 +440,18 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
         else:
             # ToDo: Query Yes/No continue anyways
             ui.messageBox("Multiple root joint origins.")
+
+    if message_action == "readyNotification":
+        # ADSK was injected, so now we send the payload
+        futil.log("Got Ready, sending projectID")
+        project_id = (
+            app.activeDocument.dataFile.parentProject.id
+            if app.activeDocument.dataFile is not None
+            else app.data.activeProject.id
+        )
+        palettes = ui.palettes
+        palette = palettes.itemById(PALETTE_ID)
+        palette.sendInfoToHTML("projectIDMessage", project_id)
 
     # Return value.
     now = datetime.now()

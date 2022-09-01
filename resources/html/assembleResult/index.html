@@ -11,6 +11,18 @@
 <body>
     <div>
 
+        <script>
+            // Once document loads, poll to see when Fusion deems it is time to inject adsk, then signal we are ready to receive data
+            document.addEventListener("DOMContentLoaded", () => {
+                let adskWaiter = setInterval(() => {
+                    if (window.adsk) {
+                        clearInterval(adskWaiter);
+                        sendReadyToFusion();
+                    }
+                }, 100);
+            });
+        </script>
+
         <h1>SITE THAT QUERIES BACKEND FOR RESULTS AND VISUALISES</h1>
         <br>
         <hr>
