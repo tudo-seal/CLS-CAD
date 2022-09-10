@@ -74,7 +74,11 @@ class PartConfig:
 class RepositoryBuilder:
     @staticmethod
     def add_part_to_repository(
-        part: dict, repository: dict, blacklist=set(), connect_uuid=None
+        part: dict,
+        repository: dict,
+        blacklist=set(),
+        connect_uuid=None,
+        taxonomy: Subtypes = None,
     ):
         """
         Adds a part to a repository to be used for synthesis. Adds necessary Constructors for the parts configurations,
@@ -90,12 +94,19 @@ class RepositoryBuilder:
         :param repository: The repository dict for the part to be added to. This should be then sued for synthesis.
         :param blacklist: An optional set that represent a Types.intersect([blacklist]).
         :param connect_uuid: The UUID of the joint the blacklist is based on.
+        :param taxonomy: The taxonomy to check the blacklist with.
         :return:
         """
         for pc in part["partConfigs"]:
             # Since SetDecoder is used for creating the part dict, we can just check if the part provides the leaf type
             # or an even more specific type, which we also can not allow.
-            if not (bool(blacklist) and blacklist <= pc["provides"]["types"]):
+            if not (
+                bool(blacklist)
+                and taxonomy.check_subtype(
+                    Type.intersect([Constructor(t) for t in pc["provides"]["types"]]),
+                    Type.intersect([Constructor(t) for t in blacklist]),
+                )
+            ):
                 repository[
                     PartConfig(pc["jointOrderInfo"], pc["provides"])
                 ] = Constructor(
@@ -107,10 +118,13 @@ class RepositoryBuilder:
                     + pc["provides"]["uuid"]
                 )
                 for requirement in pc["jointOrderInfo"]:
-                    # If a joint would require a blacklisted type or a more specific version of it, we add that specific
+                    # If a joint would require a blacklisted type or a subtype of it, we add that specific
                     # version to the repository as a virtual Part along with a fitting PartConfig. This results in the
                     # output JSON specifying that virtual part for the "back-side" of the synthesised connector.
-                    if bool(blacklist) and blacklist <= requirement["types"]:
+                    if bool(blacklist) and taxonomy.check_subtype(
+                        Type.intersect([Constructor(t) for t in requirement["types"]]),
+                        Type.intersect([Constructor(t) for t in blacklist]),
+                    ):
                         repository[
                             Part(
                                 {
@@ -139,7 +153,7 @@ class RepositoryBuilder:
         pass
 
     @staticmethod
-    def add_all_to_repository(blacklist=set(), connect_uuid=None):
+    def add_all_to_repository(blacklist=set(), connect_uuid=None, taxonomy=None):
         repository = {}
         with open("Repositories/CAD/index.dat", "r+") as f:
             data = json.load(f, cls=SetDecoder)
@@ -156,6 +170,6 @@ class RepositoryBuilder:
                 with (p / key.replace(":", "-")).open("r") as fp:
                     part = json.load(fp)
                     RepositoryBuilder.add_part_to_repository(
-                        part, repository, blacklist, connect_uuid
+                        part, repository, blacklist, connect_uuid, taxonomy
                     )
         return repository
