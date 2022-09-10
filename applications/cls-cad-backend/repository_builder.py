@@ -70,6 +70,9 @@ class PartConfig:
         self.joint_order_info = joint_order_info
         self.provides = provides
 
+    def __hash__(self):
+        return hash(json.dumps(self.joint_order_info) + json.dumps(self.provides))
+
 
 class RepositoryBuilder:
     @staticmethod
@@ -145,7 +148,7 @@ class RepositoryBuilder:
                                 [],
                                 {"uuid": connect_uuid, "count": 1, "motion": "Rigid"},
                             )
-                        ]
+                        ] = Constructor(connect_uuid)
 
         repository[Part(part["meta"])] = json.loads(
             json.dumps(part["combinator"]), cls=CLSDecoder

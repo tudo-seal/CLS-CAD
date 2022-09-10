@@ -82,6 +82,8 @@ class TaxonomyInf(BaseModel):
 class SynthesisRequestInf(BaseModel):
     forgeProjectId: str
     target: dict
+    source: set | None = None
+    sourceUuid: str | None = None
 
 
 @app.get("/")
@@ -171,9 +173,18 @@ async def synthesize_assembly(
             cls=SetDecoder,
         )
     )
-    gamma = FiniteCombinatoryLogic(
-        RepositoryBuilder.add_all_to_repository(), taxonomy, processes=1
-    )
+    if payload.source and payload.sourceUuid:
+        gamma = FiniteCombinatoryLogic(
+            RepositoryBuilder.add_all_to_repository(
+                payload.source, payload.sourceUuid, taxonomy
+            ),
+            taxonomy,
+            processes=1,
+        )
+    else:
+        gamma = FiniteCombinatoryLogic(
+            RepositoryBuilder.add_all_to_repository(), taxonomy, processes=1
+        )
     result = gamma.inhabit(json.loads(json.dumps(payload.target), cls=CLSDecoder))
     if result.size() != 0:
         request_id = uuid4()
