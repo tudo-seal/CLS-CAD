@@ -1,27 +1,28 @@
+from __future__ import annotations
+
 import glob
 import json
 import os
-import pickle
 import typing
 from collections import defaultdict
 from json import JSONDecodeError
+from pathlib import Path
+from typing import Literal
 from uuid import uuid4
 
-from fastapi import FastAPI, Body
-from pathlib import Path
-
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
 from starlette.responses import Response
 
 from cls_python import (
-    deep_str,
     CLSDecoder,
     FiniteCombinatoryLogic,
     Subtypes,
     CLSEncoder,
 )
-from util.set_json import SetEncoder, SetDecoder
 from repository_builder import RepositoryBuilder
-from fastapi.middleware.cors import CORSMiddleware
+from util.set_json import SetEncoder, SetDecoder
 
 origins = ["http://localhost:3000"]
 
@@ -48,6 +49,41 @@ class IndentedResponse(Response):
         ).encode("utf-8")
 
 
+class JointInf(BaseModel):
+    uuid: str
+    motion: Literal["Rigid", "Revolute"]
+    count: int
+    types: set
+
+
+class MetaInf(BaseModel):
+    partName: str
+    forgeDocumentId: str
+    forgeFolderId: str
+    forgeProjectId: str
+
+
+class PartConfigInf(BaseModel):
+    jointOrderInfo: set[JointInf]
+    provides: JointInf
+
+
+class PartInf(BaseModel):
+    meta: MetaInf
+    partConfigs: set[PartConfigInf]
+    combinator: dict
+
+
+class TaxonomyInf(BaseModel):
+    forgeProjectId: str
+    taxonomy: dict
+
+
+class SynthesisRequestInf(BaseModel):
+    forgeProjectId: str
+    target: dict
+
+
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
@@ -60,28 +96,19 @@ async def say_hello(name: str):
 
 @app.post("/submit/part")
 async def save_part(
-    payload: dict = Body(...),
+    payload: PartInf,
 ):
-    deep_str(payload)
-    if not all(
-        k in payload
-        for k in (
-            "meta",
-            "partConfigs",
-            "combinator",
-        )
-    ):
-        return "Invalid Part, Missing Key."
+
     p = Path(
         os.path.join(
             "Repositories",
             "CAD",
-            payload["meta"]["forgeProjectId"],
-            payload["meta"]["forgeFolderId"],
+            payload.meta.forgeProjectId,
+            payload.meta.forgeFolderId,
         ).replace(":", "-")
     )
     p.mkdir(parents=True, exist_ok=True)
-    with (p / payload["meta"]["forgeDocumentId"].replace(":", "-")).open("w+") as f:
+    with (p / payload.meta.forgeDocumentId.replace(":", "-")).open("w+") as f:
         json.dump(payload, f, indent=4)
 
     Path("Repositories/CAD/index.dat").touch(exist_ok=True)
@@ -96,21 +123,19 @@ async def save_part(
             # ToDo: Implement reindexing
             print("JSON wouldn't decode. Probably tampered, re-indexing...")
 
-        data["folders"][payload["meta"]["forgeFolderId"]] = set()
+        data["folders"][payload.meta.forgeFolderId] = set()
 
-        data["parts"][payload["meta"]["forgeDocumentId"]] = {
-            "forgeProjectId": payload["meta"]["forgeProjectId"],
-            "forgeFolderId": payload["meta"]["forgeFolderId"],
+        data["parts"][payload.meta.forgeDocumentId] = {
+            "forgeProjectId": payload.meta.forgeProjectId,
+            "forgeFolderId": payload.meta.forgeFolderId,
         }
-        data["projects"][payload["meta"]["forgeProjectId"]]["folders"].add(
-            payload["meta"]["forgeFolderId"]
+        data["projects"][payload.meta.forgeProjectId]["folders"].add(
+            payload.meta.forgeFolderId
         )
-        data["projects"][payload["meta"]["forgeProjectId"]]["documents"].add(
-            payload["meta"]["forgeDocumentId"]
+        data["projects"][payload.meta.forgeProjectId]["documents"].add(
+            payload.meta.forgeDocumentId
         )
-        data["folders"][payload["meta"]["forgeFolderId"]].add(
-            payload["meta"]["forgeDocumentId"]
-        )
+        data["folders"][payload.meta.forgeFolderId].add(payload.meta.forgeDocumentId)
         f.seek(0)
         f.truncate()
         json.dump(data, f, cls=SetEncoder, indent=4)
@@ -122,38 +147,38 @@ async def save_part(
 
 @app.post("/submit/taxonomy")
 async def save_taxonomy(
-    payload: dict = Body(...),
+    payload: TaxonomyInf,
 ):
     p = Path(
         os.path.join(
             "Taxonomies",
             "CAD",
-            payload["forgeProjectId"],
+            payload.forgeProjectId,
         ).replace(":", "-")
     )
     p.mkdir(parents=True, exist_ok=True)
-    with open(f'Taxonomies/CAD/{payload["forgeProjectId"]}/taxonomy.dat', "w+") as f:
-        json.dump(payload["taxonomy"], f, cls=SetEncoder, indent=4)
+    with open(f"Taxonomies/CAD/{payload.forgeProjectId}/taxonomy.dat", "w+") as f:
+        json.dump(payload.taxonomy, f, cls=SetEncoder, indent=4)
 
 
 @app.post("/request/assembly")
 async def synthesize_assembly(
-    payload: dict = Body(...),
+    payload: SynthesisRequestInf,
 ):
     taxonomy = Subtypes(
         json.load(
-            open(f'Taxonomies/CAD/{payload["forgeProjectId"]}/taxonomy.dat', "r"),
+            open(f"Taxonomies/CAD/{payload.forgeProjectId}/taxonomy.dat", "r"),
             cls=SetDecoder,
         )
     )
     gamma = FiniteCombinatoryLogic(
         RepositoryBuilder.add_all_to_repository(), taxonomy, processes=1
     )
-    result = gamma.inhabit(json.loads(json.dumps(payload["target"]), cls=CLSDecoder))
+    result = gamma.inhabit(json.loads(json.dumps(payload.target), cls=CLSDecoder))
     if result.size() != 0:
         request_id = uuid4()
         p = Path(
-            os.path.join("Results", "CAD", payload["forgeProjectId"], str(request_id))
+            os.path.join("Results", "CAD", payload.forgeProjectId, str(request_id))
         )
         p.mkdir(parents=True, exist_ok=True)
         # Maybe also add an index.dat to results, priority low

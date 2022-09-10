@@ -73,23 +73,73 @@ class PartConfig:
 
 class RepositoryBuilder:
     @staticmethod
-    def add_part_to_repository(part: dict, repository: dict):
+    def add_part_to_repository(
+        part: dict, repository: dict, blacklist=set(), connect_uuid=None
+    ):
+        """
+        Adds a part to a repository to be used for synthesis. Adds necessary Constructors for the parts configurations,
+        unless the configuration provides a blacklisted type. The blacklist is intended to be used for synthesising
+        connectors, since a constructor for the type and its subtypes needs to be added but all productions for that
+        type and its subtypes need to be removed. This guarantees that all results that request that type terminate in
+        that Constructor or subtypes of it, which then indicate the point of connection.
+
+        If a blacklist is provided, also adds Constructors for every encountered required type that is
+        more specific than the blacklist.
+
+        :param part: The JSON representation of the part to add to the repository. This uses set() as its array type.
+        :param repository: The repository dict for the part to be added to. This should be then sued for synthesis.
+        :param blacklist: An optional set that represent a Types.intersect([blacklist]).
+        :param connect_uuid: The UUID of the joint the blacklist is based on.
+        :return:
+        """
         for pc in part["partConfigs"]:
-            repository[PartConfig(pc["jointOrderInfo"], pc["provides"])] = Constructor(
-                (
-                    "_".join([x["uuid"] for x in pc["jointOrderInfo"]]) + "_"
-                    if pc["jointOrderInfo"]
-                    else ""
+            # Since SetDecoder is used for creating the part dict, we can just check if the part provides the leaf type
+            # or an even more specific type, which we also can not allow.
+            if not (bool(blacklist) and blacklist <= pc["provides"]["types"]):
+                repository[
+                    PartConfig(pc["jointOrderInfo"], pc["provides"])
+                ] = Constructor(
+                    (
+                        "_".join([x["uuid"] for x in pc["jointOrderInfo"]]) + "_"
+                        if pc["jointOrderInfo"]
+                        else ""
+                    )
+                    + pc["provides"]["uuid"]
                 )
-                + pc["provides"]["uuid"]
-            )
+                for requirement in pc["jointOrderInfo"]:
+                    # If a joint would require a blacklisted type or a more specific version of it, we add that specific
+                    # version to the repository as a virtual Part along with a fitting PartConfig. This results in the
+                    # output JSON specifying that virtual part for the "back-side" of the synthesised connector.
+                    if bool(blacklist) and blacklist <= requirement["types"]:
+                        repository[
+                            Part(
+                                {
+                                    "partName": f'clsconnectmarker_{"_".join(blacklist)}',
+                                    "forgeDocumentId": "NoInsert",
+                                    "forgeFolderId": "NoInsert",
+                                    "forgeProjectId": "NoInsert",
+                                }
+                            )
+                        ] = Arrow(
+                            Constructor(connect_uuid),
+                            Type.intersect(
+                                [Constructor(t) for t in requirement["types"]]
+                            ),
+                        )
+                        repository[
+                            PartConfig(
+                                [],
+                                {"uuid": connect_uuid, "count": 1, "motion": "Rigid"},
+                            )
+                        ]
+
         repository[Part(part["meta"])] = json.loads(
             json.dumps(part["combinator"]), cls=CLSDecoder
         )
         pass
 
     @staticmethod
-    def add_all_to_repository():
+    def add_all_to_repository(blacklist=set(), connect_uuid=None):
         repository = {}
         with open("Repositories/CAD/index.dat", "r+") as f:
             data = json.load(f, cls=SetDecoder)
@@ -105,5 +155,7 @@ class RepositoryBuilder:
                 )
                 with (p / key.replace(":", "-")).open("r") as fp:
                     part = json.load(fp)
-                    RepositoryBuilder.add_part_to_repository(part, repository)
+                    RepositoryBuilder.add_part_to_repository(
+                        part, repository, blacklist, connect_uuid
+                    )
         return repository
