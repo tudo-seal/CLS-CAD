@@ -143,7 +143,7 @@ class RepositoryBuilder:
                         repository[
                             Part(
                                 {
-                                    "partName": f'clsconnectmarker_{"_".join(blacklist)}',
+                                    "partName": f'clsconnectmarker_{"_".join(requirement["types"])}',
                                     "forgeDocumentId": "NoInsert",
                                     "forgeFolderId": "NoInsert",
                                     "forgeProjectId": "NoInsert",
