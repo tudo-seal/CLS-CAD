@@ -62,6 +62,12 @@ class Part(object):
         # Create combinator type here based on some JSON payload in future
         self.info = info
 
+    def __eq__(self, other):
+        if self.__hash__() == other.__hash__():
+            return True
+        else:
+            return False
+
 
 # additional info about the parts configuration options
 class PartConfig:
@@ -72,6 +78,12 @@ class PartConfig:
 
     def __hash__(self):
         return hash(json.dumps(self.joint_order_info) + json.dumps(self.provides))
+
+    def __eq__(self, other):
+        if self.__hash__() == other.__hash__():
+            return True
+        else:
+            return False
 
 
 class RepositoryBuilder:
