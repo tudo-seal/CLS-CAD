@@ -1,5 +1,6 @@
 import json
 import os
+import uuid
 from pathlib import Path
 
 from cls_python import *
@@ -194,7 +195,17 @@ class RepositoryBuilder:
                         repository[
                             Part(
                                 {
-                                    "partName": f"clsconnectmarker",
+                                    "partName": "clsconnectmarker_"
+                                    + str(
+                                        hash(
+                                            json.dumps(
+                                                get_joint_origin_required_type(
+                                                    required_joint_origin_uuid, part
+                                                ),
+                                                cls=CLSEncoder,
+                                            )
+                                        )
+                                    ),
                                     "forgeDocumentId": "NoInsert",
                                     "forgeFolderId": "NoInsert",
                                     "forgeProjectId": "NoInsert",
