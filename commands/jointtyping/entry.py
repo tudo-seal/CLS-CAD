@@ -475,7 +475,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
     parts_type_selection_browser_input.sendInfoToHTML("returnTaxonomyDataMessage", "{}")
 
     selections = []
-    jo_uuid = str(uuid.uuid4())
+    jo_uuid = str(generate_id())
     for jo in selected_joint_origins:
 
         # Add typing information as string (this is kinda okay, because we'll send it via JSON to the backend anyway)

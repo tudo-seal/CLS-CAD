@@ -1,5 +1,6 @@
 import os
 import urllib.request
+from urllib.error import HTTPError
 
 import adsk.core
 
@@ -148,8 +149,12 @@ def command_execute(args: adsk.core.CommandEventArgs):
         indent=4,
     ).encode("utf-8")
     req.add_header("Content-Length", len(payload))
-    response = urllib.request.urlopen(req, payload)
-    print(response)
+    try:
+        response = urllib.request.urlopen(req, payload)
+        print(response)
+    except HTTPError as err:
+        print(err.code)
+        print(err.reason)
 
     # Load correct project taxonomies before submitting
     load_project_taxonomy_to_config()
@@ -160,8 +165,12 @@ def command_execute(args: adsk.core.CommandEventArgs):
     req.add_header("Content-Type", "application/json; charset=utf-8")
     payload = json.dumps(payload_dict, indent=4).encode("utf-8")
     req.add_header("Content-Length", len(payload))
-    response = urllib.request.urlopen(req, payload)
-    print(response)
+    try:
+        response = urllib.request.urlopen(req, payload)
+        print(response)
+    except HTTPError as err:
+        print(err.code)
+        print(err.reason)
 
 
 def create_backend_taxonomy():
@@ -250,48 +259,45 @@ def create_backend_json():
             )
         )
     configurations = []
-    part_dict = {"partConfigs": []}
+    part_dict = {"configurations": [], "meta": {}, "jointOrigins": {}}
+
     # Only add to top-level intersection per provide
-    for info in [x for x in jo_infos if x[4]]:
-        req_joints = [x for x in jo_infos if x != info]
-        part_dict["partConfigs"].append(
+    # Needs slight change if provides ever becomes a real array
+    for provides_uuid in [x[0] for x in jo_infos if x[4]]:
+        requires_uuids = [x[0] for x in jo_infos if x[0] != provides_uuid]
+        part_dict["configurations"].append(
             {
-                "jointOrderInfo": [
-                    {
-                        "uuid": x[0],
-                        "motion": x[3],
-                        "count": sum(
-                            cnt_uuid.value == x[0]
-                            for cnt_uuid in design.findAttributes("CLS-INFO", "UUID")
-                        ),
-                        "types": x[1],
-                    }
-                    for x in req_joints
-                ],
-                "provides": {
-                    "uuid": info[0],
-                    "motion": info[3],
-                    "count": sum(
-                        cnt_uuid.value == info[0]
-                        for cnt_uuid in design.findAttributes("CLS-INFO", "UUID")
-                    ),
-                    "types": info[2],
-                },
+                "requiresJointOrigins": requires_uuids,
+                "providesJointOrigin": provides_uuid,
             }
         )
-        arrow = Type.intersect(info[2])
-        for req_joint in reversed(req_joints):
-            arrow = Arrow(Type.intersect(req_joint[1]), arrow)
-        configurations.append(
-            Arrow("_".join([x[0] for x in req_joints + [info]]), arrow)
-        )
-    part_dict["combinator"] = CLSEncoder().default(Type.intersect(configurations))
-    part_dict["meta"] = {}
+
     part_dict["meta"]["partName"] = app.activeDocument.name
     # this might be wrong and return the browsed ID
     part_dict["meta"]["forgeProjectId"] = app.activeDocument.dataFile.parentProject.id
     part_dict["meta"]["forgeFolderId"] = app.activeDocument.dataFile.parentFolder.id
     part_dict["meta"]["forgeDocumentId"] = app.activeDocument.dataFile.id
+
+    for info in jo_infos:
+        part_dict["jointOrigins"][info[0]] = {
+            "motion": info[3],
+            "count": sum(
+                cnt_uuid.value == info[0]
+                for cnt_uuid in design.findAttributes("CLS-INFO", "UUID")
+            ),
+            "requires": CLSEncoder().default(
+                Type.intersect([Constructor(t) for t in info[1]])
+            )
+            if info[1]
+            else {},
+            "provides": CLSEncoder().default(
+                Type.intersect([Constructor(t) for t in info[2]])
+            )
+            if info[4]
+            else {},
+        }
+
+    print(json.dumps(part_dict, indent=4))
     return part_dict
 
 

@@ -6,6 +6,7 @@ from datetime import datetime
 import adsk.core
 from adsk.fusion import DesignTypes
 
+from ...lib.general_utils import *
 from ... import config
 from ...lib import fusion360utils as futil
 
@@ -275,8 +276,8 @@ def assemble_recursively(part: dict):
             return
 
         # This is a completely different design, so the uuids need to be changed to be unique
-        uuid_requires = str(uuid.uuid4())
-        uuid_provides = str(uuid.uuid4())
+        uuid_requires = str(generate_id())
+        uuid_provides = str(generate_id())
         progressDialog.message = "Setting new attributes..."
         progressDialog.maximumValue = len(joint_origins_1) * 2
         progressDialog.progressValue = 0
@@ -394,7 +395,7 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
         )
         doc = app.documents.add(adsk.core.DocumentTypes.FusionDesignDocumentType)
         # Naming and stuff will need to be cleaned up, and multi-assembly
-        doc.saveAs(str(uuid.uuid4()), request_folder, "", "")
+        doc.saveAs(str(generate_id()), request_folder, "", "")
         progressDialog.progressValue = 1
         progressDialog.message = "Inserting assembly base..."
         progressDialog.progressValue = 0

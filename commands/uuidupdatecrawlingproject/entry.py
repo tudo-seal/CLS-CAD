@@ -14,10 +14,10 @@ app = adsk.core.Application.get()
 ui = app.userInterface
 joint = None
 
-CMD_ID = f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_crawl_project"
-CMD_NAME = "Crawl Project"
-CMD_DESCRIPTION = "Crawl project files and collect all types."
-IS_PROMOTED = True
+CMD_ID = f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_migrate_uuids"
+CMD_NAME = "Migrate UUIDs"
+CMD_DESCRIPTION = "Migrate UUIDs files and migrate all UUIDs."
+IS_PROMOTED = False
 
 WORKSPACE_ID = "FusionSolidEnvironment"
 PANEL_ID = "CRAWL"
@@ -35,7 +35,7 @@ progressDialog: adsk.core.ProgressDialog = None
 
 def start():
     """
-    Creates the promoted "Crawl Project" command in the CLS-CAD tab.
+    Creates the promoted "Migrate UUIDs" command in the CLS-CAD tab.
     Registers the commandCreated handler.
 
     Returns:
@@ -131,6 +131,16 @@ def recursively_submit(folders: adsk.core.DataFolders):
             app = adsk.core.Application.get()
             document = app.documents.open(file)
             design = adsk.fusion.Design.cast(app.activeProduct)
+            for unique_attribute in list(
+                {x.value: x for x in design.findAttributes("CLS-INFO", "UUID")}.values()
+            ):
+                new_uuid = generate_id()
+                for attribute in [
+                    x
+                    for x in design.findAttributes("CLS-INFO", "UUID")
+                    if x.value == unique_attribute.value
+                ]:
+                    attribute.value = new_uuid
             if design.findAttributes("CLS-JOINT", "ProvidesFormats"):
                 part_dict = create_backend_json()
                 req = urllib.request.Request("http://127.0.0.1:8000/submit/part")
@@ -142,8 +152,10 @@ def recursively_submit(folders: adsk.core.DataFolders):
                 ).encode("utf-8")
                 req.add_header("Content-Length", len(payload))
                 response = urllib.request.urlopen(req, payload)
+                document.save('Saved by "Migrate UUIDs"')
                 document.close(False)
             else:
+                document.save('Saved by "Migrate UUIDs"')
                 document.close(False)
             progressDialog.progressValue += 1
         recursively_submit(folder.dataFolders)
@@ -170,7 +182,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
         "This will take a considerable amount of time and is intended to be used when large changes to a project have "
         "been made/a new project has been setup.\nEach file in the project will be opened. Eligible parts will be "
         "submitted to the server, non-eligible parts will be added to an error report.\n\nDo you wish to continue?",
-        "Proceed to Crawl",
+        "Proceed to migrate and upload UUIDs?",
         adsk.core.MessageBoxButtonTypes.OKCancelButtonType,
     )
     # ok returns zero, so if not

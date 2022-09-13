@@ -17,6 +17,7 @@ from .togglecustomgraphics import entry as toggle_custom_graphics
 from .typecrawlinghub import entry as type_crawling_hub
 from .typecrawlingproject import entry as type_crawling_project
 from .uploadtaxonomy import entry as upload_taxonomy
+from .uuidupdatecrawlingproject import entry as uuid_update_crawling_project
 from .. import config
 from ..lib import fusion360utils as futil
 
@@ -33,6 +34,7 @@ commands = [
     check_and_submit,
     type_crawling_project,
     type_crawling_hub,
+    uuid_update_crawling_project,
     toggle_custom_graphics,
     taxonomy_editing,
     upload_taxonomy,
