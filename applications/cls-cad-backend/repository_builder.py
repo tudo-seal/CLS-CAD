@@ -86,7 +86,28 @@ class PartConfig:
             return False
 
 
+def get_joint_origin_required_type(uuid: str, part):
+    return json.loads(
+        json.dumps(part["jointOrigins"][uuid]["requires"]), cls=CLSDecoder
+    )
+
+
+def get_joint_origin_provided_type(uuid: str, part):
+    return json.loads(
+        json.dumps(part["jointOrigins"][uuid]["provides"]), cls=CLSDecoder
+    )
+
+
 class RepositoryBuilder:
+    @staticmethod
+    def arrow_concat_list(type_list, part: dict):
+        if len(type_list) == 1:
+            return get_joint_origin_provided_type(type_list[0], part)
+        return Arrow(
+            get_joint_origin_required_type(type_list.pop(0), part),
+            RepositoryBuilder.arrow_concat_list(type_list, part),
+        )
+
     @staticmethod
     def add_part_to_repository(
         part: dict,
@@ -112,38 +133,68 @@ class RepositoryBuilder:
         :param taxonomy: The taxonomy to check the blacklist with.
         :return:
         """
-        for pc in part["partConfigs"]:
+        for configuration in part["configurations"]:
             # Since SetDecoder is used for creating the part dict, we can just check if the part provides the leaf type
             # or an even more specific type, which we also can not allow.
+            configuration_types = []
+            # If not blacklisted, add the partial combinator that will be part of the large intersection to the list
+            # And then add the PartConfig for that Config to the Repository immediately
             if not (
                 bool(blacklist)
                 and taxonomy.check_subtype(
-                    Type.intersect([Constructor(t) for t in pc["provides"]["types"]]),
+                    get_joint_origin_provided_type(
+                        configuration["providesJointOrigin"], part
+                    ),
                     Type.intersect([Constructor(t) for t in blacklist]),
                 )
             ):
-                repository[
-                    PartConfig(pc["jointOrderInfo"], pc["provides"])
-                ] = Constructor(
-                    (
-                        "_".join([x["uuid"] for x in pc["jointOrderInfo"]]) + "_"
-                        if pc["jointOrderInfo"]
-                        else ""
+                configuration_types.append(
+                    Arrow(
+                        Constructor(
+                            "-".join(
+                                configuration["requiresJointOrigins"]
+                                + [configuration["providesJointOrigin"]]
+                            )
+                        ),
+                        RepositoryBuilder.arrow_concat_list(
+                            configuration["requiresJointOrigins"]
+                            + [configuration["providesJointOrigin"]],
+                            part,
+                        ),
                     )
-                    + pc["provides"]["uuid"]
                 )
-                for requirement in pc["jointOrderInfo"]:
+                repository[
+                    PartConfig(
+                        [
+                            dict(part["jointOrigins"][x], **{"uuid": x})
+                            for x in configuration["requiresJointOrigins"]
+                        ],
+                        dict(
+                            part["jointOrigins"][configuration["providesJointOrigin"]],
+                            **{"uuid": configuration["providesJointOrigin"]},
+                        ),
+                    )
+                ] = Constructor(
+                    "-".join(
+                        configuration["requiresJointOrigins"]
+                        + [configuration["providesJointOrigin"]]
+                    )
+                )
+
+                for required_joint_origin_uuid in configuration["requiresJointOrigins"]:
                     # If a joint would require a blacklisted type or a subtype of it, we add that specific
                     # version to the repository as a virtual Part along with a fitting PartConfig. This results in the
                     # output JSON specifying that virtual part for the "back-side" of the synthesised connector.
                     if bool(blacklist) and taxonomy.check_subtype(
-                        Type.intersect([Constructor(t) for t in requirement["types"]]),
+                        get_joint_origin_required_type(
+                            required_joint_origin_uuid, part
+                        ),
                         Type.intersect([Constructor(t) for t in blacklist]),
                     ):
                         repository[
                             Part(
                                 {
-                                    "partName": f'clsconnectmarker_{"_".join(requirement["types"])}',
+                                    "partName": f"clsconnectmarker",
                                     "forgeDocumentId": "NoInsert",
                                     "forgeFolderId": "NoInsert",
                                     "forgeProjectId": "NoInsert",
@@ -151,8 +202,8 @@ class RepositoryBuilder:
                             )
                         ] = Arrow(
                             Constructor(connect_uuid),
-                            Type.intersect(
-                                [Constructor(t) for t in requirement["types"]]
+                            get_joint_origin_required_type(
+                                required_joint_origin_uuid, part
                             ),
                         )
                         repository[
@@ -162,9 +213,7 @@ class RepositoryBuilder:
                             )
                         ] = Constructor(connect_uuid)
 
-        repository[Part(part["meta"])] = json.loads(
-            json.dumps(part["combinator"]), cls=CLSDecoder
-        )
+        repository[Part(part["meta"])] = Type.intersect(configuration_types)
         pass
 
     @staticmethod

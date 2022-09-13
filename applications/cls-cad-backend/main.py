@@ -11,6 +11,7 @@ from typing import Literal
 from uuid import uuid4
 
 from fastapi import FastAPI
+from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from starlette.responses import Response
@@ -49,40 +50,40 @@ class IndentedResponse(Response):
         ).encode("utf-8")
 
 
-class JointInf(BaseModel):
-    uuid: str
+class JointOriginInf(BaseModel, frozen=True):
     motion: Literal["Rigid", "Revolute"]
     count: int
-    types: set
+    requires: dict
+    provides: dict
 
 
-class MetaInf(BaseModel):
+class MetaInf(BaseModel, frozen=True):
     partName: str
     forgeDocumentId: str
     forgeFolderId: str
     forgeProjectId: str
 
 
-class PartConfigInf(BaseModel):
-    jointOrderInfo: set[JointInf]
-    provides: JointInf
+class PartConfigInf(BaseModel, frozen=True):
+    requiresJointOrigins: list[str]
+    providesJointOrigin: str
 
 
-class PartInf(BaseModel):
+class PartInf(BaseModel, frozen=True):
+    configurations: list[PartConfigInf]
     meta: MetaInf
-    partConfigs: set[PartConfigInf]
-    combinator: dict
+    jointOrigins: typing.Dict[str, JointOriginInf]
 
 
-class TaxonomyInf(BaseModel):
+class TaxonomyInf(BaseModel, frozen=True):
     forgeProjectId: str
     taxonomy: dict
 
 
-class SynthesisRequestInf(BaseModel):
+class SynthesisRequestInf(BaseModel, frozen=True):
     forgeProjectId: str
     target: dict
-    source: set | None = None
+    source: list | None = None
     sourceUuid: str | None = None
 
 
@@ -111,7 +112,7 @@ async def save_part(
     )
     p.mkdir(parents=True, exist_ok=True)
     with (p / payload.meta.forgeDocumentId.replace(":", "-")).open("w+") as f:
-        json.dump(payload, f, indent=4)
+        json.dump(payload.dict(), f, indent=4, cls=SetEncoder)
 
     Path("Repositories/CAD/index.dat").touch(exist_ok=True)
     with open("Repositories/CAD/index.dat", "r+") as f:
