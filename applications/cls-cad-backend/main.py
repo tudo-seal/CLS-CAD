@@ -62,6 +62,8 @@ class MetaInf(BaseModel, frozen=True):
     forgeDocumentId: str
     forgeFolderId: str
     forgeProjectId: str
+    cost: float = 1.0
+    availability: float = 1.0
 
 
 class PartConfigInf(BaseModel, frozen=True):
@@ -177,14 +179,16 @@ async def synthesize_assembly(
     if payload.source and payload.sourceUuid:
         gamma = FiniteCombinatoryLogic(
             RepositoryBuilder.add_all_to_repository(
-                payload.source, payload.sourceUuid, taxonomy
+                payload.forgeProjectId, payload.source, payload.sourceUuid, taxonomy
             ),
             taxonomy,
             processes=1,
         )
     else:
         gamma = FiniteCombinatoryLogic(
-            RepositoryBuilder.add_all_to_repository(), taxonomy, processes=1
+            RepositoryBuilder.add_all_to_repository(payload.forgeProjectId),
+            taxonomy,
+            processes=1,
         )
     result = gamma.inhabit(json.loads(json.dumps(payload.target), cls=CLSDecoder))
     if result.size() != 0:

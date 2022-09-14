@@ -28,6 +28,8 @@ class Jsonify:
             forgeFolderId=self.info["forgeFolderId"],
             forgeProjectId=self.info["forgeProjectId"],
             count=count,
+            cost=count * self.info["cost"],
+            availability=self.info["availability"],
             motion=motion,
             connections={
                 **{
@@ -228,21 +230,22 @@ class RepositoryBuilder:
         pass
 
     @staticmethod
-    def add_all_to_repository(blacklist=set(), connect_uuid=None, taxonomy=None):
+    def add_all_to_repository(
+        project_id: str, blacklist=set(), connect_uuid=None, taxonomy=None
+    ):
         repository = {}
         with open("Repositories/CAD/index.dat", "r+") as f:
             data = json.load(f, cls=SetDecoder)
-            part = None
-            for key, value in data["parts"].items():
+            for entry in data["projects"][project_id]["documents"]:
                 p = Path(
                     os.path.join(
                         "Repositories",
                         "CAD",
-                        value["forgeProjectId"],
-                        value["forgeFolderId"],
+                        data["parts"][entry]["forgeProjectId"],
+                        data["parts"][entry]["forgeFolderId"],
                     ).replace(":", "-")
                 )
-                with (p / key.replace(":", "-")).open("r") as fp:
+                with (p / entry.replace(":", "-")).open("r") as fp:
                     part = json.load(fp)
                     RepositoryBuilder.add_part_to_repository(
                         part, repository, blacklist, connect_uuid, taxonomy
