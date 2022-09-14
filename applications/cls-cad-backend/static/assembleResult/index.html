@@ -1,95 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <title>Backend Picker</title>
-    <script type="text/javascript" src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="static/palette.js"></script>
-</head>
-
-<body>
-    <div>
-
-        <script>
-            // Once document loads, poll to see when Fusion deems it is time to inject adsk, then signal we are ready to receive data
-            document.addEventListener("DOMContentLoaded", () => {
-                let adskWaiter = setInterval(() => {
-                    if (window.adsk) {
-                        clearInterval(adskWaiter);
-                        sendReadyToFusion();
-                    }
-                }, 100);
-            });
-        </script>
-
-        <h1>SITE THAT QUERIES BACKEND FOR RESULTS AND VISUALISES</h1>
-        <br>
-        <hr>
-
-        <h3>Send Data to HTML Event Handler</h3>
-        <div style='margin-left: 30px;'>
-            <select id="results-select" name="Results">
-
-            </select>
-            <label for="result-select"><b>Result to assemble:</b></label>
-            <select id="result-select" name="Result- Number">
-
-            </select>
-            <button onclick='sendInfoToFusion()' style='background-color: #cccccc; padding: 5px' type='button'>
-                <b>Assemble</b>
-            </button>
-        </div>
-
-        <h3>HTML Event Response Value:</h3>
-        <div id='returnValue' style='margin-left: 30px;'>Response</div>
-
-        <h3>Message from "Send to Palette" Command</h3>
-        <div style='margin-left: 30px;'>
-            <p id='fusionMessage'>Message from Fusion</p>
-            <br /><br />
-        </div>
-
-        <script>
-            window.result_ids = []
-            $.get("http://127.0.0.1:8000/results", function (data) {
-                data.forEach(result_id => {
-                    window.result_ids.push(result_id);
-                    $('#results-select')
-                        .append($('<option>', {
-                            value: result_id,
-                            text: result_id
-                        }));
-                }
-                );
-                $.get("http://127.0.0.1:8000/results/" + window.result_ids[0], function (data) {
-                    console.log(data.length)
-                    for (let i = 0; i < data.length; i++) {
-                        $('#result-select')
-                            .append($('<option>', {
-                                value: i,
-                                text: i
-                            }));
-                    }
-                }, "json");
-            }, "json");
-
-
-            $('#results-select').on('change', function () {
-                $.get("http://127.0.0.1:8000/results/" + $('#results-select').value, function (data) {
-                    console.log(data.length)
-                    for (let i = 0; i < data.length; i++) {
-                        $('#result-select')
-                            .append($('<option>', {
-                                value: i,
-                                text: i
-                            }));
-                    }
-                }, "json");
-            });
-        </script>
-
-    </div>
-</body>
-
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="./favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vite App</title>
+    <script type="module" crossorigin src="./assets/index.226dfd3c.js"></script>
+    <link rel="stylesheet" href="./assets/index.de201acd.css">
+  </head>
+  <body>
+    <div id="app"></div>
+    
+  </body>
 </html>

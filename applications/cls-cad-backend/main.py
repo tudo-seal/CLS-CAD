@@ -15,6 +15,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from hypermapper import optimizer
 from pydantic import BaseModel
+from starlette.exceptions import HTTPException
 from starlette.responses import Response
 from starlette.staticfiles import StaticFiles
 
@@ -35,6 +36,7 @@ from hypermapper_tools.hypermapper_visualisation import (
 from repository_builder import RepositoryBuilder
 from util.set_json import SetEncoder, SetDecoder
 
+
 origins = [
     "http://localhost:3000",
     "http://localhost:8000",
@@ -50,6 +52,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+import mimetypes
+
+mimetypes.init()
+mimetypes.add_type("application/javascript", ".js")
+
 
 app.mount("/static", StaticFiles(directory="static", html=True), name="static")
 
