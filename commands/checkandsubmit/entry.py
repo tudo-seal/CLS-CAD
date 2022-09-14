@@ -296,8 +296,6 @@ def create_backend_json():
             if info[4]
             else {},
         }
-
-    print(json.dumps(part_dict, indent=4))
     return part_dict
 
 

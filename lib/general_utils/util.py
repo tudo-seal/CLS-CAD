@@ -9,6 +9,47 @@ from ... import config
 ROOT_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
 
 
+def wrapped_forge_as_array(forge_object, progress_dialog=None):
+    """
+    Attempts to get array from forge object until it succeeds.
+    What can I say, for some reason that part of the API is super flaky.
+
+    Args:
+        forge_object:
+
+    Returns:
+
+    """
+    success = False
+    once = True
+    if progress_dialog is not None:
+        previous_max = progress_dialog.maximumValue
+        previous_progress = progress_dialog.progressValue
+        previous_msg = progress_dialog.message
+    while not success:
+        try:
+            request = forge_object.asArray()
+            success = True
+        except RuntimeError:
+            success = False
+            if (progress_dialog is not None) and once:
+                once = False
+                progress_dialog.message = (
+                    progress_dialog.message + "\n\nWaiting for ADSK Forge..."
+                )
+                progress_dialog.maximumValue = 1000
+                progress_dialog.progressValue = 0
+            if progress_dialog is not None:
+                progress_dialog.progressValue += (
+                    1 if progress_dialog.progressValue < 999 else -1
+                )
+    if progress_dialog is not None:
+        progress_dialog.maximumValue = previous_max
+        progress_dialog.progressValue = previous_progress
+        progress_dialog.message = previous_msg
+    return request
+
+
 def load_project_taxonomy_to_config():
     app = adsk.core.Application.get()
     active_id = (
