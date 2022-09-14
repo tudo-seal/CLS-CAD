@@ -28,7 +28,15 @@ ATTRIBUTETYPES_ID = "attributesTaxonomyBrowser_Part"
 
 # Specify the full path to the local html. You can also use a web URL
 # such as 'https://www.autodesk.com/'
-PALETTE_URL = "http://localhost:3000/unrolledTaxonomyDisplay/index.html"
+PALETTE_URL = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "..",
+    "..",
+    "resources",
+    "html",
+    "unrolledTaxonomyDisplay",
+    "index.html",
+)
 
 # The path function builds a valid OS path. This fixes it to be a valid local URL.
 PALETTE_URL = PALETTE_URL.replace("\\", "/")
