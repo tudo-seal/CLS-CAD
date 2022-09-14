@@ -10,11 +10,13 @@ from pathlib import Path
 from typing import Literal
 from uuid import uuid4
 
+import hypermapper.plot_pareto
 from fastapi import FastAPI
-from fastapi.encoders import jsonable_encoder
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from hypermapper import optimizer
+from pydantic import BaseModel
 from starlette.responses import Response
+from starlette.staticfiles import StaticFiles
 
 from cls_python import (
     CLSDecoder,
@@ -22,10 +24,23 @@ from cls_python import (
     Subtypes,
     CLSEncoder,
 )
+from hypermapper_tools.hypermapper_compatibility import (
+    create_hypermapper_config,
+    wrapped_synthesis_optimization_function,
+)
+from hypermapper_tools.hypermapper_visualisation import (
+    compute_pareto_front,
+    visualize_pareto_front,
+)
 from repository_builder import RepositoryBuilder
 from util.set_json import SetEncoder, SetDecoder
 
-origins = ["http://localhost:3000"]
+origins = [
+    "http://localhost:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:8000",
+]
 
 app = FastAPI(title="CLS-CPS (Cyberphysical System Synthesis Backend)")
 app.add_middleware(
@@ -35,6 +50,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.mount("/static", StaticFiles(directory="static", html=True), name="static")
+
 
 # Response that is easy to debug
 class IndentedResponse(Response):
@@ -133,6 +151,7 @@ async def save_part(
         data["parts"][payload.meta.forgeDocumentId] = {
             "forgeProjectId": payload.meta.forgeProjectId,
             "forgeFolderId": payload.meta.forgeFolderId,
+            "name": payload.meta.partName,
         }
         data["projects"][payload.meta.forgeProjectId]["folders"].add(
             payload.meta.forgeFolderId
@@ -164,6 +183,38 @@ async def save_taxonomy(
     p.mkdir(parents=True, exist_ok=True)
     with open(f"Taxonomies/CAD/{payload.forgeProjectId}/taxonomy.dat", "w+") as f:
         json.dump(payload.taxonomy, f, cls=SetEncoder, indent=4)
+
+
+@app.post("/request/assembly/optimization")
+async def request_optimization(
+    payload: SynthesisRequestInf,
+):
+    request_id = str(uuid4())
+    p = Path(os.path.join("Results", "Hypermapper", payload.forgeProjectId, request_id))
+    p.mkdir(parents=True, exist_ok=True)
+    with open(
+        f"Results/Hypermapper/{payload.forgeProjectId}/{request_id}/hypermapper_config.json",
+        "w+",
+    ) as f:
+        json.dump(
+            create_hypermapper_config(
+                request_id, payload.forgeProjectId, [json.dumps(payload.target)]
+            ),
+            f,
+            indent=4,
+        )
+
+    optimizer.optimize(
+        f"Results/Hypermapper/{payload.forgeProjectId}/{request_id}/hypermapper_config.json",
+        wrapped_synthesis_optimization_function,
+    )
+    df = compute_pareto_front(
+        f"Results/Hypermapper/{payload.forgeProjectId}/{request_id}"
+    )
+    visualize_pareto_front(
+        df, f"Results/Hypermapper/{payload.forgeProjectId}/{request_id}"
+    )
+    return "OK."
 
 
 @app.post("/request/assembly")
