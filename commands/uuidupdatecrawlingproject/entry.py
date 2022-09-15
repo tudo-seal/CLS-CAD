@@ -119,48 +119,53 @@ def recursively_submit(folders: adsk.core.DataFolders):
         # ignore auto-generated content
         if folder.name in ["Synthesized Assemblies", "Taxonomies"]:
             continue
-        for file in wrapped_forge_as_array(folder.dataFiles, progressDialog):
-            # Just in case we add PDFs etc.
-            if not file.fileExtension == "f3d":
-                continue
-            progressDialog.maximumValue = len(
-                wrapped_forge_as_array(folder.dataFiles, progressDialog)
-            )
-            progressDialog.message = (
-                f'Folder "{folder.name}" contains {len(wrapped_forge_as_array(folder.dataFiles,progressDialog))} files.\n\n'
-                f"Processing..."
-            )
-            app = adsk.core.Application.get()
-            document = app.documents.open(file)
-            design = adsk.fusion.Design.cast(app.activeProduct)
-            for unique_attribute in list(
-                {x.value: x for x in design.findAttributes("CLS-INFO", "UUID")}.values()
-            ):
-                new_uuid = generate_id()
-                for attribute in [
-                    x
-                    for x in design.findAttributes("CLS-INFO", "UUID")
-                    if x.value == unique_attribute.value
-                ]:
-                    attribute.value = new_uuid
-            if design.findAttributes("CLS-JOINT", "ProvidesFormats"):
-                part_dict = create_backend_json()
-                req = urllib.request.Request("http://127.0.0.1:8000/submit/part")
-                req.add_header("Content-Type", "application/json; charset=utf-8")
-                payload = json.dumps(
-                    part_dict,
-                    cls=CLSEncoder,
-                    indent=4,
-                ).encode("utf-8")
-                req.add_header("Content-Length", len(payload))
-                response = urllib.request.urlopen(req, payload)
-                document.save('Saved by "Migrate UUIDs"')
-                document.close(False)
-            else:
-                document.save('Saved by "Migrate UUIDs"')
-                document.close(False)
-            progressDialog.progressValue += 1
+        submit_and_update_files_in_folder(folder)
         recursively_submit(folder.dataFolders)
+
+
+def submit_and_update_files_in_folder(folder):
+    global progressDialog
+    for file in wrapped_forge_as_array(folder.dataFiles, progressDialog):
+        # Just in case we add PDFs etc.
+        if not file.fileExtension == "f3d":
+            continue
+        progressDialog.maximumValue = len(
+            wrapped_forge_as_array(folder.dataFiles, progressDialog)
+        )
+        progressDialog.message = (
+            f'Folder "{folder.name}" contains {len(wrapped_forge_as_array(folder.dataFiles, progressDialog))} files.\n\n'
+            f"Processing..."
+        )
+        app = adsk.core.Application.get()
+        document = app.documents.open(file)
+        design = adsk.fusion.Design.cast(app.activeProduct)
+        for unique_attribute in list(
+            {x.value: x for x in design.findAttributes("CLS-INFO", "UUID")}.values()
+        ):
+            new_uuid = generate_id()
+            for attribute in [
+                x
+                for x in design.findAttributes("CLS-INFO", "UUID")
+                if x.value == unique_attribute.value
+            ]:
+                attribute.value = new_uuid
+        if design.findAttributes("CLS-JOINT", "ProvidesFormats"):
+            part_dict = create_backend_json()
+            req = urllib.request.Request("http://127.0.0.1:8000/submit/part")
+            req.add_header("Content-Type", "application/json; charset=utf-8")
+            payload = json.dumps(
+                part_dict,
+                cls=CLSEncoder,
+                indent=4,
+            ).encode("utf-8")
+            req.add_header("Content-Length", len(payload))
+            response = urllib.request.urlopen(req, payload)
+            document.save('Saved by "Migrate UUIDs"')
+            document.close(False)
+        else:
+            document.save('Saved by "Migrate UUIDs"')
+            document.close(False)
+        progressDialog.progressValue += 1
 
 
 def command_execute(args: adsk.core.CommandEventArgs):
@@ -192,12 +197,13 @@ def command_execute(args: adsk.core.CommandEventArgs):
         global progressDialog
         progressDialog = ui.createProgressDialog()
         progressDialog.show("Crawl Progress", "Beginning to crawl...", 0, 1)
-        root_folder_children = (
-            app.activeDocument.dataFile.parentProject.rootFolder.dataFolders
+        root_folder = (
+            app.activeDocument.dataFile.parentProject.rootFolder
             if app.activeDocument.dataFile is not None
-            else app.data.activeProject.rootFolder.dataFolders
+            else app.data.activeProject.rootFolder
         )
-        recursively_submit(root_folder_children)
+        submit_and_update_files_in_folder(root_folder)
+        recursively_submit(root_folder.dateFolders)
 
         # Load correct project taxonomies before submitting
         load_project_taxonomy_to_config()
