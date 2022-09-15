@@ -155,6 +155,13 @@ async def save_part(
             print("JSON wouldn't decode. Probably tampered, re-indexing...")
 
         data["folders"][payload.meta.forgeFolderId] = set()
+        data["projects"].setdefault(
+            payload.meta.forgeProjectId,
+            {
+                "folders": set(),
+                "documents": set(),
+            },
+        )
 
         data["parts"][payload.meta.forgeDocumentId] = {
             "forgeProjectId": payload.meta.forgeProjectId,
@@ -304,7 +311,7 @@ async def results_for_id(
             cls=CLSDecoder,
         )
         return [
-            result.evaluated[result_id]
+            result.evaluated[result_id].to_dict()
             for result_id in (
                 range(skip, skip + limit)
                 if result.size() == -1
@@ -332,6 +339,6 @@ async def results_for_id(project_id: str, request_id: str, result_id: int):
         cls=CLSDecoder,
     )
     if result_id < result.size() or result.size() == -1:
-        return result.evaluated[result_id]
+        return result.evaluated[result_id].to_dict()
     else:
         return dict()

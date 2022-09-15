@@ -9,6 +9,51 @@
     <link rel="stylesheet" href="./assets/index.de201acd.css">
   </head>
   <body>
+    <script>
+              // Once document loads, poll to see when Fusion deems it is time to inject adsk, then signal we are ready to receive data
+              document.addEventListener("DOMContentLoaded", () => {
+                  let adskWaiter = setInterval(() => {
+                      if (window.adsk) {
+                          clearInterval(adskWaiter);
+                          window.adsk.fusionSendData("readyNotification", "{}").then((result) =>
+                          console.log(result)
+                      );
+                      }
+                  }, 100);
+              });
+
+              window.fusionJavaScriptHandler = {
+    handle: function (action, data) {
+        try {
+            console.log(action)
+            if (action === "updateMessage") {
+                updateMessage(data);
+            } else if (action === "taxonomyDataMessage") {
+                console.log("TaxonomyData arrived.")
+                setTaxonomyData(data)
+            }
+            else if (action === "taxonomyIDMessage") {
+                console.log("TaxonomyID arrived.")
+                document.title = data;
+                taxonomyID = data;
+            }
+            else if (action === "returnTaxonomyDataMessage") {
+                sendUpdatedData();
+            }
+            else if (action === "debugger") {
+                debugger;
+            }
+            else {
+                return `Unexpected command type: ${action}`;
+            }
+        } catch (e) {
+            console.log(e);
+            console.log(`Exception caught with command: ${action}, data: ${data}`);
+        }
+        return "OK";
+    },
+};
+          </script>
     <div id="app"></div>
     
   </body>
