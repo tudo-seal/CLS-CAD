@@ -1,9 +1,9 @@
 import json
 import os
-import uuid
 from pathlib import Path
 
 from cls_python import *
+
 from util.motion import combine_motions
 from util.set_json import SetDecoder
 
@@ -45,7 +45,7 @@ class Jsonify:
         )
 
 
-class Part(object):
+class Part:
     def __call__(self, x):
         return Jsonify(x, [], self.info)
 

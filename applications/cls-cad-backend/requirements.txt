@@ -6,3 +6,5 @@ starlette~=0.19.1
 plotly==5.10.0
 pydantic~=1.9.1
 pandas~=1.4.4
+orjson==3.8.0
+ujson==5.5.0

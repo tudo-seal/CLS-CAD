@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import glob
 import json
+import mimetypes
 import os
 import typing
 from collections import defaultdict
@@ -10,21 +11,21 @@ from pathlib import Path
 from typing import Literal
 from uuid import uuid4
 
-import hypermapper.plot_pareto
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from hypermapper import optimizer
-from pydantic import BaseModel
-from starlette.exceptions import HTTPException
-from starlette.responses import Response
-from starlette.staticfiles import StaticFiles
-
+import ujson
 from cls_python import (
     CLSDecoder,
     FiniteCombinatoryLogic,
     Subtypes,
     CLSEncoder,
 )
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from hypermapper import optimizer
+from orjson import orjson
+from pydantic import BaseModel
+from starlette.responses import Response
+from starlette.staticfiles import StaticFiles
+
 from hypermapper_tools.hypermapper_compatibility import (
     create_hypermapper_config,
     wrapped_synthesis_optimization_function,
@@ -35,7 +36,6 @@ from hypermapper_tools.hypermapper_visualisation import (
 )
 from repository_builder import RepositoryBuilder
 from util.set_json import SetEncoder, SetDecoder
-
 
 origins = [
     "http://localhost:3000",
@@ -53,27 +53,30 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-import mimetypes
-
 mimetypes.init()
 mimetypes.add_type("application/javascript", ".js")
-
 
 app.mount("/static", StaticFiles(directory="static", html=True), name="static")
 
 
 # Response that is easy to debug
-class IndentedResponse(Response):
+
+
+class FastResponse(Response):
     media_type = "application/json"
 
     def render(self, content: typing.Any) -> bytes:
-        return json.dumps(
-            content,
-            ensure_ascii=False,
-            allow_nan=False,
-            indent=4,
-            separators=(", ", ": "),
-        ).encode("utf-8")
+        try:
+            return orjson.dumps(content, option=orjson.OPT_INDENT_2)
+        except TypeError:
+            try:
+                print("Falling back to UJSON")
+                return ujson.dumps(content, indent=2, ensure_ascii=False).encode(
+                    "utf-8"
+                )
+            except OverflowError:
+                print("Falling back to default JSON.")
+                return json.dumps(content, indent=2, ensure_ascii=False).encode("utf-8")
 
 
 class JointOriginInf(BaseModel, frozen=True):
@@ -129,7 +132,6 @@ async def say_hello(name: str):
 async def save_part(
     payload: PartInf,
 ):
-
     p = Path(
         os.path.join(
             "Repositories",
@@ -275,7 +277,7 @@ async def synthesize_assembly(
         return "FAIL"
 
 
-@app.get("/results", response_class=IndentedResponse)
+@app.get("/results", response_class=FastResponse)
 async def list_result_ids():
     cad_dir = "Results/CAD"
     return [
@@ -285,7 +287,7 @@ async def list_result_ids():
     ]
 
 
-@app.get("/results/{project_id}", response_class=IndentedResponse)
+@app.get("/results/{project_id}", response_class=FastResponse)
 async def list_result_ids(project_id: str):
     cad_dir = f"Results/CAD/{project_id}"
     return [
@@ -295,9 +297,12 @@ async def list_result_ids(project_id: str):
     ]
 
 
-@app.get("/results/{project_id}/{request_id}", response_class=IndentedResponse)
+@app.get("/results/{project_id}/{request_id}", response_class=FastResponse)
 async def results_for_id(
-    project_id: str, request_id: str, skip: int | None = None, limit: int | None = None
+    project_id: str,
+    request_id: str,
+    skip: int | None = None,
+    limit: int | None = None,
 ):
     results = []
     if limit == 0:
@@ -310,17 +315,22 @@ async def results_for_id(
             ),
             cls=CLSDecoder,
         )
-        return [
-            result.evaluated[result_id].to_dict()
-            for result_id in (
-                range(skip, skip + limit)
-                if result.size() == -1
-                else range(
-                    skip if skip < result.size() else result.size() - 1,
-                    skip + limit if (skip + limit) <= result.size() else result.size(),
+
+        return FastResponse(
+            [
+                result.evaluated[result_id].to_dict()
+                for result_id in (
+                    range(skip, skip + limit)
+                    if result.size() == -1
+                    else range(
+                        skip if skip < result.size() else result.size() - 1,
+                        skip + limit
+                        if (skip + limit) <= result.size()
+                        else result.size(),
+                    )
                 )
-            )
-        ]
+            ]
+        )
     else:
         for filename in glob.glob(
             os.path.join(f"Results/CAD/{project_id}/{request_id}", "*.json")
@@ -330,15 +340,13 @@ async def results_for_id(
         return results
 
 
-@app.get(
-    "/results/{project_id}/{request_id}/{result_id}", response_class=IndentedResponse
-)
+@app.get("/results/{project_id}/{request_id}/{result_id}", response_class=FastResponse)
 async def results_for_id(project_id: str, request_id: str, result_id: int):
     result = json.load(
         open(os.path.join(f"Results/CAD/{project_id}/{request_id}", "result.dat"), "r"),
         cls=CLSDecoder,
     )
     if result_id < result.size() or result.size() == -1:
-        return result.evaluated[result_id].to_dict()
+        return FastResponse(result.evaluated[result_id].to_dict())
     else:
         return dict()

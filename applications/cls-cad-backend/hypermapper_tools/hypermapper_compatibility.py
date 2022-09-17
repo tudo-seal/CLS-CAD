@@ -4,9 +4,9 @@ import sys
 from pathlib import Path
 
 from cls_python import Subtypes, FiniteCombinatoryLogic, CLSDecoder
+
 from repository_builder import RepositoryBuilder
 from util.set_json import SetDecoder
-
 
 hypermapper_project_id = ""
 
