@@ -11,6 +11,7 @@ from .checkandsubmit import entry as check_and_submit
 from .downloadtaxonomy import entry as download_taxonomy
 from .jointtyping import entry as joint_typing
 from .parttyping import entry as part_typing
+from .partmanagement import entry as part_management
 from .requestsynthesis import entry as request_synthesis
 from .taxonomyediting import entry as taxonomy_editing
 from .togglecustomgraphics import entry as toggle_custom_graphics
@@ -31,6 +32,7 @@ ROOT_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 commands = [
     joint_typing,
     part_typing,
+    part_management,
     check_and_submit,
     type_crawling_project,
     type_crawling_hub,
@@ -83,6 +85,7 @@ def start():
         app.documentOpened, application_document_opened, local_handlers=local_handlers
     )
     add_panel(main_tab, "TYPES", "Typing Tools")
+    add_panel(main_tab, "MANAGE", "Management Tools")
     add_panel(main_tab, "CRAWL", "Setup Tools")
     add_panel(main_tab, "TAXONOMY", "Taxonomy")
     add_panel(main_tab, "VIZ", "Visualisation")

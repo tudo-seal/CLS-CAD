@@ -277,6 +277,23 @@ def create_backend_json():
     part_dict["meta"]["forgeProjectId"] = app.activeDocument.dataFile.parentProject.id
     part_dict["meta"]["forgeFolderId"] = app.activeDocument.dataFile.parentFolder.id
     part_dict["meta"]["forgeDocumentId"] = app.activeDocument.dataFile.id
+    part_dict["meta"]["cost"] = float(
+        getattr(
+            design.rootComponent.attributes.itemByName("CLS-PART", "COST"),
+            "value",
+            "1.0",
+        )
+    )
+    part_dict["meta"]["availability"] = (
+        float(
+            getattr(
+                design.rootComponent.attributes.itemByName("CLS-PART", "AVAILABILITY"),
+                "value",
+                "100.0",
+            )
+        )
+        / 100.0
+    )
 
     for info in jo_infos:
         part_dict["jointOrigins"][info[0]] = {
