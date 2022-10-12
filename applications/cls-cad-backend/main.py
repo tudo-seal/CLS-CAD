@@ -6,10 +6,10 @@ import mimetypes
 import os
 import typing
 from collections import defaultdict
+from datetime import datetime
 from json import JSONDecodeError
 from pathlib import Path
 from typing import Literal
-from uuid import uuid4
 
 import ujson
 from cls_python import (
@@ -35,6 +35,7 @@ from hypermapper_tools.hypermapper_visualisation import (
     visualize_pareto_front,
 )
 from repository_builder import RepositoryBuilder
+from util.hrid import generate_id
 from util.set_json import SetEncoder, SetDecoder
 
 origins = [
@@ -114,6 +115,8 @@ class TaxonomyInf(BaseModel, frozen=True):
 class SynthesisRequestInf(BaseModel, frozen=True):
     forgeProjectId: str
     target: dict
+    name: str | None = generate_id()
+    tag: str | None = None
     source: list | None = None
     sourceUuid: str | None = None
 
@@ -206,7 +209,7 @@ async def save_taxonomy(
 async def request_optimization(
     payload: SynthesisRequestInf,
 ):
-    request_id = str(uuid4())
+    request_id = str(generate_id())
     p = Path(os.path.join("Results", "Hypermapper", payload.forgeProjectId, request_id))
     p.mkdir(parents=True, exist_ok=True)
     with open(
@@ -260,11 +263,22 @@ async def synthesize_assembly(
         )
     result = gamma.inhabit(json.loads(json.dumps(payload.target), cls=CLSDecoder))
     if result.size() != 0:
-        request_id = uuid4()
+        request_id = generate_id()
         p = Path(
             os.path.join("Results", "CAD", payload.forgeProjectId, str(request_id))
         )
         p.mkdir(parents=True, exist_ok=True)
+        with (p / f"result.info").open("w+") as f:
+            json.dump(
+                {
+                    "id": request_id,
+                    "name": payload.name,
+                    "timestamp": datetime.today().strftime("%Y-%m-%d %H:%M:%S"),
+                    "count": result.size(),
+                },
+                f,
+                indent=4,
+            )
         # Maybe also add an index.dat to results, priority low
         with (p / f"result.dat").open("w+") as f:
             json.dump(result, f, cls=CLSEncoder, indent=4)
@@ -291,7 +305,7 @@ async def list_result_ids():
 async def list_result_ids(project_id: str):
     cad_dir = f"Results/CAD/{project_id}"
     return [
-        item
+        json.load(open(os.path.join(cad_dir, item, "result.info")))
         for item in os.listdir(cad_dir)
         if os.path.isdir(os.path.join(cad_dir, item))
     ]
