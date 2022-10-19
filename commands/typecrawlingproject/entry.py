@@ -4,11 +4,11 @@ import urllib
 
 import adsk.core
 
-from ..checkandsubmit.entry import create_backend_json, create_backend_taxonomy
 from ... import config
 from ...lib import fusion360utils as futil
 from ...lib.cls_python_compat import *
 from ...lib.general_utils import *
+from ..checkandsubmit.entry import create_backend_json, create_backend_taxonomy
 
 app = adsk.core.Application.get()
 ui = app.userInterface
@@ -24,7 +24,7 @@ PANEL_ID = "CRAWL"
 COMMAND_BESIDE_ID = "ScriptsManagerCommand"
 
 # Resources
-ICON_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources", "")
+ICON_FOLDER = os.path.join(os.path.dirname(__file__), "resources", "")
 
 # Local list of event handlers used to maintain a reference so
 # they are not released and garbage collected.
@@ -96,8 +96,6 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
         args.command.destroy, command_destroy, local_handlers=local_handlers
     )
 
-    inputs = args.command.commandInputs
-
 
 def recursively_submit(folders: adsk.core.DataFolders):
     """
@@ -113,7 +111,6 @@ def recursively_submit(folders: adsk.core.DataFolders):
 
     """
     global progressDialog
-    success = False
     for folder in wrapped_forge_as_array(folders, progressDialog):
         progressDialog.progressValue = 0
         progressDialog.message = f'Preparing to process Folder "{folder.name}"...'
@@ -150,7 +147,6 @@ def submit_files_in_folder(folder):
                 indent=4,
             ).encode("utf-8")
             req.add_header("Content-Length", len(payload))
-            response = urllib.request.urlopen(req, payload)
             document.close(False)
         else:
             document.close(False)
@@ -173,7 +169,6 @@ def command_execute(args: adsk.core.CommandEventArgs):
     # General logging for debug
     futil.log(f"{CMD_NAME} Command Execute Event")
 
-    inputs = args.command.commandInputs
     result = ui.messageBox(
         "This will take a considerable amount of time and is intended to be used when large changes to a project have "
         "been made/a new project has been setup.\nEach file in the project will be opened. Eligible parts will be "
@@ -205,7 +200,6 @@ def command_execute(args: adsk.core.CommandEventArgs):
         req.add_header("Content-Type", "application/json; charset=utf-8")
         payload = json.dumps(payload_dict, indent=4).encode("utf-8")
         req.add_header("Content-Length", len(payload))
-        response = urllib.request.urlopen(req, payload)
 
         # Finally, release progress dialog
         progressDialog.hide()

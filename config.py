@@ -1,14 +1,12 @@
 # Application Global Variables
 # This module serves as a way to share variables across different
 # modules (global variables).
-import http
 import os
 
 # Flag that indicates to run in Debug mode or not. When running in Debug mode
 # more information is written to the Text Command window. Generally, it's useful
 # to set this to True while developing an add-in and set it to False when you
 # are ready to distribute it.
-import socketserver
 from collections import defaultdict
 
 DEBUG = True
@@ -19,7 +17,7 @@ DEBUG = True
 # part of the ID to better ensure the ID is unique.
 ADDIN_NAME = os.path.basename(os.path.dirname(__file__))
 COMPANY_NAME = "ACME"
-ROOT_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)))
+ROOT_FOLDER = os.path.join(os.path.dirname(__file__))
 
 # Palettes
 taxonomy_palette_id = f"{COMPANY_NAME}_{ADDIN_NAME}_palette_taxonomy"

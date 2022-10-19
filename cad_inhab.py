@@ -1,10 +1,16 @@
 import json
 
-from cls_python import *
+from cls_python import (
+    Arrow,
+    Constructor,
+    FiniteCombinatoryLogic,
+    Subtypes,
+    Type,
+    deep_str,
+)
 
 
 class Jsonify:
-
     def __call__(self, x):
         return Jsonify(self.config, [*self.data, x], self.description)
 
@@ -17,17 +23,17 @@ class Jsonify:
         self.description = description
 
     def to_dict(self):
-        return dict(part=self.description,
-                    provides=self.config.provides,
-                    **{
-                        label: bauteil.to_dict()
-                        for (label,
-                             bauteil) in zip(self.config.jointorder, self.data)
-                    })
+        return dict(
+            part=self.description,
+            provides=self.config.provides,
+            **{
+                label: bauteil.to_dict()
+                for (label, bauteil) in zip(self.config.jointorder, self.data)
+            }
+        )
 
 
-class Part(object):
-
+class Part:
     def __call__(self, x):
         return Jsonify(x, [], self.payload)
 
@@ -41,16 +47,15 @@ class Part(object):
         return isinstance(other, Part)
 
     def __hash__(self):
-        return  hash(self.payload)
+        return hash(self.payload)
 
     def __init__(self, payload):
         # Create combinator type here based on some JSON payload in future
         self.payload = payload
 
 
-#additional info about the parts configuration options
+# additional info about the parts configuration options
 class Config:
-
     def __init__(self, jointorder, provides):
         # Create combinator type here based on some JSON payload in future
         self.jointorder = jointorder
@@ -85,74 +90,70 @@ if __name__ == "__main__":
     h2 = Config([], "j2")
     h3 = Config(["j2"], "j1")
 
-    taxonomy = Subtypes({
-        steel410.name: {steel.name},
-        steel440.name: {steel.name}
-    })
+    taxonomy = Subtypes({steel410.name: {steel.name}, steel440.name: {steel.name}})
 
     mychemicalrepo = {
-        mainpart:
-            Type.intersect([
+        mainpart: Type.intersect(
+            [
                 Arrow(
                     Constructor("j1_j2_j3"),
                     Arrow(
                         Type.intersect([steel, xl430hornmount]),
                         Arrow(
                             Type.intersect([steel410, xl430hornmount]),
-                            Type.intersect(
-                                [steel, differentialdrive,
-                                 baseplatebolt])))),    #j3 as last
+                            Type.intersect([steel, differentialdrive, baseplatebolt]),
+                        ),
+                    ),
+                ),  # j3 as last
                 Arrow(
                     Constructor("j1_j3_j2"),
                     Arrow(
                         Type.intersect([steel, xl430hornmount]),
                         Arrow(
                             Type.intersect([steel, baseplate]),
-                            Type.intersect(
-                                [steel, differentialdrive,
-                                 xl430horn])))),    #j2 as last
-                Arrow(Constructor("j2_j3_j1"),
-                      Arrow(
-                          Type.intersect([steel410, xl430hornmount]),
-                          Arrow(
-                              Type.intersect([steel, baseplate]),
-                              Type.intersect(
-                                  [steel, differentialdrive,
-                                   xl430horn]))))    #j1 as last
-            ]),
-        endpart1:
-            Type.intersect([
+                            Type.intersect([steel, differentialdrive, xl430horn]),
+                        ),
+                    ),
+                ),  # j2 as last
+                Arrow(
+                    Constructor("j2_j3_j1"),
+                    Arrow(
+                        Type.intersect([steel410, xl430hornmount]),
+                        Arrow(
+                            Type.intersect([steel, baseplate]),
+                            Type.intersect([steel, differentialdrive, xl430horn]),
+                        ),
+                    ),
+                ),  # j1 as last
+            ]
+        ),
+        endpart1: Type.intersect(
+            [
                 Arrow(
                     Constructor("j2_j1"),
-                    Arrow(Type.intersect([steel410, xl430hornmount]),
-                          Type.intersect([steel410, xl430hornmount
-                                         ]))),    #provides its j1
-                Arrow(Constructor("j2"),
-                      Type.intersect([steel410,
-                                      baseplate])),    #provides its j2
-            ]),    #only has provides joints
-        endpart2:
-            Type.intersect([
-                Arrow(Constructor("j1"),
-                      Type.intersect([steel410, xl430hornmount]))
-            ]),    #only has provides joints
-        g1:
-            Constructor("j1_j2_j3"),
-        g2:
-            Constructor("j1_j3_j2"),
-        g3:
-            Constructor("j2_j3_j1"),
-        h1:
-            Constructor("j1"),
-        h2:
-            Constructor("j2"),
-        h3:
-            Constructor("j2_j1")
+                    Arrow(
+                        Type.intersect([steel410, xl430hornmount]),
+                        Type.intersect([steel410, xl430hornmount]),
+                    ),
+                ),  # provides its j1
+                Arrow(
+                    Constructor("j2"), Type.intersect([steel410, baseplate])
+                ),  # provides its j2
+            ]
+        ),  # only has provides joints
+        endpart2: Type.intersect(
+            [Arrow(Constructor("j1"), Type.intersect([steel410, xl430hornmount]))]
+        ),  # only has provides joints
+        g1: Constructor("j1_j2_j3"),
+        g2: Constructor("j1_j3_j2"),
+        g3: Constructor("j2_j3_j1"),
+        h1: Constructor("j1"),
+        h2: Constructor("j2"),
+        h3: Constructor("j2_j1"),
     }
 
     gamma = FiniteCombinatoryLogic(mychemicalrepo, taxonomy, processes=1)
-    result = gamma.inhabit(Type.intersect([steel, differentialdrive,
-                                           xl430horn]))
+    result = gamma.inhabit(Type.intersect([steel, differentialdrive, xl430horn]))
     print(result.size())
     for x in range(9, 10):
         json_formatted_str = json.dumps(result.evaluated[x].to_dict(), indent=4)

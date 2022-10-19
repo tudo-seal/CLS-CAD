@@ -6,7 +6,7 @@ import adsk
 
 from ... import config
 
-ROOT_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+ROOT_FOLDER = os.path.join(os.path.dirname(__file__), "..", "..")
 
 
 def wrapped_forge_as_array(forge_object, progress_dialog=None):

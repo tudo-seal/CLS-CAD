@@ -1,7 +1,6 @@
 class TaxonomyConverter:
-
     @staticmethod
-    def convert(taxonomy,name):
+    def convert(taxonomy, name):
         subtypes = {}
         for key, values in taxonomy.items():
             for value in values:

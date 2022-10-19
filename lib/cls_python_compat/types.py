@@ -5,12 +5,11 @@ from dataclasses import dataclass, field
 
 @dataclass(frozen=True)
 class Type(ABC):
-
     @staticmethod
-    def intersect(types: Sequence['Type']) -> 'Type':
+    def intersect(types: Sequence["Type"]) -> "Type":
         if len(types) > 0:
             rtypes = reversed(types)
-            result: 'Type' = next(rtypes)
+            result: "Type" = next(rtypes)
             for ty in rtypes:
                 result = Intersection(ty, result)
             return result

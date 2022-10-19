@@ -29,7 +29,7 @@ ATTRIBUTETYPES_ID = "attributesTaxonomyBrowser_Part"
 # Specify the full path to the local html. You can also use a web URL
 # such as 'https://www.autodesk.com/'
 PALETTE_URL = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
+    os.path.dirname(__file__),
     "..",
     "..",
     "resources",
@@ -42,9 +42,9 @@ PALETTE_URL = os.path.join(
 PALETTE_URL = PALETTE_URL.replace("\\", "/")
 
 # Resource location
-ICON_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources", "")
+ICON_FOLDER = os.path.join(os.path.dirname(__file__), "resources", "")
 
-ROOT_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+ROOT_FOLDER = os.path.join(os.path.dirname(__file__), "..", "..")
 
 # Local list of event handlers used to maintain a reference so
 # they are not released and garbage collected.
@@ -157,13 +157,11 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
 
 
 def command_execute_preview(args: adsk.core.CommandEventHandler):
-    app = adsk.core.Application.get()
-    design = adsk.fusion.Design.cast(app.activeProduct)
+    pass
 
 
 def command_activate(args: adsk.core.CommandEventArgs):
     app = adsk.core.Application.get()
-    design = adsk.fusion.Design.cast(app.activeProduct)
     app.log("In command_activate event handler.")
 
 
@@ -253,9 +251,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
     futil.log(f"{CMD_NAME} Command Execute Event")
 
     global provides_attributes, provides_parts
-    inputs = args.command.commandInputs
     app = adsk.core.Application.get()
-    design = adsk.fusion.Design.cast(app.activeProduct)
     request_dict = {
         "target": Type.intersect(
             [Constructor(f"{x}_parts") for x in provides_parts]
@@ -270,14 +266,15 @@ def command_execute(args: adsk.core.CommandEventArgs):
         cls=CLSEncoder,
         indent=4,
     ).encode("utf-8")
+    print("Send request")
     req = urllib.request.Request("http://127.0.0.1:8000/request/assembly")
     req.add_header("Content-Type", "application/json; charset=utf-8")
     req.add_header("Content-Length", len(payload))
     response = urllib.request.urlopen(req, payload)
+    response
 
 
 def command_preview(args: adsk.core.CommandEventArgs):
-    inputs = args.command.commandInputs
     futil.log(f"{CMD_NAME} Command Preview Event")
 
 

@@ -1,2 +1,2 @@
-from .util import *
 from .hrid import *
+from .util import *

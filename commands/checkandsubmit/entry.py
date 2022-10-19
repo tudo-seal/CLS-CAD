@@ -23,9 +23,9 @@ PANEL_ID = "CRAWL"
 COMMAND_BESIDE_ID = "ScriptsManagerCommand"
 
 # Resources
-ICON_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources", "")
+ICON_FOLDER = os.path.join(os.path.dirname(__file__), "resources", "")
 
-ROOT_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+ROOT_FOLDER = os.path.join(os.path.dirname(__file__), "..", "..")
 
 # Local list of event handlers used to maintain a reference so
 # they are not released and garbage collected.
@@ -136,8 +136,6 @@ def command_execute(args: adsk.core.CommandEventArgs):
     """
     # General logging for debug
     futil.log(f"{CMD_NAME} Command Execute Event")
-
-    inputs = args.command.commandInputs
 
     part_dict = create_backend_json()
 
@@ -258,7 +256,6 @@ def create_backend_json():
                 len(jo_prov_formats),
             )
         )
-    configurations = []
     part_dict = {"configurations": [], "meta": {}, "jointOrigins": {}}
 
     # Only add to top-level intersection per provide

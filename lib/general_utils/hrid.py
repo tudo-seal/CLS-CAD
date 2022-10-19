@@ -1,8 +1,8 @@
 # Taken from https://github.com/orf/human_id #
 
-import random
 import itertools
-from typing import Hashable
+import random
+from collections.abc import Hashable
 
 __all__ = ["generate_id"]
 

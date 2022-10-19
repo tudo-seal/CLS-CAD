@@ -1,11 +1,11 @@
 import json
 
-from .types import Arrow, Intersection, Product, Omega, Constructor
+from .types import Arrow, Constructor, Intersection, Omega, Product
 
 
 class CLSEncoder(json.JSONEncoder):
     def __init__(self, **kwargs):
-        super(CLSEncoder, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def combinator_hook(self, o):
         return json.JSONEncoder.default(self, o)

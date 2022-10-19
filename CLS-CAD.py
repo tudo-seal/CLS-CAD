@@ -9,7 +9,7 @@ def run(context):
         commands.start()
 
     except:
-        futil.handle_error('run')
+        futil.handle_error("run")
 
 
 def stop(context):
@@ -21,4 +21,4 @@ def stop(context):
         commands.stop()
 
     except:
-        futil.handle_error('stop')
+        futil.handle_error("stop")

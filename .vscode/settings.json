@@ -1,13 +1,17 @@
 {
-	"python.autoComplete.extraPaths":	["C:/Users/Jekannadar/AppData/Roaming/Autodesk/Autodesk Fusion 360/API/Python/defs"],
-	"python.analysis.extraPaths":	["C:/Users/Jekannadar/AppData/Roaming/Autodesk/Autodesk Fusion 360/API/Python/defs"],
-	"[python]":	{
-		"editor.formatOnSave":	true
-	},
-	"python.formatting.formatOnSave":	true,
-	"python.formatting.provider":	"yapf",
-	"editor.formatOnSave":	true,
-	"editor.formatOnSaveMode":	"file",
-	"python.pythonPath":	"C:/Users/Jekannadar/AppData/Local/Autodesk/webdeploy/production/9209df45963e1599ff476303834125d21fd43de4/Python/python.exe",
-	"json.format.enable":	true
+  "python.autoComplete.extraPaths": [
+    "C:/Users/Jekannadar/AppData/Roaming/Autodesk/Autodesk Fusion 360/API/Python/defs"
+  ],
+  "python.analysis.extraPaths": [
+    "C:/Users/Jekannadar/AppData/Roaming/Autodesk/Autodesk Fusion 360/API/Python/defs"
+  ],
+  "[python]": {
+    "editor.formatOnSave": true
+  },
+  "python.formatting.formatOnSave": true,
+  "python.formatting.provider": "yapf",
+  "editor.formatOnSave": true,
+  "editor.formatOnSaveMode": "file",
+  "python.pythonPath": "C:/Users/Jekannadar/AppData/Local/Autodesk/webdeploy/production/3f77c28c02b1b466e9d910ef562e48d42f47cc2b/Python/python.exe",
+  "json.format.enable": true
 }

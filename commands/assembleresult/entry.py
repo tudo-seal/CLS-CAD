@@ -1,14 +1,13 @@
 import json
 import os
-import uuid
 from datetime import datetime
 
 import adsk.core
 from adsk.fusion import DesignTypes
 
-from ...lib.general_utils import *
 from ... import config
 from ...lib import fusion360utils as futil
+from ...lib.general_utils import generate_id
 
 app = adsk.core.Application.get()
 ui = app.userInterface
@@ -32,7 +31,7 @@ PALETTE_DOCKING = adsk.core.PaletteDockingStates.PaletteDockStateRight
 WORKSPACE_ID = "FusionSolidEnvironment"
 PANEL_ID = "SYNTH_ASSEMBLY"
 COMMAND_BESIDE_ID = "ScriptsManagerCommand"
-ICON_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources", "")
+ICON_FOLDER = os.path.join(os.path.dirname(__file__), "resources", "")
 
 # Local list of event handlers used to maintain a reference so
 # they are not released and garbage collected.

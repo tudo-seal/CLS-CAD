@@ -19,7 +19,7 @@ PANEL_ID = "CRAWL"
 COMMAND_BESIDE_ID = "ScriptsManagerCommand"
 
 # Resources
-ICON_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources", "")
+ICON_FOLDER = os.path.join(os.path.dirname(__file__), "resources", "")
 
 # Local list of event handlers used to maintain a reference so
 # they are not released and garbage collected.
@@ -95,13 +95,11 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
 
 def command_preview(args: adsk.core.CommandEventArgs):
-    inputs = args.command.commandInputs
     futil.log(f"{CMD_NAME} Command Preview Event")
 
 
 def command_input_changed(args: adsk.core.InputChangedEventArgs):
     changed_input = args.input
-    inputs = args.inputs
     futil.log(
         f"{CMD_NAME} Input Changed Event fired from a change to {changed_input.id}"
     )

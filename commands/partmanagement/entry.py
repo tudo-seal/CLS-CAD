@@ -1,6 +1,4 @@
 import os
-from datetime import datetime
-from pathlib import Path
 
 import adsk.core
 
@@ -24,9 +22,9 @@ COMMAND_BESIDE_ID = "ScriptsManagerCommand"
 
 
 # Resource location
-ICON_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources", "")
+ICON_FOLDER = os.path.join(os.path.dirname(__file__), "resources", "")
 
-ROOT_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+ROOT_FOLDER = os.path.join(os.path.dirname(__file__), "..", "..")
 
 # Local list of event handlers used to maintain a reference so
 # they are not released and garbage collected.
@@ -85,12 +83,6 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     futil.add_handler(
         args.command.execute, command_execute, local_handlers=local_handlers
     )
-    # futil.add_handler(args.command.inputChanged,
-    #                   command_input_changed,
-    #                   local_handlers=local_handlers)
-    futil.add_handler(
-        args.command.executePreview, command_preview, local_handlers=local_handlers
-    )
     futil.add_handler(
         args.command.destroy, command_destroy, local_handlers=local_handlers
     )
@@ -129,14 +121,8 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     )
 
 
-def command_execute_preview(args: adsk.core.CommandEventHandler):
-    app = adsk.core.Application.get()
-    design = adsk.fusion.Design.cast(app.activeProduct)
-
-
 def command_activate(args: adsk.core.CommandEventArgs):
     app = adsk.core.Application.get()
-    design = adsk.fusion.Design.cast(app.activeProduct)
     app.log("In command_activate event handler.")
 
 
@@ -146,7 +132,6 @@ def command_execute(args: adsk.core.CommandEventArgs):
     futil.log(f"{CMD_NAME} Command Execute Event")
 
     global cost_value_input, availability_value_input
-    inputs = args.command.commandInputs
     app = adsk.core.Application.get()
     design = adsk.fusion.Design.cast(app.activeProduct)
     root_comp = design.rootComponent
@@ -162,11 +147,6 @@ def command_execute(args: adsk.core.CommandEventArgs):
         f"{availability_value_input.valueOne}",
     )
     print(f"{availability_value_input.valueOne}")
-
-
-def command_preview(args: adsk.core.CommandEventArgs):
-    inputs = args.command.commandInputs
-    futil.log(f"{CMD_NAME} Command Preview Event")
 
 
 def command_destroy(args: adsk.core.CommandEventArgs):

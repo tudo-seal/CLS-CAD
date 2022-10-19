@@ -1,14 +1,17 @@
 import json
 import os
-from pathlib import Path
-import uuid
 from datetime import datetime
+from pathlib import Path
 
 import adsk.core
 
 from ... import config
 from ...lib import fusion360utils as futil
-from ...lib.general_utils import *
+from ...lib.general_utils import (
+    generate_id,
+    load_project_taxonomy_to_config,
+    winapi_path,
+)
 
 app = adsk.core.Application.get()
 ui = app.userInterface
@@ -31,7 +34,7 @@ ATTRIBUTETYPES_ID = "attributesTaxonomyBrowser"
 # Specify the full path to the local html. You can also use a web URL
 # such as 'https://www.autodesk.com/'
 PALETTE_URL = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
+    os.path.dirname(__file__),
     "..",
     "..",
     "resources",
@@ -44,9 +47,9 @@ PALETTE_URL = os.path.join(
 PALETTE_URL = PALETTE_URL.replace("\\", "/")
 
 # Resource location
-ICON_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources", "")
+ICON_FOLDER = os.path.join(os.path.dirname(__file__), "resources", "")
 
-ROOT_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+ROOT_FOLDER = os.path.join(os.path.dirname(__file__), "..", "..")
 
 # Local list of event handlers used to maintain a reference so
 # they are not released and garbage collected.
@@ -237,13 +240,11 @@ def command_execute_preview(args: adsk.core.CommandEventHandler):
     app = adsk.core.Application.get()
     design = adsk.fusion.Design.cast(app.activeProduct)
     if design:
-        cggroup = design.rootComponent.customGraphicsGroups.add()
         pass
 
 
 def command_activate(args: adsk.core.CommandEventArgs):
     app = adsk.core.Application.get()
-    design = adsk.fusion.Design.cast(app.activeProduct)
     app.log("In command_activate event handler.")
 
 
@@ -315,7 +316,6 @@ def command_preselect_mousemove(args: adsk.core.SelectionEventArgs):
     design = adsk.fusion.Design.cast(app.activeProduct)
     selected_joint_origin = adsk.fusion.JointOrigin.cast(args.selection.entity)
     if design and selected_joint_origin:
-        cggroup = design.rootComponent.customGraphicsGroups.add()
         pass
 
 
@@ -333,7 +333,7 @@ def command_preselect_end(args: adsk.core.SelectionEventArgs):
     selected_edge = adsk.fusion.BRepEdge.cast(args.selection.entity)
     if design and selected_edge:
         for group in design.rootComponent.customGraphicsGroups:
-            if group.id == str("the_relevant_group"):
+            if group.id == "the_relevant_group":
                 group.deleteMe()
                 break
 
@@ -364,7 +364,6 @@ def palette_navigating(args: adsk.core.NavigationEventArgs):
 def palette_incoming(html_args: adsk.core.HTMLEventArgs):
     futil.log(f"{CMD_NAME}: Palette incoming event.")
     app = adsk.core.Application.get()
-    design = adsk.fusion.Design.cast(app.activeProduct)
     message_data: dict = json.loads(html_args.data)
     message_action = html_args.action
 
@@ -467,7 +466,6 @@ def command_execute(args: adsk.core.CommandEventArgs):
     # All this obv. still has to check for if there already is a custom graphics object for that JointOrigin
     app = adsk.core.Application.get()
     design = adsk.fusion.Design.cast(app.activeProduct)
-    graphics = design.rootComponent.customGraphicsGroups.add()
 
     bill_board = adsk.fusion.CustomGraphicsBillBoard.create(
         adsk.core.Point3D.create(0, 0, 0)
@@ -482,7 +480,6 @@ def command_execute(args: adsk.core.CommandEventArgs):
     print("Trying to sync")
     parts_type_selection_browser_input.sendInfoToHTML("returnTaxonomyDataMessage", "{}")
 
-    selections = []
     jo_uuid = str(generate_id())
     for jo in selected_joint_origins:
 
@@ -546,7 +543,6 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
 
 def command_preview(args: adsk.core.CommandEventArgs):
-    inputs = args.command.commandInputs
     futil.log(f"{CMD_NAME} Command Preview Event")
 
 
