@@ -1,8 +1,7 @@
-from abc import ABC, abstractmethod
-from collections.abc import Iterator, Sequence
-from typing import Callable, TypeAlias
+from collections.abc import Callable, Iterator, Sequence
+from typing import TypeAlias
 
-from .types import *
+from .types import Arrow, Constructor, Intersection, Omega, Product, Type
 
 SubtypeInstruction: TypeAlias = Callable[
     [list[bool | Type], list["SubtypeInstruction"]], None
@@ -16,7 +15,7 @@ class Subtypes:
         )
 
     def _tgt_for_srcs(
-        self, gte: Type, inseq: Sequence[Tuple[Type, Type]]
+        self, gte: Type, inseq: Sequence[tuple[Type, Type]]
     ) -> Iterator[Type]:
         for src, tgt in inseq:
             if self.check_subtype(gte, src):

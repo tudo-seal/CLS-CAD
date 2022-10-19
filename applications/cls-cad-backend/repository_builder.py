@@ -2,7 +2,15 @@ import json
 import os
 from pathlib import Path
 
-from cls_python import *
+from cls_python import (
+    Arrow,
+    CLSDecoder,
+    CLSEncoder,
+    Constructor,
+    Subtypes,
+    Type,
+    deep_str,
+)
 from util.motion import combine_motions
 from util.set_json import SetDecoder
 
@@ -226,7 +234,6 @@ class RepositoryBuilder:
                         ] = Constructor(connect_uuid)
 
         repository[Part(part["meta"])] = Type.intersect(configuration_types)
-        pass
 
     @staticmethod
     def add_all_to_repository(

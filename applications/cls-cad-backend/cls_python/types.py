@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Optional, Tuple
 
 
 @dataclass(frozen=True)
@@ -9,7 +8,7 @@ class Type(ABC):
     is_omega: bool = field(init=True, kw_only=True, compare=False)
     size: int = field(init=True, kw_only=True, compare=False)
     organized: set["Type"] = field(init=True, kw_only=True, compare=False)
-    path: Optional[Tuple[list["Type"], "Type"]] = field(
+    path: tuple[list["Type"], "Type"] | None = field(
         init=True, kw_only=True, compare=False
     )
 
@@ -20,7 +19,7 @@ class Type(ABC):
         return Product(self, other)
 
     @abstractmethod
-    def _path(self) -> Optional[Tuple[list["Type"], "Type"]]:
+    def _path(self) -> tuple[list["Type"], "Type"] | None:
         pass
 
     @abstractmethod
@@ -75,7 +74,7 @@ class Omega(Type):
     is_omega: bool = field(init=False, compare=False)
     size: bool = field(init=False, compare=False)
     organized: set[Type] = field(init=False, compare=False)
-    path: Optional[Tuple[list["Type"], "Type"]] = field(init=False, compare=False)
+    path: tuple[list["Type"], "Type"] | None = field(init=False, compare=False)
 
     def __post_init__(self):
         super().__init__(
@@ -91,7 +90,7 @@ class Omega(Type):
     def _size(self) -> int:
         return 1
 
-    def _path(self) -> Optional[Tuple[list["Type"], "Type"]]:
+    def _path(self) -> tuple[list["Type"], "Type"] | None:
         return None
 
     def _organized(self) -> set["Type"]:
@@ -108,7 +107,7 @@ class Constructor(Type):
     is_omega: bool = field(init=False, compare=False)
     size: int = field(init=False, compare=False)
     organized: set[Type] = field(init=False, compare=False)
-    path: Optional[Tuple[list["Type"], "Type"]] = field(init=False, compare=False)
+    path: tuple[list["Type"], "Type"] | None = field(init=False, compare=False)
 
     def __post_init__(self):
         super().__init__(
@@ -124,7 +123,7 @@ class Constructor(Type):
     def _size(self) -> int:
         return 1 + self.arg.size
 
-    def _path(self) -> Optional[Tuple[list["Type"], "Type"]]:
+    def _path(self) -> tuple[list["Type"], "Type"] | None:
         return ([], self) if self.arg.path or self.arg == Omega() else None
 
     def _organized(self) -> set["Type"]:
@@ -148,7 +147,7 @@ class Product(Type):
     is_omega: bool = field(init=False, compare=False)
     size: int = field(init=False, compare=False)
     organized: set[Type] = field(init=False, compare=False)
-    path: Optional[Tuple[list["Type"], "Type"]] = field(init=False, compare=False)
+    path: tuple[list["Type"], "Type"] | None = field(init=False, compare=False)
 
     def __post_init__(self):
         super().__init__(
@@ -164,7 +163,7 @@ class Product(Type):
     def _size(self) -> int:
         return 1 + self.left.size + self.right.size
 
-    def _path(self) -> Optional[Tuple[list["Type"], "Type"]]:
+    def _path(self) -> tuple[list["Type"], "Type"] | None:
         return (
             ([], self)
             if (
@@ -207,7 +206,7 @@ class Arrow(Type):
     is_omega: bool = field(init=False, compare=False)
     size: int = field(init=False, compare=False)
     organized: set[Type] = field(init=False, compare=False)
-    path: Optional[Tuple[list["Type"], "Type"]] = field(init=False, compare=False)
+    path: tuple[list["Type"], "Type"] | None = field(init=False, compare=False)
 
     def __post_init__(self):
         super().__init__(
@@ -223,7 +222,7 @@ class Arrow(Type):
     def _size(self) -> int:
         return 1 + self.source.size + self.target.size
 
-    def _path(self) -> Optional[Tuple[list["Type"], "Type"]]:
+    def _path(self) -> tuple[list["Type"], "Type"] | None:
         return (
             ([self.source, *(self.target.path[0])], self.target.path[1])
             if self.target.path
@@ -255,7 +254,7 @@ class Intersection(Type):
     is_omega: bool = field(init=False, compare=False)
     size: int = field(init=False, compare=False)
     organized: set[Type] = field(init=False, compare=False)
-    path: Optional[Tuple[list["Type"], "Type"]] = field(init=False, compare=False)
+    path: tuple[list["Type"], "Type"] | None = field(init=False, compare=False)
 
     def __post_init__(self):
         super().__init__(
@@ -271,7 +270,7 @@ class Intersection(Type):
     def _size(self) -> int:
         return 1 + self.left.size + self.right.size
 
-    def _path(self) -> Optional[Tuple[list["Type"], "Type"]]:
+    def _path(self) -> tuple[list["Type"], "Type"] | None:
         return None
 
     def _organized(self) -> set["Type"]:

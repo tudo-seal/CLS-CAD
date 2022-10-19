@@ -2,7 +2,7 @@
 
 import itertools
 import random
-from typing import Hashable
+from collections.abc import Hashable
 
 __all__ = ["generate_id"]
 

@@ -1,22 +1,21 @@
-import functools
 import itertools
 import os
-from abc import ABC, abstractmethod
+from abc import ABC
 from collections import deque
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from functools import cached_property, partial
 from itertools import chain
 from multiprocessing import Pool
-from typing import Any, Callable, Iterable, Tuple, TypeAlias
+from typing import Any, TypeAlias
 
 from .enumeration import ComputationStep, EmptyStep, Enumeration
 from .subtypes import Subtypes
-from .types import *
+from .types import Arrow, Intersection, Sequence, Type, dataclass, field
 
-MultiArrow: TypeAlias = Tuple[list[Type], Type]
+MultiArrow: TypeAlias = tuple[list[Type], Type]
 State: TypeAlias = list["MultiArrow"]
 CoverMachineInstruction: TypeAlias = Callable[
-    [State], Tuple[State, list["CoverMachineInstruction"]]
+    [State], tuple[State, list["CoverMachineInstruction"]]
 ]
 
 
@@ -61,7 +60,7 @@ class Apply(Rule):
 @dataclass(frozen=True)
 class Tree:
     rule: Rule = field(init=True)
-    children: Tuple["Tree", ...] = field(init=True, default_factory=lambda: ())
+    children: tuple["Tree", ...] = field(init=True, default_factory=lambda: ())
 
     class Evaluator(ComputationStep):
         def __init__(self, outer: "Tree", results: list[Any]):
@@ -263,14 +262,14 @@ class FiniteCombinatoryLogic:
         self.subtypes = subtypes
 
     @staticmethod
-    def _split_repo(c: object, ty: Type) -> Tuple[object, list[list[MultiArrow]]]:
+    def _split_repo(c: object, ty: Type) -> tuple[object, list[list[MultiArrow]]]:
         return c, FiniteCombinatoryLogic.split_ty(ty)
 
     @staticmethod
     def split_ty(ty: Type) -> list[list[MultiArrow]]:
         def safe_split(
             xss: list[list[MultiArrow]],
-        ) -> Tuple[list[MultiArrow], list[list[MultiArrow]]]:
+        ) -> tuple[list[MultiArrow], list[list[MultiArrow]]]:
             return (xss[0] if xss else []), xss[1:]
 
         def split_rec(
@@ -303,7 +302,7 @@ class FiniteCombinatoryLogic:
     @staticmethod
     def _partition_cover(
         covered: set[Type], to_cover: set[Type]
-    ) -> Tuple[set[Type], set[Type]]:
+    ) -> tuple[set[Type], set[Type]]:
         in_covered: set[Type] = set()
         not_in_covered: set[Type] = set()
         for ty in to_cover:
@@ -315,7 +314,7 @@ class FiniteCombinatoryLogic:
 
     @staticmethod
     def _still_possible(
-        splits: list[Tuple[MultiArrow, set[Type]]], to_cover: set[Type]
+        splits: list[tuple[MultiArrow, set[Type]]], to_cover: set[Type]
     ) -> bool:
         for ty in to_cover:
             if not any(ty in covered for _, covered in splits):
@@ -328,11 +327,11 @@ class FiniteCombinatoryLogic:
         )
 
     def _check_cover(
-        self, splits: list[Tuple[MultiArrow, set[Type]]], to_cover: set[Type]
+        self, splits: list[tuple[MultiArrow, set[Type]]], to_cover: set[Type]
     ) -> CoverMachineInstruction:
         def instr(
             state: list[MultiArrow],
-        ) -> Tuple[State, list[CoverMachineInstruction]]:
+        ) -> tuple[State, list[CoverMachineInstruction]]:
             if FiniteCombinatoryLogic._still_possible(splits, to_cover):
                 return state, [self._cover(splits, to_cover)]
             else:
@@ -342,13 +341,13 @@ class FiniteCombinatoryLogic:
 
     def _check_continue_cover(
         self,
-        splits: list[Tuple[MultiArrow, set[Type]]],
+        splits: list[tuple[MultiArrow, set[Type]]],
         to_cover: set[Type],
         current_result: MultiArrow,
     ) -> CoverMachineInstruction:
         def instr(
             state: list[MultiArrow],
-        ) -> Tuple[State, list[CoverMachineInstruction]]:
+        ) -> tuple[State, list[CoverMachineInstruction]]:
             if FiniteCombinatoryLogic._still_possible(splits, to_cover):
                 return state, [self._continue_cover(splits, to_cover, current_result)]
             else:
@@ -358,13 +357,13 @@ class FiniteCombinatoryLogic:
 
     def _continue_cover(
         self,
-        splits: list[Tuple[MultiArrow, set[Type]]],
+        splits: list[tuple[MultiArrow, set[Type]]],
         to_cover: set[Type],
         current_result: MultiArrow,
     ) -> CoverMachineInstruction:
         def instr(
             state: list[MultiArrow],
-        ) -> Tuple[State, list[CoverMachineInstruction]]:
+        ) -> tuple[State, list[CoverMachineInstruction]]:
             if not splits:
                 return state, []
             m, covered = splits[0]
@@ -390,11 +389,11 @@ class FiniteCombinatoryLogic:
         return instr
 
     def _cover(
-        self, splits: list[Tuple[MultiArrow, set[Type]]], to_cover: set[Type]
+        self, splits: list[tuple[MultiArrow, set[Type]]], to_cover: set[Type]
     ) -> CoverMachineInstruction:
         def instr(
             state: list[MultiArrow],
-        ) -> Tuple[State, list[CoverMachineInstruction]]:
+        ) -> tuple[State, list[CoverMachineInstruction]]:
             if not splits:
                 return state, []
             m, covered = splits[0]
@@ -457,7 +456,7 @@ class FiniteCombinatoryLogic:
 
     def _compute_fail_existing(
         self, rules: set[Rule], target: Type
-    ) -> Tuple[bool, bool]:
+    ) -> tuple[bool, bool]:
         rest_of_rules: Iterator[Rule] = iter(rules)
         while to_check := next(rest_of_rules, None):
             match to_check:
@@ -501,7 +500,7 @@ class FiniteCombinatoryLogic:
         to_cover: set[Type],
         combinator: object,
         combinator_type: list[list[MultiArrow]],
-    ) -> Tuple[deque[deque[Rule]], bool]:
+    ) -> tuple[deque[deque[Rule]], bool]:
         def cover_instr(ms: list[MultiArrow]) -> CoverMachineInstruction:
             splits: list[(MultiArrow, set[Type])] = list(
                 map(

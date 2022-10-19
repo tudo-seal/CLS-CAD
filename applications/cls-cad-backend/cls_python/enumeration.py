@@ -1,20 +1,8 @@
 from abc import ABC, abstractmethod
 from collections import deque
+from collections.abc import Callable, Iterable, Iterator, Sequence
 from itertools import chain
-from typing import (
-    Callable,
-    Generic,
-    Iterable,
-    Iterator,
-    NoReturn,
-    Optional,
-    Sequence,
-    SupportsIndex,
-    Tuple,
-    TypeVar,
-    Union,
-    overload,
-)
+from typing import Generic, NoReturn, SupportsIndex, Tuple, TypeVar, Union, overload
 
 A = TypeVar("A", covariant=True)
 B = TypeVar("B", covariant=True)
@@ -95,9 +83,7 @@ class Finite(Sequence[A], ABC):
     def __getitem__(self, index: slice) -> "Finite[A]":
         ...
 
-    def __getitem__(
-        self, index: Union[int, Union[SupportsIndex, slice]]
-    ) -> Union[A, "Finite[A]"]:
+    def __getitem__(self, index: int | SupportsIndex | slice) -> Union[A, "Finite[A]"]:
         def int_case(index: int) -> A:
             if index < 0 or index >= self.size:
                 raise IndexError(index)
@@ -394,7 +380,7 @@ class FiniteUnion(Finite[A]):
         return self.LocalClearCacheComputation(self)
 
 
-class FiniteProduct(Finite[Tuple[A, B]], Generic[A, B]):
+class FiniteProduct(Finite[tuple[A, B]], Generic[A, B]):
     def __init__(self, left: Finite[A], right: Finite[B]):
         super().__init__()
         self.left: Finite[A] = left
@@ -568,9 +554,7 @@ class Enumeration(Iterable[A], ABC):
     def __getitem__(self, index: slice) -> "Finite[A]":
         ...
 
-    def __getitem__(
-        self, index: Union[int, Union[SupportsIndex, slice]]
-    ) -> Union[A, "Finite[A]"]:
+    def __getitem__(self, index: int | SupportsIndex | slice) -> Union[A, "Finite[A]"]:
         def int_case(index: int) -> A:
             items = self.all_values()
             while True:
@@ -828,7 +812,7 @@ class EnumerationUnion(Enumeration[A]):
         return self.MaxSizeComputation(self)
 
 
-class EnumerationProduct(Enumeration[Tuple[A, B]], Generic[A, B]):
+class EnumerationProduct(Enumeration[tuple[A, B]], Generic[A, B]):
     def __init__(self, left: Enumeration[A], right: Enumeration[B]):
         super().__init__()
         self.left: Enumeration[A] = left
@@ -842,7 +826,7 @@ class EnumerationProduct(Enumeration[Tuple[A, B]], Generic[A, B]):
         def __iter__(self) -> Iterator[ComputationStep]:
             index: int = self.index
 
-            result: Finite[Tuple[A, B]] = Finite.empty()
+            result: Finite[tuple[A, B]] = Finite.empty()
             for left_index in range(0, index + 1):
                 yield self.outer.left.cached_computation(left_index)
                 right_index = index - left_index
@@ -935,7 +919,7 @@ class EnumerationOfIterable(Enumeration[A]):
     def __init__(self, iterable: Iterable[A]):
         super().__init__()
         self.iterable: Iterable[A] = iterable
-        self.state: Optional[Tuple[bool, int, Iterator[A]]] = None
+        self.state: tuple[bool, int, Iterator[A]] | None = None
 
     class IterableComputation(ComputationStep):
         def __init__(self, outer: "EnumerationOfIterable[A]", index: int):
@@ -993,7 +977,7 @@ class EnumerationLazy(Enumeration[A]):
     def __init__(self, factory: Callable[[], Enumeration[A]]):
         super().__init__()
         self.factory: Callable[[], Enumeration[A]] = factory
-        self.value: Optional[Enumeration[A]] = None
+        self.value: Enumeration[A] | None = None
 
     class LazyComputation(ComputationStep):
         def __init__(self, outer: "EnumerationLazy[A]", index: int):
