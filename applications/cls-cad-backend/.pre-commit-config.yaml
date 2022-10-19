@@ -25,6 +25,15 @@ repos:
     hooks:
       - id: autoflake
         exclude: ^static/
+        args:
+          [
+            "--in-place",
+            "--ignore-init-module-imports",
+            "--remove-all-unused-imports",
+            "--remove-rhs-for-unused-variables",
+            "--remove-unused-variables",
+            "--expand-star-imports",
+          ]
   - repo: https://github.com/pycqa/isort
     rev: 5.10.1
     hooks:

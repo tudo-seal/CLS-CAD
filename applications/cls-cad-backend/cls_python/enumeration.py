@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from collections import deque
 from collections.abc import Callable, Iterable, Iterator, Sequence
-from itertools import chain
 from typing import Generic, NoReturn, SupportsIndex, Tuple, TypeVar, Union, overload
 
 A = TypeVar("A", covariant=True)

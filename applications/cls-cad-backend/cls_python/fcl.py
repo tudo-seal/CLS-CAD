@@ -1,10 +1,8 @@
-import itertools
 import os
 from abc import ABC
 from collections import deque
 from collections.abc import Callable, Iterator
 from functools import cached_property, partial
-from itertools import chain
 from multiprocessing import Pool
 from typing import Any, TypeAlias
 
