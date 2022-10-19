@@ -3,20 +3,20 @@ import json
 import jsonpickle
 
 from .fcl import (
-    Combinator,
-    Tree,
     Apply,
+    Combinator,
     Failed,
-    InhabitationResult,
     FiniteCombinatoryLogic,
+    InhabitationResult,
+    Tree,
 )
-from .types import Arrow, Intersection, Product, Omega, Constructor
 from .subtypes import Subtypes
+from .types import Arrow, Constructor, Intersection, Omega, Product
 
 
 class CLSEncoder(json.JSONEncoder):
     def __init__(self, **kwargs):
-        super(CLSEncoder, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     def combinator_hook(self, o):
         return jsonpickle.encode(o)
@@ -80,10 +80,10 @@ class CLSEncoder(json.JSONEncoder):
         elif isinstance(o, Subtypes):
             return {
                 "__type__": CLSEncoder.tpe(o),
-                "environment": dict(
-                    (self.constructor_hook(k), [self.constructor_hook(c) for c in v])
+                "environment": {
+                    self.constructor_hook(k): [self.constructor_hook(c) for c in v]
                     for k, v in o.environment.items()
-                ),
+                },
             }
         elif isinstance(o, InhabitationResult):
             return {
@@ -94,9 +94,9 @@ class CLSEncoder(json.JSONEncoder):
         elif isinstance(o, FiniteCombinatoryLogic):
             return {
                 "__type__": CLSEncoder.tpe(o),
-                "repository": dict(
-                    (self.combinator_hook(c), self.default(t)) for c, t in o.repository
-                ),
+                "repository": {
+                    self.combinator_hook(c): self.default(t) for c, t in o.repository
+                },
                 "subtypes": self.default(o.subtypes),
                 "processes": self.default(o.processes),
             }
@@ -106,7 +106,7 @@ class CLSEncoder(json.JSONEncoder):
 
 class CLSDecoder(json.JSONDecoder):
     def __init__(self, **kwargs):
-        super(CLSDecoder, self).__init__(object_hook=self, **kwargs)
+        super().__init__(object_hook=self, **kwargs)
 
     def combinator_hook(self, dct):
         return jsonpickle.decode(dct)
@@ -151,13 +151,12 @@ class CLSDecoder(json.JSONDecoder):
                 )
             elif tpe == CLSDecoder.tpe(Subtypes):
                 return Subtypes(
-                    environment=dict(
-                        (
-                            self.constructor_hook(k),
-                            {self.constructor_hook(st) for st in v},
-                        )
+                    environment={
+                        self.constructor_hook(k): {
+                            self.constructor_hook(st) for st in v
+                        }
                         for k, v in dct["environment"].items()
-                    )
+                    }
                 )
             elif tpe == CLSDecoder.tpe(InhabitationResult):
                 return InhabitationResult(
@@ -165,10 +164,9 @@ class CLSDecoder(json.JSONDecoder):
                 )
             elif tpe == CLSDecoder.tpe(FiniteCombinatoryLogic):
                 return FiniteCombinatoryLogic(
-                    repository=dict(
-                        (self.combinator_hook(k), v)
-                        for k, v in dct["repository"].items()
-                    ),
+                    repository={
+                        self.combinator_hook(k): v for k, v in dct["repository"].items()
+                    },
                     subtypes=dct["subtypes"],
                     processes=dct["processes"],
                 )

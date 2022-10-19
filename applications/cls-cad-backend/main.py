@@ -12,12 +12,6 @@ from pathlib import Path
 from typing import Literal
 
 import ujson
-from cls_python import (
-    CLSDecoder,
-    FiniteCombinatoryLogic,
-    Subtypes,
-    CLSEncoder,
-)
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from hypermapper import optimizer
@@ -26,6 +20,7 @@ from pydantic import BaseModel
 from starlette.responses import Response
 from starlette.staticfiles import StaticFiles
 
+from cls_python import CLSDecoder, CLSEncoder, FiniteCombinatoryLogic, Subtypes
 from hypermapper_tools.hypermapper_compatibility import (
     create_hypermapper_config,
     wrapped_synthesis_optimization_function,
@@ -36,7 +31,7 @@ from hypermapper_tools.hypermapper_visualisation import (
 )
 from repository_builder import RepositoryBuilder
 from util.hrid import generate_id
-from util.set_json import SetEncoder, SetDecoder
+from util.set_json import SetDecoder, SetEncoder
 
 origins = [
     "http://localhost:3000",
@@ -104,7 +99,7 @@ class PartConfigInf(BaseModel, frozen=True):
 class PartInf(BaseModel, frozen=True):
     configurations: list[PartConfigInf]
     meta: MetaInf
-    jointOrigins: typing.Dict[str, JointOriginInf]
+    jointOrigins: dict[str, JointOriginInf]
 
 
 class TaxonomyInf(BaseModel, frozen=True):
@@ -243,7 +238,7 @@ async def synthesize_assembly(
 ):
     taxonomy = Subtypes(
         json.load(
-            open(f"Taxonomies/CAD/{payload.forgeProjectId}/taxonomy.dat", "r"),
+            open(f"Taxonomies/CAD/{payload.forgeProjectId}/taxonomy.dat"),
             cls=SetDecoder,
         )
     )
@@ -325,7 +320,6 @@ async def results_for_id(
         result = json.load(
             open(
                 os.path.join(f"Results/CAD/{project_id}/{request_id}", "result.dat"),
-                "r",
             ),
             cls=CLSDecoder,
         )
@@ -349,7 +343,7 @@ async def results_for_id(
         for filename in glob.glob(
             os.path.join(f"Results/CAD/{project_id}/{request_id}", "*.json")
         ):
-            with open(os.path.join(os.getcwd(), filename), "r") as f:
+            with open(os.path.join(os.getcwd(), filename)) as f:
                 results.append(json.load(f))
         return results
 
@@ -357,7 +351,7 @@ async def results_for_id(
 @app.get("/results/{project_id}/{request_id}/{result_id}", response_class=FastResponse)
 async def results_for_id(project_id: str, request_id: str, result_id: int):
     result = json.load(
-        open(os.path.join(f"Results/CAD/{project_id}/{request_id}", "result.dat"), "r"),
+        open(os.path.join(f"Results/CAD/{project_id}/{request_id}", "result.dat")),
         cls=CLSDecoder,
     )
     if result_id < result.size() or result.size() == -1:

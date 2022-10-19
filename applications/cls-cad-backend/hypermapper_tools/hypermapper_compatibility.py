@@ -3,8 +3,7 @@ import os
 import sys
 from pathlib import Path
 
-from cls_python import Subtypes, FiniteCombinatoryLogic, CLSDecoder
-
+from cls_python import CLSDecoder, FiniteCombinatoryLogic, Subtypes
 from repository_builder import RepositoryBuilder
 from util.set_json import SetDecoder
 
@@ -86,7 +85,7 @@ def wrapped_synthesis_optimization_function(X):
                     RepositoryBuilder.add_part_to_repository(part, repository)
     taxonomy = Subtypes(
         json.load(
-            open(f"Taxonomies/CAD/{hypermapper_project_id}/taxonomy.dat", "r"),
+            open(f"Taxonomies/CAD/{hypermapper_project_id}/taxonomy.dat"),
             cls=SetDecoder,
         )
     )

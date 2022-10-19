@@ -3,7 +3,6 @@ import os
 from pathlib import Path
 
 from cls_python import *
-
 from util.motion import combine_motions
 from util.set_json import SetDecoder
 
