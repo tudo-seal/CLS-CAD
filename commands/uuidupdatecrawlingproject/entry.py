@@ -30,7 +30,7 @@ ICON_FOLDER = os.path.join(os.path.dirname(__file__), "resources", "")
 # they are not released and garbage collected.
 local_handlers = []
 
-progressDialog: adsk.core.ProgressDialog = None
+progress_dialog: adsk.core.ProgressDialog = None
 
 
 def start():
@@ -110,10 +110,10 @@ def recursively_submit(folders: adsk.core.DataFolders):
     Returns:
 
     """
-    global progressDialog
-    for folder in wrapped_forge_as_array(folders, progressDialog):
-        progressDialog.progressValue = 0
-        progressDialog.message = f'Preparing to process Folder "{folder.name}"...'
+    global progress_dialog
+    for folder in wrapped_forge_call(folders.asArray, progress_dialog):
+        progress_dialog.progressValue = 0
+        progress_dialog.message = f'Preparing to process Folder "{folder.name}"...'
         # ignore auto-generated content
         if folder.name in ["Synthesized Assemblies", "Taxonomies"]:
             continue
@@ -122,16 +122,16 @@ def recursively_submit(folders: adsk.core.DataFolders):
 
 
 def submit_and_update_files_in_folder(folder):
-    global progressDialog
-    for file in wrapped_forge_as_array(folder.dataFiles, progressDialog):
+    global progress_dialog
+    for file in wrapped_forge_call(folder.dataFiles.asArray, progress_dialog):
         # Just in case we add PDFs etc.
         if not file.fileExtension == "f3d":
             continue
-        progressDialog.maximumValue = len(
-            wrapped_forge_as_array(folder.dataFiles, progressDialog)
+        progress_dialog.maximumValue = len(
+            wrapped_forge_call(folder.dataFiles.asArray, progress_dialog)
         )
-        progressDialog.message = (
-            f'Folder "{folder.name}" contains {len(wrapped_forge_as_array(folder.dataFiles, progressDialog))} files.\n\n'
+        progress_dialog.message = (
+            f'Folder "{folder.name}" contains {len(wrapped_forge_call(folder.dataFiles.asArray, progress_dialog))} files.\n\n'
             f"Processing..."
         )
         app = adsk.core.Application.get()
@@ -162,7 +162,7 @@ def submit_and_update_files_in_folder(folder):
         else:
             document.save('Saved by "Migrate UUIDs"')
             document.close(False)
-        progressDialog.progressValue += 1
+        progress_dialog.progressValue += 1
 
 
 def command_execute(args: adsk.core.CommandEventArgs):
@@ -190,9 +190,9 @@ def command_execute(args: adsk.core.CommandEventArgs):
     )
     # ok returns zero, so if not
     if not result:
-        global progressDialog
-        progressDialog = ui.createProgressDialog()
-        progressDialog.show("Crawl Progress", "Beginning to crawl...", 0, 1)
+        global progress_dialog
+        progress_dialog = ui.createProgressDialog()
+        progress_dialog.show("Crawl Progress", "Beginning to crawl...", 0, 1)
         root_folder = (
             app.activeDocument.dataFile.parentProject.rootFolder
             if app.activeDocument.dataFile is not None
@@ -205,7 +205,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
         load_project_taxonomy_to_config()
 
         # Also update the taxonomy to be safe
-        progressDialog.message = "Sending current taxonomy to backend..."
+        progress_dialog.message = "Sending current taxonomy to backend..."
         payload_dict = create_backend_taxonomy()
         req = urllib.request.Request("http://127.0.0.1:8000/submit/taxonomy")
         req.add_header("Content-Type", "application/json; charset=utf-8")
@@ -213,7 +213,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
         req.add_header("Content-Length", len(payload))
 
         # Finally, release progress dialog
-        progressDialog.hide()
+        progress_dialog.hide()
 
 
 def command_destroy(args: adsk.core.CommandEventArgs):

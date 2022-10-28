@@ -1,5 +1,6 @@
 import json
 import os
+from collections.abc import Callable
 from pathlib import Path
 
 import adsk
@@ -9,13 +10,13 @@ from ... import config
 ROOT_FOLDER = os.path.join(os.path.dirname(__file__), "..", "..")
 
 
-def wrapped_forge_as_array(forge_object, progress_dialog=None):
+def wrapped_forge_call(forge_call: Callable, progress_dialog=None):
     """
     Attempts to get array from forge object until it succeeds.
     What can I say, for some reason that part of the API is super flaky.
 
     Args:
-        forge_object:
+        forge_call:
 
     Returns:
 
@@ -28,7 +29,7 @@ def wrapped_forge_as_array(forge_object, progress_dialog=None):
         previous_msg = progress_dialog.message
     while not success:
         try:
-            request = forge_object.asArray()
+            request = forge_call()
             success = True
         except RuntimeError:
             success = False

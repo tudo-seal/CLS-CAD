@@ -3,13 +3,14 @@ import os
 from collections import deque
 from collections.abc import Callable
 from datetime import datetime
+from functools import partial
 
 import adsk.core
 from adsk.fusion import DesignTypes
 
 from ... import config
 from ...lib import fusion360utils as futil
-from ...lib.general_utils import generate_id
+from ...lib.general_utils import generate_id, wrapped_forge_call
 
 app = adsk.core.Application.get()
 ui = app.userInterface
@@ -43,10 +44,11 @@ progress_dialog = None
 
 USE_NO_HISTORY = True
 
+# Readability
 SubAssembly = dict
-AssemblyInstruction = Callable[
-    [SubAssembly], list[tuple[SubAssembly, "AssemblyInstruction"]]
-]
+# These do not receive a state and neither do they output one.
+# This is due to the state being implicitly given bz Fusion360 itself.
+AssemblyInstruction = Callable[[], list["AssemblyInstruction"]]
 
 
 # Executed when add-in is run.
@@ -215,7 +217,7 @@ def palette_navigating(args: adsk.core.NavigationEventArgs):
 
 # Validation is optional, because we know the UUIDs exist, and if they don't
 # the backend is out of date, making the only fix to recrawl or reupdate part
-def create_multi_part_insert_instruction():
+def create_multi_part_insert_instruction(sub_assembly: SubAssembly):
     """
     For the given part, checks the specified connections.
     For each connection, inserts that part for every matching UUID found.
@@ -224,16 +226,16 @@ def create_multi_part_insert_instruction():
     Then, new UUIDs are assigned to these JointOrigins, to prevent them being "reused".
 
     The assembly is DFS traversal of the result JSON object/tree, as the recursion happens on every connection,
-    not after the loop completes. This avoids edge-cases of identical parts with different sub-trees being present.
+    not after the loop completes. This avoids edge-cases of identical parts with different subtrees being present.
 
     Args:
-        part: Contains the current part of the assembly that is being processed.
+        sub_assembly: Contains the current part of the assembly that is being processed.
 
     Returns:
 
     """
 
-    def instruction(sub_assembly: SubAssembly):
+    def instruction():
         design = adsk.fusion.Design.cast(app.activeProduct)
         root = design.rootComponent
         global progress_dialog
@@ -248,7 +250,7 @@ def create_multi_part_insert_instruction():
             progress_dialog.message = "Inserting Components..."
             progress_dialog.maximumValue = len(joint_origins_1)
             progress_dialog.progressValue = 0
-            insertedDesign = root.occurrences.addByInsert(
+            inserted_design = root.occurrences.addByInsert(
                 app.data.findFileById(value["forgeDocumentId"]),
                 adsk.core.Matrix3D.create(),
                 True,
@@ -258,19 +260,21 @@ def create_multi_part_insert_instruction():
                 assembly_layer_container = root.occurrences.addNewComponent(
                     adsk.core.Matrix3D.create()
                 )
-                assembly_layer_container.component.name = insertedDesign.name + " Group"
+                assembly_layer_container.component.name = (
+                    inserted_design.name + " Group"
+                )
                 for i in range(len(joint_origins_1) - 1):
-                    copiedOccurence = root.occurrences.addExistingComponent(
-                        insertedDesign.component, adsk.core.Matrix3D.create()
+                    copied_occurrence = root.occurrences.addExistingComponent(
+                        inserted_design.component, adsk.core.Matrix3D.create()
                     )
-                    copiedOccurence.breakLink()
-                    copiedOccurence.moveToComponent(assembly_layer_container)
+                    copied_occurrence.breakLink()
+                    copied_occurrence.moveToComponent(assembly_layer_container)
                     progress_dialog.progressValue += 1
             if USE_NO_HISTORY:
-                insertedDesign.breakLink()
+                inserted_design.breakLink()
             # Fusion360 forbids ordering these differently
             if len(joint_origins_1) > 1:
-                insertedDesign.moveToComponent(assembly_layer_container)
+                inserted_design.moveToComponent(assembly_layer_container)
 
             # Re-query for newly inserted
             attributes = design.findAttributes("CLS-INFO", "UUID")
@@ -326,9 +330,7 @@ def create_multi_part_insert_instruction():
             progress_dialog.message = ""
             progress_dialog.progressValue = 0
             progress_dialog.hide()
-            additional_instructions.append(
-                (value, create_multi_part_insert_instruction())
-            )
+            additional_instructions.append(create_multi_part_insert_instruction(value))
         return additional_instructions
 
     return instruction
@@ -337,8 +339,7 @@ def create_multi_part_insert_instruction():
 def assembly_machine(program: list[tuple[SubAssembly, AssemblyInstruction]]):
     instructions: deque[AssemblyInstruction] = deque(program)
     while instructions:
-        sub_assembly, instruction = instructions.popleft()
-        instructions.extendleft(instruction(sub_assembly))
+        instructions.extendleft(instructions.popleft()())
 
 
 def create_offset_joint_origin_in_occurence(
@@ -407,16 +408,29 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
             if app.activeDocument.dataFile is not None
             else app.data.activeProject.rootFolder.dataFolders
         )
-        results_folder = (
-            root_folder_children.itemByName("Synthesized Assemblies")
-            if root_folder_children.itemByName("Synthesized Assemblies")
-            else root_folder_children.add("Synthesized Assemblies")
+
+        results_folder = wrapped_forge_call(
+            partial(root_folder_children.itemByName, "Synthesized Assemblies"),
+            progress_dialog,
         )
-        request_folder = (
-            results_folder.dataFolders.itemByName("User Picked Name")
-            if results_folder.dataFolders.itemByName("User Picked Name")
-            else results_folder.dataFolders.add("User Picked Name")
+        if not results_folder:
+            wrapped_forge_call(
+                partial(root_folder_children.add, "Synthesized Assemblies"),
+                progress_dialog,
+            )
+
+        request_folder = wrapped_forge_call(
+            partial(
+                results_folder.dataFolders.itemByName,
+                "User Picked Name",
+            ),
+            progress_dialog,
         )
+        if not request_folder:
+            wrapped_forge_call(
+                partial(results_folder.dataFolders.add, "User Picked Name"),
+                progress_dialog,
+            )
 
         progress_dialog.show(
             "Assembly Progress", "Creating new assembly document...", 0, 1
@@ -463,7 +477,7 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
             if USE_NO_HISTORY:
                 design.designType = DesignTypes.DirectDesignType
 
-            assembly_machine([(message_data, create_multi_part_insert_instruction())])
+            assembly_machine([create_multi_part_insert_instruction(message_data)])
 
             progress_dialog.hide()
         else:
@@ -484,8 +498,8 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
 
     # Return value.
     now = datetime.now()
-    currentTime = now.strftime("%H:%M:%S")
-    html_args.returnData = f"OK - {currentTime}"
+    current_time = now.strftime("%H:%M:%S")
+    html_args.returnData = f"OK - {current_time}"
 
 
 def command_destroy(args: adsk.core.CommandEventArgs):
