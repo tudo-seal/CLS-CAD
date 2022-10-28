@@ -2,56 +2,61 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="./favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite App</title>
-    <script type="module" crossorigin src="./assets/index.226dfd3c.js"></script>
-    <link rel="stylesheet" href="./assets/index.de201acd.css" />
+    <link rel="icon" href="/static/assembleResult/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Scada&display=swap"
+      rel="stylesheet"
+    />
+    <title>CLS - Assembler Result</title>
+    <style>
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      /* Handle */
+      ::-webkit-scrollbar-thumb {
+        background: #b7b7b7;
+        border-radius: 3px;
+      }
+
+      /* Handle on hover */
+      ::-webkit-scrollbar-thumb:hover {
+        background: #979797;
+      }
+      body {
+        overflow-y: scroll;
+        scrollbar-gutter: stable;
+      }
+    </style>
+    <script
+      type="module"
+      crossorigin
+      src="/static/assembleResult/assets/index.4529eb19.js"
+    ></script>
+    <link
+      rel="stylesheet"
+      href="/static/assembleResult/assets/index.3f2d7c36.css"
+    />
   </head>
-  <body>
+  <body class="bg-background h-screen">
     <script>
-      // Once document loads, poll to see when Fusion deems it is time to inject adsk, then signal we are ready to receive data
       document.addEventListener("DOMContentLoaded", () => {
         let adskWaiter = setInterval(() => {
           if (window.adsk) {
             clearInterval(adskWaiter);
             window.adsk
               .fusionSendData("readyNotification", "{}")
-              .then((result) => console.log(result));
+              .then((result) => {
+                console.log(result);
+              });
           }
         }, 100);
       });
-
-      window.fusionJavaScriptHandler = {
-        handle: function (action, data) {
-          try {
-            console.log(action);
-            if (action === "updateMessage") {
-              updateMessage(data);
-            } else if (action === "taxonomyDataMessage") {
-              console.log("TaxonomyData arrived.");
-              setTaxonomyData(data);
-            } else if (action === "taxonomyIDMessage") {
-              console.log("TaxonomyID arrived.");
-              document.title = data;
-              taxonomyID = data;
-            } else if (action === "returnTaxonomyDataMessage") {
-              sendUpdatedData();
-            } else if (action === "debugger") {
-              debugger;
-            } else {
-              return `Unexpected command type: ${action}`;
-            }
-          } catch (e) {
-            console.log(e);
-            console.log(
-              `Exception caught with command: ${action}, data: ${data}`
-            );
-          }
-          return "OK";
-        },
-      };
     </script>
+
     <div id="app"></div>
   </body>
 </html>
