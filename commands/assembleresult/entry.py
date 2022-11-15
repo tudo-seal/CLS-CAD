@@ -402,6 +402,9 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
 
         global progress_dialog
         progress_dialog = ui.createProgressDialog()
+        progress_dialog.show(
+            "Assembly Progress", "Preparing project for synthesized assemblies...", 0, 1
+        )
 
         root_folder_children = (
             app.activeDocument.dataFile.parentProject.rootFolder.dataFolders
@@ -432,9 +435,8 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
                 progress_dialog,
             )
 
-        progress_dialog.show(
-            "Assembly Progress", "Creating new assembly document...", 0, 1
-        )
+        progress_dialog.message = "Creating new assembly document..."
+
         doc = app.documents.add(adsk.core.DocumentTypes.FusionDesignDocumentType)
         # Naming and stuff will need to be cleaned up, and multi-assembly
         doc.saveAs(str(generate_id()), request_folder, "", "")

@@ -12,6 +12,6 @@
   "python.formatting.provider": "yapf",
   "editor.formatOnSave": true,
   "editor.formatOnSaveMode": "file",
-  "python.pythonPath": "C:/Users/Jekannadar/AppData/Local/Autodesk/webdeploy/production/07bd513acaada21a2c42ea07148e0b76d1b98043/Python/python.exe",
+  "python.pythonPath": "C:/Users/Jekannadar/AppData/Local/Autodesk/webdeploy/production/f0f1459572ae987db1490b82e7990102aa92065e/Python/python.exe",
   "json.format.enable": true
 }

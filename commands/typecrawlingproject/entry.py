@@ -1,6 +1,7 @@
 import json
 import os
 import urllib
+from urllib.error import HTTPError
 
 import adsk.core
 
@@ -139,6 +140,7 @@ def submit_files_in_folder(folder):
         design = adsk.fusion.Design.cast(app.activeProduct)
         if design.findAttributes("CLS-JOINT", "ProvidesFormats"):
             part_dict = create_backend_json()
+
             req = urllib.request.Request("http://127.0.0.1:8000/submit/part")
             req.add_header("Content-Type", "application/json; charset=utf-8")
             payload = json.dumps(
@@ -147,6 +149,12 @@ def submit_files_in_folder(folder):
                 indent=4,
             ).encode("utf-8")
             req.add_header("Content-Length", len(payload))
+            try:
+                response = urllib.request.urlopen(req, payload)
+                print(response)
+            except HTTPError as err:
+                print(err.code)
+                print(err.reason)
             document.close(False)
         else:
             document.close(False)
@@ -193,16 +201,18 @@ def command_execute(args: adsk.core.CommandEventArgs):
         # Load correct project taxonomies before submitting
         load_project_taxonomy_to_config()
 
-        # Also update the taxonomy to be safe
-        progress_dialog.message = "Sending current taxonomy to backend..."
+        # why not also update the taxonomy in the backend while we are at it?
         payload_dict = create_backend_taxonomy()
         req = urllib.request.Request("http://127.0.0.1:8000/submit/taxonomy")
         req.add_header("Content-Type", "application/json; charset=utf-8")
         payload = json.dumps(payload_dict, indent=4).encode("utf-8")
         req.add_header("Content-Length", len(payload))
-
-        # Finally, release progress dialog
-        progress_dialog.hide()
+        try:
+            response = urllib.request.urlopen(req, payload)
+            print(response)
+        except HTTPError as err:
+            print(err.code)
+            print(err.reason)
 
 
 def command_destroy(args: adsk.core.CommandEventArgs):

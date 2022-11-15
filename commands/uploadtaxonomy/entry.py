@@ -1,10 +1,11 @@
 import os
+from functools import partial
 
 import adsk.core
 
 from ... import config
 from ...lib import fusion360utils as futil
-from ...lib.general_utils import winapi_path
+from ...lib.general_utils import winapi_path, wrapped_forge_call
 
 app = adsk.core.Application.get()
 ui = app.userInterface
@@ -106,11 +107,16 @@ def command_execute(args: adsk.core.CommandEventArgs):
         if app.activeDocument.dataFile is not None
         else app.data.activeProject.rootFolder.dataFolders
     )
-    taxonomy_folder = (
-        root_folder_children.itemByName("Taxonomies")
-        if root_folder_children.itemByName("Taxonomies")
-        else root_folder_children.add("Taxonomies")
+    progress_dialog = ui.createProgressDialog()
+    progress_dialog.show(
+        "Taxonomy Progress", "Preparing project for taxonomies...", 0, 1
     )
+    taxonomy_folder = wrapped_forge_call(
+        partial(root_folder_children.itemByName, "Taxonomies")
+    )
+    if not taxonomy_folder:
+        taxonomy_folder = root_folder_children.add("Taxonomies")
+    progress_dialog.hide()
     upload_taxonomy_to_forge(taxonomy_folder, "attributes")
     upload_taxonomy_to_forge(taxonomy_folder, "parts")
     upload_taxonomy_to_forge(taxonomy_folder, "formats")
