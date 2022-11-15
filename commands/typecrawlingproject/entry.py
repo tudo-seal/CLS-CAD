@@ -124,15 +124,14 @@ def recursively_submit(folders: adsk.core.DataFolders):
 
 def submit_files_in_folder(folder):
     global progress_dialog
-    for file in wrapped_forge_call(folder.dataFiles.asArray, progress_dialog):
+    folder_data_files = wrapped_forge_call(folder.dataFiles.asArray, progress_dialog)
+    for file in folder_data_files:
         # Just in case we add PDFs etc.
         if not file.fileExtension == "f3d":
             continue
-        progress_dialog.maximumValue = len(
-            wrapped_forge_call(folder.dataFiles.asArray, progress_dialog)
-        )
+        progress_dialog.maximumValue = len(folder_data_files)
         progress_dialog.message = (
-            f'Folder "{folder.name}" contains {len(wrapped_forge_call(folder.dataFiles.asArray, progress_dialog))} files.\n\n'
+            f'Folder "{folder.name}" contains {len(folder_data_files)} files.\n\n'
             f"Processing..."
         )
         app = adsk.core.Application.get()
