@@ -217,19 +217,21 @@ def palette_navigating(args: adsk.core.NavigationEventArgs):
 
 # Validation is optional, because we know the UUIDs exist, and if they don't
 # the backend is out of date, making the only fix to recrawl or reupdate part
-def create_multi_part_insert_instruction(sub_assembly: SubAssembly):
+def create_part_insert_instruction(target: str, data: str):
     """
-    For the given part, checks the specified connections.
-    For each connection, inserts that part for every matching UUID found.
+    For the given target and data (a connection), checks and creates the specified connections.
+    For that connection, inserts the part contained in data for every matching target UUID found.
     If that count is more than one, create a new Component to hold the inserted parts.
-    Create a joint (rigid or revolute) between the matching UUID joint origin and the "provides" UUID joint origin.
+    Create a joint (rigid or revolute) between the target UUID joint origin and the data's "provides" UUID joint origin.
     Then, new UUIDs are assigned to these JointOrigins, to prevent them being "reused".
 
     The assembly is DFS traversal of the result JSON object/tree, as the recursion happens on every connection,
     not after the loop completes. This avoids edge-cases of identical parts with different subtrees being present.
+    This DFS traversal is handled by create_initial_instructions, this method only creates the Callables.
 
     Args:
-        sub_assembly: Contains the current part of the assembly that is being processed.
+        data: Contains the data of the part to insert and connect.
+        target: Contains the UUID of the Joint Origin to connect to.
 
     Returns:
 
@@ -239,107 +241,111 @@ def create_multi_part_insert_instruction(sub_assembly: SubAssembly):
         design = adsk.fusion.Design.cast(app.activeProduct)
         root = design.rootComponent
         global progress_dialog
-        additional_instructions: list[
-            tuple[SubAssembly, "AssemblyInstruction"]
-        ] = list()
+        additional_instructions: list["AssemblyInstruction"] = list()
 
-        for key, value in sub_assembly["connections"].items():
-            progress_dialog.show("Assembly Progress", "Initialising layer...", 0, 1)
-            attributes = design.findAttributes("CLS-INFO", "UUID")
-            joint_origins_1 = [x.parent for x in attributes if x.value == key]
-            progress_dialog.message = "Inserting Components..."
-            progress_dialog.maximumValue = len(joint_origins_1)
-            progress_dialog.progressValue = 0
-            inserted_design = root.occurrences.addByInsert(
-                app.data.findFileById(value["forgeDocumentId"]),
-                adsk.core.Matrix3D.create(),
-                True,
+        progress_dialog.show("Assembly Progress", "Initialising layer...", 0, 1)
+        attributes = design.findAttributes("CLS-INFO", "UUID")
+        joint_origins_1 = [x.parent for x in attributes if x.value == target]
+        progress_dialog.message = "Inserting Components..."
+        progress_dialog.maximumValue = len(joint_origins_1)
+        progress_dialog.progressValue = 0
+        inserted_design = root.occurrences.addByInsert(
+            app.data.findFileById(data["forgeDocumentId"]),
+            adsk.core.Matrix3D.create(),
+            True,
+        )
+        progress_dialog.progressValue += 1
+        if len(joint_origins_1) > 1:
+            assembly_layer_container = root.occurrences.addNewComponent(
+                adsk.core.Matrix3D.create()
             )
-            progress_dialog.progressValue += 1
-            if len(joint_origins_1) > 1:
-                assembly_layer_container = root.occurrences.addNewComponent(
-                    adsk.core.Matrix3D.create()
+            assembly_layer_container.component.name = inserted_design.name + " Group"
+            for i in range(len(joint_origins_1) - 1):
+                copied_occurrence = root.occurrences.addExistingComponent(
+                    inserted_design.component, adsk.core.Matrix3D.create()
                 )
-                assembly_layer_container.component.name = (
-                    inserted_design.name + " Group"
-                )
-                for i in range(len(joint_origins_1) - 1):
-                    copied_occurrence = root.occurrences.addExistingComponent(
-                        inserted_design.component, adsk.core.Matrix3D.create()
-                    )
-                    copied_occurrence.breakLink()
-                    copied_occurrence.moveToComponent(assembly_layer_container)
-                    progress_dialog.progressValue += 1
-            if USE_NO_HISTORY:
-                inserted_design.breakLink()
-            # Fusion360 forbids ordering these differently
-            if len(joint_origins_1) > 1:
-                inserted_design.moveToComponent(assembly_layer_container)
+                copied_occurrence.breakLink()
+                copied_occurrence.moveToComponent(assembly_layer_container)
+                progress_dialog.progressValue += 1
+        if USE_NO_HISTORY:
+            inserted_design.breakLink()
+        # Fusion360 forbids ordering these differently
+        if len(joint_origins_1) > 1:
+            inserted_design.moveToComponent(assembly_layer_container)
 
-            # Re-query for newly inserted
-            attributes = design.findAttributes("CLS-INFO", "UUID")
+        # Re-query for newly inserted
+        attributes = design.findAttributes("CLS-INFO", "UUID")
+        joint_origins_2 = [x.parent for x in attributes if x.value == data["provides"]]
+        if len(joint_origins_1) != len(joint_origins_2):
+            print("Critical Error")
+            ui.messageBox(
+                f'Critical Error. Number Required: {len(joint_origins_1)}  for {target}\n Number Provided: {len(joint_origins_2)} for {data["provides"]}'
+            )
             joint_origins_2 = [
-                x.parent for x in attributes if x.value == value["provides"]
+                x.parent for x in attributes if x.value == data["provides"]
             ]
-            if len(joint_origins_1) != len(joint_origins_2):
-                print("Critical Error")
-                ui.messageBox(
-                    f'Critical Error. Number Required: {len(joint_origins_1)}  for {key}\n Number Provided: {len(joint_origins_2)} for {value["provides"]}'
+            print(len(joint_origins_2))
+            return
+
+        # This is a completely different design, so the uuids need to be changed to be unique
+        uuid_requires = str(generate_id())
+        uuid_provides = str(generate_id())
+        progress_dialog.message = "Setting new attributes..."
+        progress_dialog.maximumValue = len(joint_origins_1) * 2
+        progress_dialog.progressValue = 0
+        for joint_origin in joint_origins_1:
+            joint_origin.attributes.add("CLS-INFO", "UUID", uuid_requires)
+            progress_dialog.progressValue += 1
+        for joint_origin in joint_origins_2:
+            joint_origin.attributes.add("CLS-INFO", "UUID", uuid_provides)
+            progress_dialog.progressValue += 1
+
+        # Create all joints
+        progress_dialog.message = "Creating joints..."
+        progress_dialog.maximumValue = len(joint_origins_1)
+        progress_dialog.progressValue = 0
+        for requires, provides in zip(joint_origins_1, joint_origins_2):
+            joints = root.joints
+            joint_input = joints.createInput(provides, requires)
+            joint_input.isFlipped = True
+            if data["motion"] == "Revolute":
+                joint_input.setAsRevoluteJointMotion(
+                    adsk.fusion.JointDirections.ZAxisJointDirection
                 )
-                joint_origins_2 = [
-                    x.parent for x in attributes if x.value == value["provides"]
-                ]
-                print(len(joint_origins_2))
-                return
-
-            # This is a completely different design, so the uuids need to be changed to be unique
-            uuid_requires = str(generate_id())
-            uuid_provides = str(generate_id())
-            progress_dialog.message = "Setting new attributes..."
-            progress_dialog.maximumValue = len(joint_origins_1) * 2
-            progress_dialog.progressValue = 0
-            for joint_origin in joint_origins_1:
-                joint_origin.attributes.add("CLS-INFO", "UUID", uuid_requires)
-                progress_dialog.progressValue += 1
-            for joint_origin in joint_origins_2:
-                joint_origin.attributes.add("CLS-INFO", "UUID", uuid_provides)
-                progress_dialog.progressValue += 1
-
-            # Create all joints
-            progress_dialog.message = "Creating joints..."
-            progress_dialog.maximumValue = len(joint_origins_1)
-            progress_dialog.progressValue = 0
-            for requires, provides in zip(joint_origins_1, joint_origins_2):
-                joints = root.joints
-                joint_input = joints.createInput(provides, requires)
-                joint_input.isFlipped = True
-                if value["motion"] == "Revolute":
-                    joint_input.setAsRevoluteJointMotion(
-                        adsk.fusion.JointDirections.ZAxisJointDirection
-                    )
-                joints.add(joint_input)
-                progress_dialog.progressValue += 1
-            # This is in outer, because inner just targets all UUIDs
-            # If the previous step inserted six times, the next step
-            # Will have six requires present instead of one
-            progress_dialog.message = "Proceeding to next layer..."
-            progress_dialog.maximumValue = 1000
-            progress_dialog.progressValue = 0
-            for i in range(1000):
-                progress_dialog.progressValue += 1
-            progress_dialog.message = ""
-            progress_dialog.progressValue = 0
-            progress_dialog.hide()
-            additional_instructions.append(create_multi_part_insert_instruction(value))
+            joints.add(joint_input)
+            progress_dialog.progressValue += 1
+        # This is in outer, because inner just targets all UUIDs
+        # If the previous step inserted six times, the next step
+        # Will have six requires present instead of one
+        progress_dialog.message = "Proceeding to next layer..."
+        progress_dialog.maximumValue = 1000
+        progress_dialog.progressValue = 0
+        for i in range(1000):
+            progress_dialog.progressValue += 1
+        progress_dialog.message = ""
+        progress_dialog.progressValue = 0
+        progress_dialog.hide()
+        # Post-Processing and Assembly DSL features would live here
         return additional_instructions
 
     return instruction
 
 
-def assembly_machine(program: list[tuple[SubAssembly, AssemblyInstruction]]):
-    instructions: deque[AssemblyInstruction] = deque(program)
+def assembly_machine(instructions: deque[AssemblyInstruction]):
     while instructions:
         instructions.extendleft(instructions.popleft()())
+
+
+def create_initial_instructions(
+    sub_assembly: SubAssembly,
+    instructions: deque["AssemblyInstruction"] = None,
+):
+    if not instructions:
+        instructions = deque()
+    for key, value in sub_assembly["connections"].items():
+        instructions.append(create_part_insert_instruction(key, value))
+        create_initial_instructions(value, instructions)
+    return instructions
 
 
 def create_offset_joint_origin_in_occurence(
@@ -479,7 +485,7 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
             if USE_NO_HISTORY:
                 design.designType = DesignTypes.DirectDesignType
 
-            assembly_machine([create_multi_part_insert_instruction(message_data)])
+            assembly_machine(create_initial_instructions(message_data))
 
             progress_dialog.hide()
         else:
