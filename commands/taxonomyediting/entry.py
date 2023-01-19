@@ -6,6 +6,7 @@ import adsk.core
 
 from ... import config
 from ...lib import fusion360utils as futil
+from ...lib.general_utils import load_project_taxonomy_to_config
 
 app = adsk.core.Application.get()
 ui = app.userInterface
@@ -22,7 +23,7 @@ PALETTE_ID = "partsTaxonomyBrowser_tax"
 
 # Specify the full path to the local html. You can also use a web URL
 # such as 'https://www.autodesk.com/'
-PALETTE_URL = os.path.join(os.path.dirname(__file__), "resources", "html", "index.html")
+PALETTE_URL = "http://localhost:8000/static/editTaxonomyGraph/index.html"
 
 # The path function builds a valid OS path. This fixes it to be a valid local URL.
 PALETTE_URL = PALETTE_URL.replace("\\", "/")
@@ -82,10 +83,23 @@ def stop():
 
 def command_created(args: adsk.core.CommandCreatedEventArgs):
     futil.log(f"{CMD_NAME}: Command created event.")
+    load_project_taxonomy_to_config()
+    futil.add_handler(
+        args.command.execute, command_execute, local_handlers=local_handlers
+    )
+    futil.add_handler(
+        args.command.destroy, command_destroy, local_handlers=local_handlers
+    )
 
+
+def command_execute(args: adsk.core.CommandEventArgs):
     palettes = ui.palettes
     palette = palettes.itemById(PALETTE_ID)
-    if palette is None:
+    if palette is not None:
+        palette.deleteMe()
+        futil.log("Deleted palette.")
+
+    if palette is None or not palette.isValid:
         palette = palettes.add(
             id=PALETTE_ID,
             name=PALETTE_NAME,
@@ -100,20 +114,13 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
         futil.add_handler(palette.closed, palette_closed)
         futil.add_handler(palette.navigatingURL, palette_navigating)
         futil.add_handler(palette.incomingFromHTML, palette_incoming)
-    else:
-        palette = ui.palettes.itemById(PALETTE_ID)
-        # ADSK was injected, so now we send the payload
-        taxonomy_data_message = config.taxonomies["parts"]
-        palette.sendInfoToHTML("taxonomyDataMessage", json.dumps(taxonomy_data_message))
+
     args.command.setDialogMinimumSize(1200, 800)
     args.command.setDialogInitialSize(1200, 800)
     if palette.dockingState == adsk.core.PaletteDockingStates.PaletteDockStateFloating:
         palette.dockingState = PALETTE_DOCKING
 
     palette.isVisible = True
-
-
-def command_execute(args: adsk.core.CommandEventArgs):
     futil.log(f"{CMD_NAME}: Command execute event.")
 
 
@@ -149,7 +156,11 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
         palette = ui.palettes.itemById(PALETTE_ID)
         # ADSK was injected, so now we send the payload
         taxonomy_data_message = config.taxonomies["parts"]
+        palette.sendInfoToHTML("taxonomyIDMessage", "parts")
         palette.sendInfoToHTML("taxonomyDataMessage", json.dumps(taxonomy_data_message))
+
+    if message_action == "taxonomyDataMessage":
+        print(message_data)
     # Return value.
     now = datetime.now()
     current_time = now.strftime("%H:%M:%S")
