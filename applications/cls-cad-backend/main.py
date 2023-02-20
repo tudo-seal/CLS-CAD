@@ -4,20 +4,14 @@ import glob
 import json
 import mimetypes
 import os
-import typing
 from collections import defaultdict
 from datetime import datetime
 from json import JSONDecodeError
 from pathlib import Path
-from typing import Literal
 
-import ujson
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from hypermapper import optimizer
-from orjson import orjson
-from pydantic import BaseModel
-from starlette.responses import Response
 from starlette.staticfiles import StaticFiles
 
 from cls_python import CLSDecoder, CLSEncoder, FiniteCombinatoryLogic, Subtypes
@@ -30,6 +24,8 @@ from hypermapper_tools.hypermapper_visualisation import (
     visualize_pareto_front,
 )
 from repository_builder import RepositoryBuilder
+from responses import FastResponse
+from schemas import PartInf, SynthesisRequestInf, TaxonomyInf
 from util.hrid import generate_id
 from util.set_json import SetDecoder, SetEncoder
 
@@ -55,75 +51,11 @@ mimetypes.add_type("application/javascript", ".js")
 app.mount("/static", StaticFiles(directory="static", html=True), name="static")
 
 
-# Response that is easy to debug
-
-
-class FastResponse(Response):
-    media_type = "application/json"
-
-    def render(self, content: typing.Any) -> bytes:
-        try:
-            return orjson.dumps(content, option=orjson.OPT_INDENT_2)
-        except TypeError:
-            try:
-                print("Falling back to UJSON")
-                return ujson.dumps(content, indent=2, ensure_ascii=False).encode(
-                    "utf-8"
-                )
-            except OverflowError:
-                print("Falling back to default JSON.")
-                return json.dumps(content, indent=2, ensure_ascii=False).encode("utf-8")
-
-
-class JointOriginInf(BaseModel, frozen=True):
-    motion: Literal["Rigid", "Revolute"]
-    count: int
-    requires: dict
-    provides: dict
-
-
-class MetaInf(BaseModel, frozen=True):
-    partName: str
-    forgeDocumentId: str
-    forgeFolderId: str
-    forgeProjectId: str
-    cost: float = 1.0
-    availability: float = 1.0
-
-
-class PartConfigInf(BaseModel, frozen=True):
-    requiresJointOrigins: list[str]
-    providesJointOrigin: str
-
-
-class PartInf(BaseModel, frozen=True):
-    configurations: list[PartConfigInf]
-    meta: MetaInf
-    jointOrigins: dict[str, JointOriginInf]
-
-
-class TaxonomyInf(BaseModel, frozen=True):
-    forgeProjectId: str
-    taxonomy: dict
-
-
-class SynthesisRequestInf(BaseModel, frozen=True):
-    forgeProjectId: str
-    target: dict
-    name: str | None = generate_id()
-    tag: str | None = None
-    source: list | None = None
-    sourceUuid: str | None = None
-
-
 @app.get("/")
 async def root():
-    return {"message": "Hello World"}
-
-
-@app.get("/hello/{name}")
-async def say_hello(name: str):
-    return {"message": f"Hello {name}"}
+    return {
+        "message": "Welcome to the CLS-CPS backend. Head to /docs for information about endpoints."
+    }
 
 
 @app.post("/submit/part")
@@ -179,8 +111,6 @@ async def save_part(
         f.truncate()
         json.dump(data, f, cls=SetEncoder, indent=4)
 
-    # Data is sane and can be decoded, so from this we can construct all necessary combinators
-    # print(json.loads(json.dumps(payload["combinator"]), cls=CLSDecoder))
     return "OK"
 
 
@@ -245,7 +175,10 @@ async def synthesize_assembly(
     if payload.source and payload.sourceUuid:
         gamma = FiniteCombinatoryLogic(
             RepositoryBuilder.add_all_to_repository(
-                payload.forgeProjectId, payload.source, payload.sourceUuid, taxonomy
+                payload.forgeProjectId,
+                blacklist=payload.source,
+                connect_uuid=payload.sourceUuid,
+                taxonomy=taxonomy,
             ),
             taxonomy,
             processes=1,
@@ -257,33 +190,32 @@ async def synthesize_assembly(
             processes=1,
         )
     result = gamma.inhabit(json.loads(json.dumps(payload.target), cls=CLSDecoder))
-    if result.size() != 0:
-        request_id = generate_id()
-        p = Path(
-            os.path.join("Results", "CAD", payload.forgeProjectId, str(request_id))
-        )
-        p.mkdir(parents=True, exist_ok=True)
-        with (p / f"result.info").open("w+") as f:
-            json.dump(
-                {
-                    "id": request_id,
-                    "name": payload.name,
-                    "timestamp": datetime.today().strftime("%Y-%m-%d %H:%M:%S"),
-                    "count": result.size(),
-                },
-                f,
-                indent=4,
-            )
-        # Maybe also add an index.dat to results, priority low
-        with (p / f"result.dat").open("w+") as f:
-            json.dump(result, f, cls=CLSEncoder, indent=4)
-        if result.size() != -1:
-            for i in range(result.size()):
-                with (p / f"{i}.json").open("w+") as f:
-                    json.dump(result.evaluated[i].to_dict(), f, indent=4)
-        return str(request_id)
-    else:
+
+    if result.size() == 0:
         return "FAIL"
+
+    request_id = generate_id()
+    p = Path(os.path.join("Results", "CAD", payload.forgeProjectId, str(request_id)))
+    p.mkdir(parents=True, exist_ok=True)
+    with (p / f"result.info").open("w+") as f:
+        json.dump(
+            {
+                "id": request_id,
+                "name": payload.name,
+                "timestamp": datetime.today().strftime("%Y-%m-%d %H:%M:%S"),
+                "count": result.size(),
+            },
+            f,
+            indent=4,
+        )
+    # Maybe also add an index.dat to results, priority low
+    with (p / f"result.dat").open("w+") as f:
+        json.dump(result, f, cls=CLSEncoder, indent=4)
+    if result.size() != -1:
+        for i in range(result.size()):
+            with (p / f"{i}.json").open("w+") as f:
+                json.dump(result.evaluated[i].to_dict(), f, indent=4)
+    return str(request_id)
 
 
 @app.get("/results", response_class=FastResponse)
