@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="icon" href="/static/editTaxonomyGraph/favicon.ico" />
+    <title>cls-cytoscape</title>
+    <script
+      defer="defer"
+      src="/static/editTaxonomyGraph/js/chunk-vendors.534293a1.js"
+    ></script>
+    <script
+      defer="defer"
+      src="/static/editTaxonomyGraph/js/app.641dfe98.js"
+    ></script>
+    <link
+      href="/static/editTaxonomyGraph/css/app.54073d81.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <noscript
+      ><strong
+        >We're sorry but cls-cytoscape doesn't work properly without JavaScript
+        enabled. Please enable it to continue.</strong
+      ></noscript
+    >
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        let adskWaiter = setInterval(() => {
+          if (window.adsk) {
+            clearInterval(adskWaiter);
+            window.adsk
+              .fusionSendData("readyNotification", "{}")
+              .then((result) => {
+                console.log(result);
+              });
+          }
+        }, 100);
+      });
+    </script>
+    <div id="app"></div>
+  </body>
+</html>

@@ -1,17 +1,16 @@
 import json
 
 import jsonpickle
-
-from .fcl import (
-    Apply,
-    Combinator,
-    Failed,
+from bcls import (
+    Arrow,
+    Constructor,
     FiniteCombinatoryLogic,
-    InhabitationResult,
-    Tree,
+    Intersection,
+    Omega,
+    Product,
+    Subtypes,
 )
-from .subtypes import Subtypes
-from .types import Arrow, Constructor, Intersection, Omega, Product
+from bcls.enumeration import Tree
 
 
 class CLSEncoder(json.JSONEncoder):
@@ -36,21 +35,6 @@ class CLSEncoder(json.JSONEncoder):
                 "rule": self.default(o.rule),
                 "children": [self.default(c) for c in o.children],
             }
-        elif isinstance(o, Combinator):
-            return {
-                "__type__": CLSEncoder.tpe(o),
-                "target": self.default(o.target),
-                "combinator": self.combinator_hook(o.combinator),
-            }
-        elif isinstance(o, Apply):
-            return {
-                "__type__": CLSEncoder.tpe(o),
-                "target": self.default(o.target),
-                "function_type": self.default(o.function_type),
-                "argument_type": self.default(o.argument_type),
-            }
-        elif isinstance(o, Failed):
-            return {"__type__": CLSEncoder.tpe(o), "target": self.default(o.target)}
         elif isinstance(o, Arrow):
             return {
                 "__type__": CLSEncoder.tpe(o),
@@ -85,12 +69,6 @@ class CLSEncoder(json.JSONEncoder):
                     for k, v in o.environment.items()
                 },
             }
-        elif isinstance(o, InhabitationResult):
-            return {
-                "__type__": CLSEncoder.tpe(o),
-                "targets": [self.default(t) for t in o.targets],
-                "rules": [self.default(r) for r in o.rules],
-            }
         elif isinstance(o, FiniteCombinatoryLogic):
             return {
                 "__type__": CLSEncoder.tpe(o),
@@ -124,19 +102,6 @@ class CLSDecoder(json.JSONDecoder):
             tpe = dct["__type__"]
             if tpe == CLSDecoder.tpe(Tree):
                 return Tree(rule=dct["rule"], children=tuple(dct["children"]))
-            elif tpe == CLSDecoder.tpe(Combinator):
-                return Combinator(
-                    target=dct["target"],
-                    combinator=self.combinator_hook(dct["combinator"]),
-                )
-            elif tpe == CLSDecoder.tpe(Apply):
-                return Apply(
-                    target=dct["target"],
-                    function_type=dct["function_type"],
-                    argument_type=dct["argument_type"],
-                )
-            elif tpe == CLSDecoder.tpe(Failed):
-                return Failed(target=dct["target"])
             elif tpe == CLSDecoder.tpe(Arrow):
                 return Arrow(source=dct["source"], target=dct["target"])
             elif tpe == CLSDecoder.tpe(Intersection):
@@ -157,10 +122,6 @@ class CLSDecoder(json.JSONDecoder):
                         }
                         for k, v in dct["environment"].items()
                     }
-                )
-            elif tpe == CLSDecoder.tpe(InhabitationResult):
-                return InhabitationResult(
-                    targets=dct["targets"], rules={r for r in dct["rules"]}
                 )
             elif tpe == CLSDecoder.tpe(FiniteCombinatoryLogic):
                 return FiniteCombinatoryLogic(

@@ -3,65 +3,48 @@ import os
 from enum import Enum
 from pathlib import Path
 
-from cls_python import (
-    Arrow,
-    CLSDecoder,
-    CLSEncoder,
-    Constructor,
-    Subtypes,
-    Type,
-    deep_str,
-)
-from util.motion import combine_motions
-from util.set_json import SetDecoder
+from bcls import Arrow, Constructor, Omega, Subtypes, Type
 
-
-class Jsonify:
-    def __call__(self, x):
-        return Jsonify(self.config, [*self.data, x], self.info)
-
-    def __str__(self):
-        return deep_str(self.data)
-
-    def __init__(self, config, data, info):
-        self.config = config
-        self.data = data
-        self.info = info
-
-    def to_dict(self, motion="Rigid", count=1):
-        return dict(
-            name=self.info["partName"],
-            provides=self.config.provides["uuid"],
-            forgeDocumentId=self.info["forgeDocumentId"],
-            forgeFolderId=self.info["forgeFolderId"],
-            forgeProjectId=self.info["forgeProjectId"],
-            count=count,
-            cost=count * self.info["cost"],
-            availability=self.info["availability"],
-            motion=motion,
-            connections={
-                **{
-                    jo_info["uuid"]: part.to_dict(
-                        motion=combine_motions(
-                            self.config.provides["motion"], jo_info["motion"]
-                        ),
-                        count=count * jo_info["count"],
-                    )
-                    for (jo_info, part) in zip(self.config.joint_order_info, self.data)
-                }
-            },
-        )
+from cls_cps.cls_python.cls_json import CLSEncoder
+from cls_cps.util.motion import combine_motions
+from cls_cps.util.set_json import SetDecoder
 
 
 class Part:
-    def __call__(self, x):
-        return Jsonify(x, [], self.info)
+    def __call__(self, config, *x):
+        return dict(
+            name=self.info["partName"],
+            provides=config.provides["uuid"],
+            forgeDocumentId=self.info["forgeDocumentId"],
+            forgeFolderId=self.info["forgeFolderId"],
+            forgeProjectId=self.info["forgeProjectId"],
+            count=1,
+            cost=self.info["cost"],
+            availability=self.info["availability"],
+            motion=config.provides["motion"],
+            connections={
+                **{
+                    jo_info["uuid"]: dict(
+                        part,
+                        count=jo_info["count"],
+                        motion=combine_motions(
+                            config.provides["motion"], jo_info["motion"]
+                        ),
+                    )
+                    for (jo_info, part) in zip(config.joint_order_info, x)
+                }
+            },
+        )
 
     def __repr__(self):
         return ""
 
     def __str__(self):
         return ""
+
+    @staticmethod
+    def postprocess_part_json(data: dict):
+        pass
 
     def __eq__(self, other):
         return isinstance(other, Part)
@@ -103,7 +86,9 @@ class Role(str, Enum):
 
 
 def get_joint_origin_type(uuid: str, part: dict, role: Role):
-    return json.loads(json.dumps(part["jointOrigins"][uuid][role]), cls=CLSDecoder)
+    return Type.intersect(
+        [Constructor(tpe) for tpe in part["jointOrigins"][uuid][role]]
+    )
 
 
 def is_blacklisted_under_subtyping(
@@ -163,6 +148,20 @@ def multiarrow_from_types(type_list):
     return arrow
 
 
+def multiarrow_to_self(tpe, length):
+    return multiarrow_from_types([tpe] * length)
+
+
+def intersect_all_multiarrows_containing_type(tpe, length):
+    result = []
+    for x in range(length):
+        multiarrow_type_list = [Omega] * length
+        multiarrow_type_list[x] = tpe
+        multiarrow_type_list[-1] = tpe
+        result.append(multiarrow_from_types(multiarrow_type_list))
+    return Type.intersect(result)
+
+
 class RepositoryBuilder:
     @staticmethod
     def add_part_to_repository(
@@ -172,7 +171,7 @@ class RepositoryBuilder:
         blacklist=set(),
         connect_uuid=None,
         taxonomy: Subtypes = None,
-        passed_through_types=None
+        passed_through_types=[]
     ):
         """
         Adds a part to a repository to be used for synthesis. Adds necessary Constructors for the parts configurations,
@@ -184,6 +183,7 @@ class RepositoryBuilder:
         If a blacklist is provided, also adds Constructors for every encountered required type that is
         more specific than the blacklist.
 
+        :param passed_through_types:
         :param part: The JSON representation of the part to add to the repository. This uses set() as its array type.
         :param repository: The repository dict for the part to be added to. This should be then used for synthesis.
         :param blacklist: An optional set that represent a Types.intersect([blacklist]).
@@ -210,14 +210,26 @@ class RepositoryBuilder:
                 *[configuration["providesJointOrigin"]],
             ]
 
-            configuration_types.append(
-                Arrow(
-                    Constructor("-".join(ordered_list_of_configuration_uuids)),
-                    multiarrow_from_types(
-                        types_from_uuids(ordered_list_of_configuration_uuids, part)
-                    ),
-                )
+            config_types = types_from_uuids(ordered_list_of_configuration_uuids, part)
+            config_multiarrow = Arrow(
+                Constructor("-".join(ordered_list_of_configuration_uuids)),
+                multiarrow_from_types(config_types),
             )
+
+            if passed_through_types:
+                passed_through_types_intersections = [
+                    intersect_all_multiarrows_containing_type(
+                        Constructor(tpe), len(config_types) + 1
+                    )
+                    for tpe in passed_through_types
+                ]
+
+                config_multiarrow = Type.intersect(
+                    [*[config_multiarrow], *passed_through_types_intersections]
+                )
+
+            configuration_types.append(config_multiarrow)
+
             repository[
                 create_part_config_combinator(part, configuration)
             ] = Constructor("-".join(ordered_list_of_configuration_uuids))
@@ -255,7 +267,7 @@ class RepositoryBuilder:
         blacklist=set(),
         connect_uuid=None,
         taxonomy=None,
-        passed_through_types=None
+        passed_through_types=[]
     ):
         repository = {}
         with open("Repositories/CAD/index.dat", "r+") as f:
@@ -277,5 +289,6 @@ class RepositoryBuilder:
                         blacklist=blacklist,
                         connect_uuid=connect_uuid,
                         taxonomy=taxonomy,
+                        passed_through_types=passed_through_types,
                     )
         return repository

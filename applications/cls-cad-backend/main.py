@@ -9,25 +9,33 @@ from datetime import datetime
 from json import JSONDecodeError
 from pathlib import Path
 
+from bcls import (
+    Constructor,
+    FiniteCombinatoryLogic,
+    Subtypes,
+    Type,
+    Var,
+    enumerate_terms,
+    interpret_term,
+)
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from hypermapper import optimizer
 from starlette.staticfiles import StaticFiles
 
-from cls_python import CLSDecoder, CLSEncoder, FiniteCombinatoryLogic, Subtypes
-from hypermapper_tools.hypermapper_compatibility import (
+from cls_cps.hypermapper_tools.hypermapper_compatibility import (
     create_hypermapper_config,
     wrapped_synthesis_optimization_function,
 )
-from hypermapper_tools.hypermapper_visualisation import (
+from cls_cps.hypermapper_tools.hypermapper_visualisation import (
     compute_pareto_front,
     visualize_pareto_front,
 )
-from repository_builder import RepositoryBuilder
-from responses import FastResponse
-from schemas import PartInf, SynthesisRequestInf, TaxonomyInf
-from util.hrid import generate_id
-from util.set_json import SetDecoder, SetEncoder
+from cls_cps.repository_builder import RepositoryBuilder
+from cls_cps.responses import FastResponse
+from cls_cps.schemas import PartInf, SynthesisRequestInf, TaxonomyInf
+from cls_cps.util.hrid import generate_id
+from cls_cps.util.set_json import SetDecoder, SetEncoder
 
 origins = [
     "http://localhost:3000",
@@ -179,42 +187,51 @@ async def synthesize_assembly(
                 blacklist=payload.source,
                 connect_uuid=payload.sourceUuid,
                 taxonomy=taxonomy,
+                passed_through_types=payload.passedThroughTypes,
             ),
             taxonomy,
-            processes=1,
         )
     else:
         gamma = FiniteCombinatoryLogic(
             RepositoryBuilder.add_all_to_repository(payload.forgeProjectId),
             taxonomy,
-            processes=1,
         )
-    result = gamma.inhabit(json.loads(json.dumps(payload.target), cls=CLSDecoder))
+    query = Var(
+        Type.intersect(
+            [Constructor(x) for x in payload.target]
+            + [Constructor(tpe) for tpe in payload.passedThroughTypes],
+        )
+    )
+    result = gamma.inhabit(query)
+    terms = enumerate_terms(query, result)
+    interpreted_results = [interpret_term(term) for term in terms]
 
-    if result.size() == 0:
+    if not interpreted_results:
+        # with (Path() / f"result.dat").open("w+") as f:
+        #    json.dump(result, f, indent=4)
         return "FAIL"
 
     request_id = generate_id()
     p = Path(os.path.join("Results", "CAD", payload.forgeProjectId, str(request_id)))
     p.mkdir(parents=True, exist_ok=True)
-    with (p / f"result.info").open("w+") as f:
+    with (p / "result.info").open("w+") as f:
         json.dump(
             {
                 "id": request_id,
                 "name": payload.name,
                 "timestamp": datetime.today().strftime("%Y-%m-%d %H:%M:%S"),
-                "count": result.size(),
+                "count": len(interpreted_results),
             },
             f,
             indent=4,
         )
+
     # Maybe also add an index.dat to results, priority low
-    with (p / f"result.dat").open("w+") as f:
-        json.dump(result, f, cls=CLSEncoder, indent=4)
-    if result.size() != -1:
-        for i in range(result.size()):
-            with (p / f"{i}.json").open("w+") as f:
-                json.dump(result.evaluated[i].to_dict(), f, indent=4)
+    # with (p / "result.dat").open("w+") as f:
+    #    json.dump(result, f, indent=4)
+    for i, res in enumerate(interpreted_results):
+        with (p / f"{i}.json").open("w+") as f:
+            json.dump(res, f, indent=4)
     return str(request_id)
 
 
@@ -248,35 +265,29 @@ async def results_for_id(
     results = []
     if limit == 0:
         return results
-    if skip is not None and limit is not None:
-        result = json.load(
-            open(
-                os.path.join(f"Results/CAD/{project_id}/{request_id}", "result.dat"),
-            ),
-            cls=CLSDecoder,
-        )
 
+    for filename in glob.glob(
+        os.path.join(f"Results/CAD/{project_id}/{request_id}", "*.json")
+    ):
+        with open(os.path.join(os.getcwd(), filename)) as f:
+            results.append(json.load(f))
+
+    if skip is not None and limit is not None:
         return FastResponse(
             [
-                result.evaluated[result_id].to_dict()
+                results[result_id]
                 for result_id in (
-                    range(skip, skip + limit)
-                    if result.size() == -1
-                    else range(
-                        skip if skip < result.size() else result.size() - 1,
+                    range(
+                        skip if skip < len(results) else len(results) - 1,
                         skip + limit
-                        if (skip + limit) <= result.size()
-                        else result.size(),
+                        if (skip + limit) <= len(results)
+                        else len(results),
                     )
                 )
             ]
         )
     else:
-        for filename in glob.glob(
-            os.path.join(f"Results/CAD/{project_id}/{request_id}", "*.json")
-        ):
-            with open(os.path.join(os.getcwd(), filename)) as f:
-                results.append(json.load(f))
+
         return results
 
 

@@ -3,9 +3,11 @@ import os
 import sys
 from pathlib import Path
 
-from cls_python import CLSDecoder, FiniteCombinatoryLogic, Subtypes
-from repository_builder import RepositoryBuilder
-from util.set_json import SetDecoder
+from bcls import FiniteCombinatoryLogic, Subtypes
+
+from cls_cps.cls_python.cls_json import CLSDecoder
+from cls_cps.repository_builder import RepositoryBuilder
+from cls_cps.util.set_json import SetDecoder
 
 hypermapper_project_id = ""
 

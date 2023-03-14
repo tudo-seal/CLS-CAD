@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "cls-cps"
+version = "0.1.0"
+description = "A backend for synthesizing cyber-physical systems."
+authors = ["Constantin Chaumet <constantin.chaumet@tu-dortmund.de>"]
+readme = "README.md"
+packages = [{include = "cls_cps"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+bcls = {git = "https://github.com/christofsteel/bcls-python.git"}
+fastapi = "^0.94.0"
+uvicorn = "^0.21.0"
+jsonpickle = "^3.0.1"
+#hypermapper = "^2.2.12"
+plotly = "^5.13.1"
+pydantic = "^1.10.6"
+pandas = "^1.5.3"
+orjson = "^3.8.7"
+ujson = "^5.7.0"
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^3.1.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

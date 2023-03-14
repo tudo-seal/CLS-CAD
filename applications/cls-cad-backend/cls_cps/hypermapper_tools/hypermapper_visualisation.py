@@ -5,7 +5,7 @@ import pandas as pd
 import plotly.express as px
 
 # Taken from https://stackoverflow.com/questions/32791911/fast-calculation-of-pareto-front-in-python
-from util.set_json import SetDecoder
+from cls_cps.util.set_json import SetDecoder
 
 
 def is_pareto_efficient(costs, return_mask=True):

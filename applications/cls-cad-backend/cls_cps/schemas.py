@@ -2,14 +2,14 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from util.hrid import generate_id
+from cls_cps.util.hrid import generate_id
 
 
 class JointOriginInf(BaseModel, frozen=True):
     motion: Literal["Rigid", "Revolute"]
     count: int
-    requires: dict
-    provides: dict
+    requires: list
+    provides: list
 
 
 class MetaInf(BaseModel, frozen=True):
@@ -39,9 +39,9 @@ class TaxonomyInf(BaseModel, frozen=True):
 
 class SynthesisRequestInf(BaseModel, frozen=True):
     forgeProjectId: str
-    target: dict
+    target: list[str]
     name: str | None = generate_id()
     tag: str | None = None
     source: list | None = None
     sourceUuid: str | None = None
-    passedThroughTypes: list | None = None
+    passedThroughTypes: list = []
