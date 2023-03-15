@@ -193,7 +193,11 @@ async def synthesize_assembly(
         )
     else:
         gamma = FiniteCombinatoryLogic(
-            RepositoryBuilder.add_all_to_repository(payload.forgeProjectId),
+            RepositoryBuilder.add_all_to_repository(
+                payload.forgeProjectId,
+                taxonomy=taxonomy,
+                passed_through_types=payload.passedThroughTypes,
+            ),
             taxonomy,
         )
     query = Var(

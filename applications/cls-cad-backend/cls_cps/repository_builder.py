@@ -1,9 +1,11 @@
 import json
 import os
 from enum import Enum
+from functools import reduce
 from pathlib import Path
 
 from bcls import Arrow, Constructor, Omega, Subtypes, Type
+from bcls.debug_util import deep_str
 
 from cls_cps.cls_python.cls_json import CLSEncoder
 from cls_cps.util.motion import combine_motions
@@ -46,9 +48,6 @@ class Part:
     def postprocess_part_json(data: dict):
         pass
 
-    def __eq__(self, other):
-        return isinstance(other, Part)
-
     def __hash__(self):
         return hash(json.dumps(self.info))
 
@@ -57,10 +56,7 @@ class Part:
         self.info = info
 
     def __eq__(self, other):
-        if self.__hash__() == other.__hash__():
-            return True
-        else:
-            return False
+        return isinstance(other, Part) and self.__hash__() == other.__hash__()
 
 
 # additional info about the parts configuration options
@@ -142,10 +138,7 @@ def types_from_uuids(uuids: list, part: dict):
 
 
 def multiarrow_from_types(type_list):
-    arrow = type_list.pop()
-    for x in reversed(type_list):
-        arrow = Arrow(x, arrow)
-    return arrow
+    return reduce(lambda a, b: Arrow(b, a), reversed(type_list))
 
 
 def multiarrow_to_self(tpe, length):
@@ -154,10 +147,12 @@ def multiarrow_to_self(tpe, length):
 
 def intersect_all_multiarrows_containing_type(tpe, length):
     result = []
-    for x in range(length):
-        multiarrow_type_list = [Omega] * length
+    for x in range(1, length - 1):
+        multiarrow_type_list = [Omega()] * length
         multiarrow_type_list[x] = tpe
         multiarrow_type_list[-1] = tpe
+        print(deep_str(multiarrow_type_list))
+        print(multiarrow_from_types(multiarrow_type_list))
         result.append(multiarrow_from_types(multiarrow_type_list))
     return Type.intersect(result)
 
@@ -227,7 +222,6 @@ class RepositoryBuilder:
                 config_multiarrow = Type.intersect(
                     [*[config_multiarrow], *passed_through_types_intersections]
                 )
-
             configuration_types.append(config_multiarrow)
 
             repository[
