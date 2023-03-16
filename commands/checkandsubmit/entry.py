@@ -299,16 +299,8 @@ def create_backend_json():
                 cnt_uuid.value == info[0]
                 for cnt_uuid in design.findAttributes("CLS-INFO", "UUID")
             ),
-            "requires": CLSEncoder().default(
-                Type.intersect([Constructor(t) for t in info[1]])
-            )
-            if info[1]
-            else {},
-            "provides": CLSEncoder().default(
-                Type.intersect([Constructor(t) for t in info[2]])
-            )
-            if info[4]
-            else {},
+            "requires": info[1] if info[1] else [],
+            "provides": info[2] if info[4] else [],
         }
     return part_dict
 

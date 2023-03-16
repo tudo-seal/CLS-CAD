@@ -194,11 +194,14 @@ def command_execute(args: adsk.core.CommandEventArgs):
             if app.activeDocument.dataFile is not None
             else app.data.activeProject.rootFolder
         )
-        submit_files_in_folder(root_folder)
-        recursively_submit(root_folder.dataFolders)
 
         # Load correct project taxonomies before submitting
         load_project_taxonomy_to_config()
+
+        submit_files_in_folder(root_folder)
+        recursively_submit(root_folder.dataFolders)
+
+        progress_dialog.hide()
 
         # why not also update the taxonomy in the backend while we are at it?
         payload_dict = create_backend_taxonomy()

@@ -253,17 +253,14 @@ def command_execute(args: adsk.core.CommandEventArgs):
     global provides_attributes, provides_parts
     app = adsk.core.Application.get()
     request_dict = {
-        "target": Type.intersect(
-            [Constructor(f"{x}_parts") for x in provides_parts]
-            + [Constructor(f"{x}_attributes") for x in provides_attributes]
-        ),
+        "target": [f"{x}_parts" for x in provides_parts]
+        + [f"{x}_attributes" for x in provides_attributes],
         "forgeProjectId": app.activeDocument.dataFile.parentProject.id
         if app.activeDocument.dataFile is not None
         else app.data.activeProject.id,
     }
     payload = json.dumps(
         request_dict,
-        cls=CLSEncoder,
         indent=4,
     ).encode("utf-8")
     print("Send request")
