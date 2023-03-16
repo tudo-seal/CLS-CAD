@@ -106,7 +106,7 @@ async def save_part(
         data["parts"][payload.meta.forgeDocumentId] = {
             "forgeProjectId": payload.meta.forgeProjectId,
             "forgeFolderId": payload.meta.forgeFolderId,
-            "name": payload.meta.partName,
+            "name": payload.meta.name,
         }
         data["projects"][payload.meta.forgeProjectId]["folders"].add(
             payload.meta.forgeFolderId
@@ -180,14 +180,14 @@ async def synthesize_assembly(
             cls=SetDecoder,
         )
     )
-    if payload.source and payload.sourceUuid:
+    if payload.blacklist and payload.sourceUuid:
         gamma = FiniteCombinatoryLogic(
             RepositoryBuilder.add_all_to_repository(
                 payload.forgeProjectId,
-                blacklist=payload.source,
+                blacklist=payload.blacklist,
                 connect_uuid=payload.sourceUuid,
                 taxonomy=taxonomy,
-                passed_through_types=payload.passedThroughTypes,
+                propagated_types=payload.propagate,
             ),
             taxonomy,
         )
@@ -196,14 +196,17 @@ async def synthesize_assembly(
             RepositoryBuilder.add_all_to_repository(
                 payload.forgeProjectId,
                 taxonomy=taxonomy,
-                passed_through_types=payload.passedThroughTypes,
+                propagated_types=payload.propagate,
             ),
             taxonomy,
         )
     query = Var(
         Type.intersect(
             [Constructor(x) for x in payload.target]
-            + [Constructor(tpe) for tpe in payload.passedThroughTypes],
+            + [
+                Type.intersect([Constructor(tpe) for tpe in tpe_list])
+                for tpe_list in payload.propagate
+            ],
         )
     )
     result = gamma.inhabit(query)

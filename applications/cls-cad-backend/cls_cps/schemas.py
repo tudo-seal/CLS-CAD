@@ -13,7 +13,7 @@ class JointOriginInf(BaseModel, frozen=True):
 
 
 class MetaInf(BaseModel, frozen=True):
-    partName: str
+    name: str
     forgeDocumentId: str
     forgeFolderId: str
     forgeProjectId: str
@@ -42,6 +42,7 @@ class SynthesisRequestInf(BaseModel, frozen=True):
     target: list[str]
     name: str | None = generate_id()
     tag: str | None = None
-    source: list | None = None
+    blacklist: list | None = None
+    whitelist: list | None = None
     sourceUuid: str | None = None
-    passedThroughTypes: list = []
+    propagate: list[list] = []

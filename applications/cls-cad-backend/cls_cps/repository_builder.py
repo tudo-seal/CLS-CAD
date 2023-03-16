@@ -13,33 +13,26 @@ from cls_cps.util.set_json import SetDecoder
 
 
 class Part:
-    def __call__(self, config, *x):
+    def __call__(self, *required_parts):
         return dict(
-            name=self.info["partName"],
-            provides=config.provides["uuid"],
-            forgeDocumentId=self.info["forgeDocumentId"],
-            forgeFolderId=self.info["forgeFolderId"],
-            forgeProjectId=self.info["forgeProjectId"],
+            self.info,
             count=1,
-            cost=self.info["cost"],
-            availability=self.info["availability"],
-            motion=config.provides["motion"],
             connections={
-                **{
-                    jo_info["uuid"]: dict(
-                        part,
-                        count=jo_info["count"],
-                        motion=combine_motions(
-                            config.provides["motion"], jo_info["motion"]
-                        ),
-                    )
-                    for (jo_info, part) in zip(config.joint_order_info, x)
-                }
+                uuid: dict(
+                    required_part.info
+                    if isinstance(required_part, Part)
+                    else required_part,
+                    count=uuid_info["count"],
+                    motion=combine_motions(self.info["motion"], uuid_info["motion"]),
+                )
+                for (uuid, uuid_info), required_part in zip(
+                    self.info["requiredJointOriginsInfo"].items(), required_parts
+                )
             },
         )
 
     def __repr__(self):
-        return ""
+        return self.__call__()
 
     def __str__(self):
         return ""
@@ -57,23 +50,6 @@ class Part:
 
     def __eq__(self, other):
         return isinstance(other, Part) and self.__hash__() == other.__hash__()
-
-
-# additional info about the parts configuration options
-class PartConfig:
-    def __init__(self, joint_order_info: list, provides):
-        # Create combinator type here based on some JSON payload in future
-        self.joint_order_info = joint_order_info
-        self.provides = provides
-
-    def __hash__(self):
-        return hash(json.dumps(self.joint_order_info) + json.dumps(self.provides))
-
-    def __eq__(self, other):
-        if self.__hash__() == other.__hash__():
-            return True
-        else:
-            return False
 
 
 class Role(str, Enum):
@@ -96,23 +72,21 @@ def is_blacklisted_under_subtyping(
     )
 
 
-def create_part_config_combinator(part, configuration):
-    return PartConfig(
-        [
-            dict(part["jointOrigins"][x], **{"uuid": x})
-            for x in configuration["requiresJointOrigins"]
-        ],
-        dict(
-            part["jointOrigins"][configuration["providesJointOrigin"]],
-            **{"uuid": configuration["providesJointOrigin"]},
-        ),
-    )
+def fetch_required_joint_origins_info(part, configuration):
+    return {
+        joint_origin_uuid: fetch_joint_origin_info(part, joint_origin_uuid)
+        for joint_origin_uuid in configuration["requiresJointOrigins"]
+    }
+
+
+def fetch_joint_origin_info(part, joint_origin_uuid: str):
+    return part["jointOrigins"][joint_origin_uuid]
 
 
 def create_virtual_substitute_part(part, required_joint_origin_uuid):
     return Part(
         {
-            "partName": "clsconnectmarker_"
+            "name": "clsconnectmarker_"
             + str(
                 hash(
                     json.dumps(
@@ -126,6 +100,9 @@ def create_virtual_substitute_part(part, required_joint_origin_uuid):
             "forgeDocumentId": "NoInsert",
             "forgeFolderId": "NoInsert",
             "forgeProjectId": "NoInsert",
+            "jointOrder": {},
+            "provides": required_joint_origin_uuid,
+            "motion": "Rigid",
         }
     )
 
@@ -147,7 +124,7 @@ def multiarrow_to_self(tpe, length):
 
 def intersect_all_multiarrows_containing_type(tpe, length):
     result = []
-    for x in range(1, length - 1):
+    for x in range(0, length - 1):
         multiarrow_type_list = [Omega()] * length
         multiarrow_type_list[x] = tpe
         multiarrow_type_list[-1] = tpe
@@ -166,7 +143,7 @@ class RepositoryBuilder:
         blacklist=set(),
         connect_uuid=None,
         taxonomy: Subtypes = None,
-        passed_through_types=[]
+        propagated_types=[]
     ):
         """
         Adds a part to a repository to be used for synthesis. Adds necessary Constructors for the parts configurations,
@@ -178,7 +155,7 @@ class RepositoryBuilder:
         If a blacklist is provided, also adds Constructors for every encountered required type that is
         more specific than the blacklist.
 
-        :param passed_through_types:
+        :param propagated_types:
         :param part: The JSON representation of the part to add to the repository. This uses set() as its array type.
         :param repository: The repository dict for the part to be added to. This should be then used for synthesis.
         :param blacklist: An optional set that represent a Types.intersect([blacklist]).
@@ -189,7 +166,7 @@ class RepositoryBuilder:
         for configuration in part["configurations"]:
             # Since SetDecoder is used for creating the part dict, we can just check if the part provides the leaf type
             # or an even more specific type, which we also can not allow.
-            configuration_types = []
+            pass
 
             if is_blacklisted_under_subtyping(
                 blacklist,
@@ -206,27 +183,35 @@ class RepositoryBuilder:
             ]
 
             config_types = types_from_uuids(ordered_list_of_configuration_uuids, part)
-            config_multiarrow = Arrow(
-                Constructor("-".join(ordered_list_of_configuration_uuids)),
-                multiarrow_from_types(config_types),
-            )
+            config_multiarrow = multiarrow_from_types(config_types)
 
-            if passed_through_types:
-                passed_through_types_intersections = [
+            if propagated_types:
+                propagated_types_intersections = [
                     intersect_all_multiarrows_containing_type(
-                        Constructor(tpe), len(config_types) + 1
+                        Type.intersect([Constructor(tpe) for tpe in tpe_list]),
+                        len(config_types),
                     )
-                    for tpe in passed_through_types
+                    for tpe_list in propagated_types
                 ]
 
                 config_multiarrow = Type.intersect(
-                    [*[config_multiarrow], *passed_through_types_intersections]
+                    [*[config_multiarrow], *propagated_types_intersections]
                 )
-            configuration_types.append(config_multiarrow)
 
             repository[
-                create_part_config_combinator(part, configuration)
-            ] = Constructor("-".join(ordered_list_of_configuration_uuids))
+                Part(
+                    dict(
+                        part["meta"],
+                        requiredJointOriginsInfo=fetch_required_joint_origins_info(
+                            part, configuration
+                        ),
+                        provides=configuration["providesJointOrigin"],
+                        motion=fetch_joint_origin_info(
+                            part, configuration["providesJointOrigin"]
+                        )["motion"],
+                    )
+                )
+            ] = config_multiarrow
 
             for required_joint_origin_uuid in configuration["requiresJointOrigins"]:
                 # If a joint would require a blacklisted type or a subtype of it, we add that specific
@@ -239,20 +224,9 @@ class RepositoryBuilder:
 
                 repository[
                     create_virtual_substitute_part(part, required_joint_origin_uuid)
-                ] = Arrow(
-                    Constructor(connect_uuid),
-                    get_joint_origin_type(
-                        required_joint_origin_uuid, part, Role.requires
-                    ),
+                ] = get_joint_origin_type(
+                    required_joint_origin_uuid, part, Role.requires
                 )
-                repository[
-                    PartConfig(
-                        [],
-                        {"uuid": connect_uuid, "count": 1, "motion": "Rigid"},
-                    )
-                ] = Constructor(connect_uuid)
-
-        repository[Part(part["meta"])] = Type.intersect(configuration_types)
 
     @staticmethod
     def add_all_to_repository(
@@ -261,7 +235,7 @@ class RepositoryBuilder:
         blacklist=set(),
         connect_uuid=None,
         taxonomy=None,
-        passed_through_types=[]
+        propagated_types=[]
     ):
         repository = {}
         with open("Repositories/CAD/index.dat", "r+") as f:
@@ -283,6 +257,6 @@ class RepositoryBuilder:
                         blacklist=blacklist,
                         connect_uuid=connect_uuid,
                         taxonomy=taxonomy,
-                        passed_through_types=passed_through_types,
+                        propagated_types=propagated_types,
                     )
         return repository
