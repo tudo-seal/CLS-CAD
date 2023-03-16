@@ -269,7 +269,7 @@ def create_backend_json():
             }
         )
 
-    part_dict["meta"]["partName"] = app.activeDocument.name
+    part_dict["meta"]["name"] = app.activeDocument.name
     # this might be wrong and return the browsed ID
     part_dict["meta"]["forgeProjectId"] = app.activeDocument.dataFile.parentProject.id
     part_dict["meta"]["forgeFolderId"] = app.activeDocument.dataFile.parentFolder.id
