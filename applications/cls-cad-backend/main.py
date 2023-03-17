@@ -1,12 +1,7 @@
-from __future__ import annotations
-
-import glob
 import json
 import mimetypes
 import os
-from collections import defaultdict
 from datetime import datetime
-from json import JSONDecodeError
 from pathlib import Path
 
 from bcls import (
@@ -23,6 +18,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from hypermapper import optimizer
 from starlette.staticfiles import StaticFiles
 
+from cls_cps.database.commands import (
+    get_all_projects_in_results,
+    get_all_result_ids_for_project,
+    get_result_for_id,
+    get_taxonomy_for_project,
+    init_database,
+    upsert_part,
+    upsert_result,
+    upsert_taxonomy,
+)
 from cls_cps.hypermapper_tools.hypermapper_compatibility import (
     create_hypermapper_config,
     wrapped_synthesis_optimization_function,
@@ -35,7 +40,6 @@ from cls_cps.repository_builder import RepositoryBuilder
 from cls_cps.responses import FastResponse
 from cls_cps.schemas import PartInf, SynthesisRequestInf, TaxonomyInf
 from cls_cps.util.hrid import generate_id
-from cls_cps.util.set_json import SetDecoder, SetEncoder
 
 origins = [
     "http://localhost:3000",
@@ -58,6 +62,8 @@ mimetypes.add_type("application/javascript", ".js")
 
 app.mount("/static", StaticFiles(directory="static", html=True), name="static")
 
+init_database()
+
 
 @app.get("/")
 async def root():
@@ -70,55 +76,7 @@ async def root():
 async def save_part(
     payload: PartInf,
 ):
-    p = Path(
-        os.path.join(
-            "Repositories",
-            "CAD",
-            payload.meta.forgeProjectId,
-            payload.meta.forgeFolderId,
-        ).replace(":", "-")
-    )
-    p.mkdir(parents=True, exist_ok=True)
-    with (p / payload.meta.forgeDocumentId.replace(":", "-")).open("w+") as f:
-        json.dump(payload.dict(), f, indent=4, cls=SetEncoder)
-
-    Path("Repositories/CAD/index.dat").touch(exist_ok=True)
-    with open("Repositories/CAD/index.dat", "r+") as f:
-        data = defaultdict(lambda: defaultdict(lambda: defaultdict(set)))
-        try:
-            data = json.load(f, cls=SetDecoder)
-        # incase we switch to pickle later on
-        except EOFError:
-            pass
-        except JSONDecodeError:
-            # ToDo: Implement reindexing
-            print("JSON wouldn't decode. Probably tampered, re-indexing...")
-
-        data["folders"][payload.meta.forgeFolderId] = set()
-        data["projects"].setdefault(
-            payload.meta.forgeProjectId,
-            {
-                "folders": set(),
-                "documents": set(),
-            },
-        )
-
-        data["parts"][payload.meta.forgeDocumentId] = {
-            "forgeProjectId": payload.meta.forgeProjectId,
-            "forgeFolderId": payload.meta.forgeFolderId,
-            "name": payload.meta.name,
-        }
-        data["projects"][payload.meta.forgeProjectId]["folders"].add(
-            payload.meta.forgeFolderId
-        )
-        data["projects"][payload.meta.forgeProjectId]["documents"].add(
-            payload.meta.forgeDocumentId
-        )
-        data["folders"][payload.meta.forgeFolderId].add(payload.meta.forgeDocumentId)
-        f.seek(0)
-        f.truncate()
-        json.dump(data, f, cls=SetEncoder, indent=4)
-
+    upsert_part(payload.dict(by_alias=True))
     return "OK"
 
 
@@ -126,16 +84,7 @@ async def save_part(
 async def save_taxonomy(
     payload: TaxonomyInf,
 ):
-    p = Path(
-        os.path.join(
-            "Taxonomies",
-            "CAD",
-            payload.forgeProjectId,
-        ).replace(":", "-")
-    )
-    p.mkdir(parents=True, exist_ok=True)
-    with open(f"Taxonomies/CAD/{payload.forgeProjectId}/taxonomy.dat", "w+") as f:
-        json.dump(payload.taxonomy, f, cls=SetEncoder, indent=4)
+    upsert_taxonomy(payload.dict(by_alias=True))
 
 
 @app.post("/request/assembly/optimization")
@@ -174,32 +123,18 @@ async def request_optimization(
 async def synthesize_assembly(
     payload: SynthesisRequestInf,
 ):
-    taxonomy = Subtypes(
-        json.load(
-            open(f"Taxonomies/CAD/{payload.forgeProjectId}/taxonomy.dat"),
-            cls=SetDecoder,
-        )
+    taxonomy = Subtypes(get_taxonomy_for_project(payload.forgeProjectId)["taxonomy"])
+    gamma = FiniteCombinatoryLogic(
+        RepositoryBuilder.add_all_to_repository(
+            payload.forgeProjectId,
+            blacklist=payload.blacklist,
+            connect_uuid=payload.sourceUuid,
+            taxonomy=taxonomy,
+            propagated_types=payload.propagate,
+        ),
+        taxonomy,
     )
-    if payload.blacklist and payload.sourceUuid:
-        gamma = FiniteCombinatoryLogic(
-            RepositoryBuilder.add_all_to_repository(
-                payload.forgeProjectId,
-                blacklist=payload.blacklist,
-                connect_uuid=payload.sourceUuid,
-                taxonomy=taxonomy,
-                propagated_types=payload.propagate,
-            ),
-            taxonomy,
-        )
-    else:
-        gamma = FiniteCombinatoryLogic(
-            RepositoryBuilder.add_all_to_repository(
-                payload.forgeProjectId,
-                taxonomy=taxonomy,
-                propagated_types=payload.propagate,
-            ),
-            taxonomy,
-        )
+
     query = Var(
         Type.intersect(
             [Constructor(x) for x in payload.target]
@@ -211,55 +146,33 @@ async def synthesize_assembly(
     )
     result = gamma.inhabit(query)
     terms = enumerate_terms(query, result)
-    interpreted_results = [interpret_term(term) for term in terms]
-
-    if not interpreted_results:
-        # with (Path() / f"result.dat").open("w+") as f:
-        #    json.dump(result, f, indent=4)
+    interpreted_terms = [interpret_term(term) for term in terms]
+    print(interpreted_terms[0])
+    if not interpreted_terms:
         return "FAIL"
 
     request_id = generate_id()
-    p = Path(os.path.join("Results", "CAD", payload.forgeProjectId, str(request_id)))
-    p.mkdir(parents=True, exist_ok=True)
-    with (p / "result.info").open("w+") as f:
-        json.dump(
-            {
-                "id": request_id,
-                "name": payload.name,
-                "timestamp": datetime.today().strftime("%Y-%m-%d %H:%M:%S"),
-                "count": len(interpreted_results),
-            },
-            f,
-            indent=4,
-        )
-
-    # Maybe also add an index.dat to results, priority low
-    # with (p / "result.dat").open("w+") as f:
-    #    json.dump(result, f, indent=4)
-    for i, res in enumerate(interpreted_results):
-        with (p / f"{i}.json").open("w+") as f:
-            json.dump(res, f, indent=4)
+    upsert_result(
+        {
+            "_id": request_id,
+            "forgeProjectId": payload.forgeProjectId,
+            "name": payload.name,
+            "timestamp": datetime.today().strftime("%Y-%m-%d %H:%M:%S"),
+            "count": len(interpreted_terms),
+            "interpretedTerms": interpreted_terms,
+        }
+    )
     return str(request_id)
 
 
 @app.get("/results", response_class=FastResponse)
 async def list_result_ids():
-    cad_dir = "Results/CAD"
-    return [
-        item
-        for item in os.listdir(cad_dir)
-        if os.path.isdir(os.path.join(cad_dir, item))
-    ]
+    return get_all_projects_in_results()
 
 
 @app.get("/results/{project_id}", response_class=FastResponse)
 async def list_result_ids(project_id: str):
-    cad_dir = f"Results/CAD/{project_id}"
-    return [
-        json.load(open(os.path.join(cad_dir, item, "result.info")))
-        for item in os.listdir(cad_dir)
-        if os.path.isdir(os.path.join(cad_dir, item))
-    ]
+    return [dict(x, id=x["_id"]) for x in get_all_result_ids_for_project(project_id)]
 
 
 @app.get("/results/{project_id}/{request_id}", response_class=FastResponse)
@@ -269,15 +182,10 @@ async def results_for_id(
     skip: int | None = None,
     limit: int | None = None,
 ):
-    results = []
     if limit == 0:
-        return results
+        return []
 
-    for filename in glob.glob(
-        os.path.join(f"Results/CAD/{project_id}/{request_id}", "*.json")
-    ):
-        with open(os.path.join(os.getcwd(), filename)) as f:
-            results.append(json.load(f))
+    results = get_result_for_id(request_id)["interpretedTerms"]
 
     if skip is not None and limit is not None:
         return FastResponse(
@@ -294,17 +202,13 @@ async def results_for_id(
             ]
         )
     else:
-
         return results
 
 
 @app.get("/results/{project_id}/{request_id}/{result_id}", response_class=FastResponse)
 async def results_for_id(project_id: str, request_id: str, result_id: int):
-    result = json.load(
-        open(os.path.join(f"Results/CAD/{project_id}/{request_id}", "result.dat")),
-        cls=CLSDecoder,
-    )
-    if result_id < result.size() or result.size() == -1:
-        return FastResponse(result.evaluated[result_id].to_dict())
+    results = get_result_for_id(request_id)["interpretedTerms"]
+    if result_id < len(results) or len(results) == -1:
+        return FastResponse(results[result_id])
     else:
         return dict()

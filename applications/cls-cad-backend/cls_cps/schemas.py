@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from cls_cps.util.hrid import generate_id
 
@@ -27,12 +27,14 @@ class PartConfigInf(BaseModel, frozen=True):
 
 
 class PartInf(BaseModel, frozen=True):
+    id: str = Field(..., alias="_id")
     configurations: list[PartConfigInf]
     meta: MetaInf
     jointOrigins: dict[str, JointOriginInf]
 
 
 class TaxonomyInf(BaseModel, frozen=True):
+    id: str = Field(..., alias="_id")
     forgeProjectId: str
     taxonomy: dict
 

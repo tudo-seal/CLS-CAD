@@ -191,3 +191,6 @@ migrations/
 Repositories
 Results
 Taxonomies
+
+# Decouple
+.env

@@ -1,15 +1,13 @@
 import json
-import os
 from enum import Enum
 from functools import reduce
-from pathlib import Path
 
 from bcls import Arrow, Constructor, Omega, Subtypes, Type
 from bcls.debug_util import deep_str
 
 from cls_cps.cls_python.cls_json import CLSEncoder
+from cls_cps.database.commands import get_all_parts_for_project
 from cls_cps.util.motion import combine_motions
-from cls_cps.util.set_json import SetDecoder
 
 
 class Part:
@@ -24,6 +22,7 @@ class Part:
                     else required_part,
                     count=uuid_info["count"],
                     motion=combine_motions(self.info["motion"], uuid_info["motion"]),
+                    connections={},
                 )
                 for (uuid, uuid_info), required_part in zip(
                     self.info["requiredJointOriginsInfo"].items(), required_parts
@@ -140,7 +139,7 @@ class RepositoryBuilder:
         part: dict,
         repository: dict,
         *,
-        blacklist=set(),
+        blacklist=None,
         connect_uuid=None,
         taxonomy: Subtypes = None,
         propagated_types=[]
@@ -232,31 +231,20 @@ class RepositoryBuilder:
     def add_all_to_repository(
         project_id: str,
         *,
-        blacklist=set(),
+        blacklist=None,
         connect_uuid=None,
         taxonomy=None,
         propagated_types=[]
     ):
         repository = {}
-        with open("Repositories/CAD/index.dat", "r+") as f:
-            data = json.load(f, cls=SetDecoder)
-            for entry in data["projects"][project_id]["documents"]:
-                p = Path(
-                    os.path.join(
-                        "Repositories",
-                        "CAD",
-                        data["parts"][entry]["forgeProjectId"],
-                        data["parts"][entry]["forgeFolderId"],
-                    ).replace(":", "-")
-                )
-                with (p / entry.replace(":", "-")).open("r") as fp:
-                    part = json.load(fp)
-                    RepositoryBuilder.add_part_to_repository(
-                        part,
-                        repository,
-                        blacklist=blacklist,
-                        connect_uuid=connect_uuid,
-                        taxonomy=taxonomy,
-                        propagated_types=propagated_types,
-                    )
+        for part in get_all_parts_for_project(project_id):
+            print(part)
+            RepositoryBuilder.add_part_to_repository(
+                part,
+                repository,
+                blacklist=blacklist,
+                connect_uuid=connect_uuid,
+                taxonomy=taxonomy,
+                propagated_types=propagated_types,
+            )
         return repository
