@@ -61,15 +61,7 @@ mimetypes.init()
 mimetypes.add_type("application/javascript", ".js")
 
 app.mount("/static", StaticFiles(directory="static", html=True), name="static")
-
 init_database()
-
-
-@app.get("/")
-async def root():
-    return {
-        "message": "Welcome to the CLS-CPS backend. Head to /docs for information about endpoints."
-    }
 
 
 @app.post("/submit/part")
@@ -211,3 +203,7 @@ async def results_for_id(project_id: str, request_id: str, result_id: int):
         return FastResponse(results[result_id])
     else:
         return dict()
+
+
+# Finally, mount webpage for root.
+app.mount("/", StaticFiles(directory="static/welcomePage", html=True), name="landing")
