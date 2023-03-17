@@ -3,7 +3,6 @@ from enum import Enum
 from functools import reduce
 
 from bcls import Arrow, Constructor, Omega, Subtypes, Type
-from bcls.debug_util import deep_str
 
 from cls_cps.cls_python.cls_json import CLSEncoder
 from cls_cps.database.commands import get_all_parts_for_project
@@ -17,12 +16,11 @@ class Part:
             count=1,
             connections={
                 uuid: dict(
-                    required_part.info
+                    required_part()
                     if isinstance(required_part, Part)
                     else required_part,
                     count=uuid_info["count"],
                     motion=combine_motions(self.info["motion"], uuid_info["motion"]),
-                    connections={},
                 )
                 for (uuid, uuid_info), required_part in zip(
                     self.info["requiredJointOriginsInfo"].items(), required_parts
@@ -35,10 +33,6 @@ class Part:
 
     def __str__(self):
         return ""
-
-    @staticmethod
-    def postprocess_part_json(data: dict):
-        pass
 
     def __hash__(self):
         return hash(json.dumps(self.info))
@@ -127,8 +121,6 @@ def intersect_all_multiarrows_containing_type(tpe, length):
         multiarrow_type_list = [Omega()] * length
         multiarrow_type_list[x] = tpe
         multiarrow_type_list[-1] = tpe
-        print(deep_str(multiarrow_type_list))
-        print(multiarrow_from_types(multiarrow_type_list))
         result.append(multiarrow_from_types(multiarrow_type_list))
     return Type.intersect(result)
 
@@ -238,7 +230,6 @@ class RepositoryBuilder:
     ):
         repository = {}
         for part in get_all_parts_for_project(project_id):
-            print(part)
             RepositoryBuilder.add_part_to_repository(
                 part,
                 repository,

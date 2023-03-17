@@ -9,7 +9,6 @@ from bcls import (
     FiniteCombinatoryLogic,
     Subtypes,
     Type,
-    Var,
     enumerate_terms,
     interpret_term,
 )
@@ -40,6 +39,7 @@ from cls_cps.repository_builder import RepositoryBuilder
 from cls_cps.responses import FastResponse
 from cls_cps.schemas import PartInf, SynthesisRequestInf, TaxonomyInf
 from cls_cps.util.hrid import generate_id
+from cls_cps.util.json_operations import postprocess
 
 origins = [
     "http://localhost:3000",
@@ -135,19 +135,18 @@ async def synthesize_assembly(
         taxonomy,
     )
 
-    query = Var(
-        Type.intersect(
-            [Constructor(x) for x in payload.target]
-            + [
-                Type.intersect([Constructor(tpe) for tpe in tpe_list])
-                for tpe_list in payload.propagate
-            ],
-        )
+    query = Type.intersect(
+        [Constructor(x) for x in payload.target]
+        + [
+            Type.intersect([Constructor(tpe) for tpe in tpe_list])
+            for tpe_list in payload.propagate
+        ],
     )
+
     result = gamma.inhabit(query)
     terms = enumerate_terms(query, result)
-    interpreted_terms = [interpret_term(term) for term in terms]
-    print(interpreted_terms[0])
+    interpreted_terms = [postprocess(interpret_term(term)) for term in terms]
+
     if not interpreted_terms:
         return "FAIL"
 
