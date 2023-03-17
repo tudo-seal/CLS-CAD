@@ -79,7 +79,7 @@ celerybeat-schedule
 
 # dotenv
 # Kept for config and no secrets so far
-#.env
+.env
 
 # virtualenv
 venv/
@@ -191,6 +191,3 @@ migrations/
 Repositories
 Results
 Taxonomies
-
-# Decouple
-.env
