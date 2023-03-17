@@ -183,6 +183,7 @@ def create_backend_taxonomy():
     for key, value in config.taxonomies.items():
         suffixed_taxonomy.update(TaxonomyConverter.convert(value, key))
     payload_dict = {
+        "_id": app.activeDocument.dataFile.parentProject.id,
         "taxonomy": suffixed_taxonomy,
         "forgeProjectId": app.activeDocument.dataFile.parentProject.id
         if app.activeDocument.dataFile is not None
@@ -256,7 +257,12 @@ def create_backend_json():
                 len(jo_prov_formats),
             )
         )
-    part_dict = {"configurations": [], "meta": {}, "jointOrigins": {}}
+    part_dict = {
+        "_id": app.activeDocument.dataFile.id,
+        "configurations": [],
+        "meta": {},
+        "jointOrigins": {},
+    }
 
     # Only add to top-level intersection per provide
     # Needs slight change if provides ever becomes a real array
