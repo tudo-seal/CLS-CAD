@@ -1,12 +1,13 @@
 import json
 import os
 from datetime import datetime
+from pathlib import Path
 
 import adsk.core
 
 from ... import config
 from ...lib import fusion360utils as futil
-from ...lib.general_utils import load_project_taxonomy_to_config
+from ...lib.general_utils import load_project_taxonomy_to_config, winapi_path
 
 app = adsk.core.Application.get()
 ui = app.userInterface
@@ -41,6 +42,7 @@ COMMAND_BESIDE_ID = "ScriptsManagerCommand"
 
 # Resource location for command icons, here we assume a sub folder in this directory named "resources".
 ICON_FOLDER = os.path.join(os.path.dirname(__file__), "resources", "")
+ROOT_FOLDER = os.path.join(os.path.dirname(__file__), "..", "..")
 
 # Local list of event handlers used to maintain a reference so
 # they are not released and garbage collected.
@@ -143,6 +145,7 @@ def palette_navigating(args: adsk.core.NavigationEventArgs):
 
 def palette_incoming(html_args: adsk.core.HTMLEventArgs):
     futil.log(f"{CMD_NAME}: Palette incoming event.")
+    app = adsk.core.Application.get()
 
     message_data: dict = json.loads(html_args.data)
     message_action = html_args.action
@@ -160,7 +163,37 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
         palette.sendInfoToHTML("taxonomyDataMessage", json.dumps(taxonomy_data_message))
 
     if message_action == "taxonomyDataMessage":
-        print(message_data)
+        taxonomy_id = "parts"
+        active_id = (
+            app.activeDocument.dataFile.parentProject.id
+            if app.activeDocument.dataFile is not None
+            else app.data.activeProject.id
+        )
+        config.taxonomies[taxonomy_id] = message_data
+        p = Path(
+            winapi_path(
+                os.path.join(
+                    config.ROOT_FOLDER,
+                    "Taxonomies",
+                    "CAD",
+                    active_id.replace(":", "-"),
+                )
+            )
+        )
+        p.mkdir(parents=True, exist_ok=True)
+        with open(
+            winapi_path(
+                os.path.join(
+                    ROOT_FOLDER,
+                    "Taxonomies",
+                    "CAD",
+                    active_id.replace(":", "-"),
+                    "%s.taxonomy" % taxonomy_id,
+                )
+            ),
+            "w+",
+        ) as f:
+            json.dump(message_data, f, ensure_ascii=False, indent=4)
     # Return value.
     now = datetime.now()
     current_time = now.strftime("%H:%M:%S")

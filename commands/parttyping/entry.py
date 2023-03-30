@@ -239,6 +239,11 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
             taxonomy_id = "parts"
         elif html_args.browserCommandInput.id == ATTRIBUTETYPES_ID:
             taxonomy_id = "attributes"
+        active_id = (
+            app.activeDocument.dataFile.parentProject.id
+            if app.activeDocument.dataFile is not None
+            else app.data.activeProject.id
+        )
         config.taxonomies[taxonomy_id] = message_data
         p = Path(
             winapi_path(
@@ -246,7 +251,7 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
                     config.ROOT_FOLDER,
                     "Taxonomies",
                     "CAD",
-                    app.activeDocument.dataFile.parentProject.id.replace(":", "-"),
+                    active_id.replace(":", "-"),
                 )
             )
         )
@@ -257,7 +262,7 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
                     ROOT_FOLDER,
                     "Taxonomies",
                     "CAD",
-                    app.activeDocument.dataFile.parentProject.id.replace(":", "-"),
+                    active_id.replace(":", "-"),
                     "%s.taxonomy" % taxonomy_id,
                 )
             ),
