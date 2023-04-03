@@ -427,6 +427,10 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
                 partial(root_folder_children.add, "Synthesized Assemblies"),
                 progress_dialog,
             )
+            results_folder = wrapped_forge_call(
+                partial(root_folder_children.itemByName, "Synthesized Assemblies"),
+                progress_dialog,
+            )
 
         request_folder = wrapped_forge_call(
             partial(

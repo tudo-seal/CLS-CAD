@@ -1,5 +1,6 @@
 import json
 import os
+import traceback
 from datetime import datetime
 from pathlib import Path
 
@@ -54,6 +55,12 @@ ROOT_FOLDER = os.path.join(os.path.dirname(__file__), "..", "..")
 # Local list of event handlers used to maintain a reference so
 # they are not released and garbage collected.
 local_handlers = []
+type_text_box_input: adsk.core.TextBoxCommandInput = None
+parts_type_selection_browser_input: adsk.core.BrowserCommandInput = None
+kinding_selection_drop_down_input: adsk.core.DropDownCommandInput = None
+name_string_value_input: adsk.core.ValueInput = None
+provides_type_text_box_input: adsk.core.TextBoxCommandInput = None
+joint_connect_type_input: adsk.core.ButtonRowCommandInput = None
 
 # Executed when add-in is run.
 
@@ -252,7 +259,7 @@ def command_select(args: adsk.core.SelectionEventArgs):
     app = adsk.core.Application.get()
     design = adsk.fusion.Design.cast(app.activeProduct)
     selected_joint_origin = adsk.fusion.JointOrigin.cast(args.selection.entity)
-    global req_attributes, req_formats, req_parts, provides_formats
+    global req_attributes, req_formats, req_parts, provides_formats, selected_joint_origins
     if design and selected_joint_origin:
         try:
             type_text_box_input.text = (
@@ -463,21 +470,8 @@ def command_execute(args: adsk.core.CommandEventArgs):
     # General logging for debug
     futil.log(f"{CMD_NAME} Command Execute Event")
 
-    inputs = args.command.commandInputs
-
-    # Get inputs
-    selection_input: adsk.core.SelectionCommandInput = inputs.itemById("selection")
-
-    # All this obv. still has to check for if there already is a custom graphics object for that JointOrigin
     app = adsk.core.Application.get()
     design = adsk.fusion.Design.cast(app.activeProduct)
-
-    bill_board = adsk.fusion.CustomGraphicsBillBoard.create(
-        adsk.core.Point3D.create(0, 0, 0)
-    )
-    bill_board.billBoardStyle = (
-        adsk.fusion.CustomGraphicsBillBoardStyles.ScreenBillBoardStyle
-    )
 
     global typing, kinding, selected_joint_origins, name_string_value_input, parts_type_selection_browser_input, joint_connect_type_input
     global req_formats, req_attributes, req_parts, provides_formats, provides_parts, provides_attributes
@@ -511,10 +505,8 @@ def command_execute(args: adsk.core.CommandEventArgs):
         # The first time a joint is typed, assign a UUID and change its name
         if not jo.attributes.itemByName("CLS-INFO", "UUID"):
             print("Added UUID to %s" % jo.name)
-            jo.attributes.add("CLS-INFO", "UUID", jo_uuid)
             jo.name = "Typed Joint"
-
-        jo_uuid = jo.attributes.itemByName("CLS-INFO", "UUID").value
+            jo.attributes.add("CLS-INFO", "UUID", jo_uuid)
 
     ################################################
     ################################################
@@ -530,21 +522,18 @@ def command_execute(args: adsk.core.CommandEventArgs):
         design.selectionSets.add(
             selected_joint_origins, name_string_value_input.value or "Typed Joint Set"
         )
-    except:
-        # ToDo: Figure out why this fails if there are nested components with JointOrigins (aka. the UI can do this manually, why can't we?)
-        pass
-
-    selected_joint_origins = []
-    (
-        req_formats,
-        req_attributes,
-        req_parts,
-        provides_attributes,
-        provides_formats,
-        provides_parts,
-    ) = ([], [], [], [], [], [])
-    # Should probably be a toggle under visualisation section
-    # graphicsText.billBoarding = billBoard
+    except RuntimeError:
+        traceback.print_exc()
+    finally:
+        selected_joint_origins = []
+        (
+            req_formats,
+            req_attributes,
+            req_parts,
+            provides_attributes,
+            provides_formats,
+            provides_parts,
+        ) = ([], [], [], [], [], [])
 
 
 def command_preview(args: adsk.core.CommandEventArgs):

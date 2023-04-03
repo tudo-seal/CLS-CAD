@@ -1,4 +1,5 @@
 import os
+import traceback
 
 import adsk.core
 
@@ -99,8 +100,12 @@ def command_execute(args: adsk.core.CommandEventArgs):
     else:
         graphics = design.rootComponent.customGraphicsGroups.add()
         for jointTyping in design.findAttributes("CLS-INFO", "UUID"):
-            jo = jointTyping.parent
-            jo_uuid = jo.attributes.itemByName("CLS-INFO", "UUID").value
+            try:
+                jo = jointTyping.parent
+                jo_uuid = jo.attributes.itemByName("CLS-INFO", "UUID").value
+            except:
+                traceback.print_exc()
+
             tmatrix = adsk.core.Matrix3D.create()
             tmatrix.setWithCoordinateSystem(
                 jo.geometry.origin,

@@ -89,12 +89,18 @@ def load_project_taxonomy_to_config():
     if path_part_taxonomy.is_file():
         with open(path_part_taxonomy) as json_file:
             config.taxonomies["parts"] = json.load(json_file)
+    else:
+        config.taxonomies["parts"] = {"AnyPart": []}
     if path_format_taxonomy.is_file():
         with open(path_format_taxonomy) as json_file:
             config.taxonomies["formats"] = json.load(json_file)
+    else:
+        config.taxonomies["formats"] = {"AnyFormat": []}
     if path_attribute_taxonomy.is_file():
         with open(path_attribute_taxonomy) as json_file:
             config.taxonomies["attributes"] = json.load(json_file)
+    else:
+        config.taxonomies["attributes"] = {"AnyAttrib": []}
 
 
 def winapi_path(dos_path, encoding=None):
