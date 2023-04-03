@@ -1,4 +1,4 @@
-#cy[data-v-245bbc73] {
+#cy[data-v-b24b4c4a] {
   width: 100%;
   height: calc(100vh - 2rem);
   left: 0;
@@ -7,7 +7,7 @@
 }
 
 /*
-! tailwindcss v3.2.4 | MIT License | https://tailwindcss.com
+! tailwindcss v3.2.7 | MIT License | https://tailwindcss.com
 */
 *,
 :after,
@@ -15,20 +15,18 @@
   box-sizing: border-box;
   border-width: 0;
   border-style: solid;
-  border-color: #e5e7eb;
+  border-color: currentColor;
 }
 :after,
 :before {
   --tw-content: "";
 }
-h1,
-h3 {
-  font-size: inherit;
-  font-weight: inherit;
-}
 a {
   color: inherit;
   text-decoration: inherit;
+}
+b {
+  font-weight: bolder;
 }
 table {
   text-indent: 0;
@@ -36,7 +34,6 @@ table {
   border-collapse: collapse;
 }
 button,
-input,
 select {
   font-family: inherit;
   font-size: 100%;
@@ -45,9 +42,6 @@ select {
   color: inherit;
   margin: 0;
   padding: 0;
-}
-button,
-select {
   text-transform: none;
 }
 button {
@@ -66,28 +60,12 @@ button {
   -webkit-appearance: button;
   font: inherit;
 }
-h1,
-h3,
-menu,
-p,
-ul {
-  margin: 0;
-}
-menu,
-ul {
-  list-style: none;
-  padding: 0;
-}
-input::-moz-placeholder {
-  opacity: 1;
-  color: #9ca3af;
-}
-input::placeholder {
-  opacity: 1;
-  color: #9ca3af;
-}
 button {
   cursor: pointer;
+}
+svg {
+  display: block;
+  vertical-align: middle;
 }
 *,
 :after,
@@ -211,12 +189,6 @@ button {
     max-width: 1536px;
   }
 }
-.absolute {
-  position: absolute;
-}
-.ml-2 {
-  margin-left: 0.5rem;
-}
 .mr-2 {
   margin-right: 0.5rem;
 }
@@ -226,20 +198,17 @@ button {
 .table {
   display: table;
 }
-.h-screen {
-  height: 100vh;
-}
 .h-8 {
   height: 2rem;
 }
 .h-full {
   height: 100%;
 }
+.h-screen {
+  height: 100vh;
+}
 .flex-row {
   flex-direction: row;
-}
-.place-content-between {
-  place-content: space-between;
 }
 .items-center {
   align-items: center;
@@ -247,22 +216,34 @@ button {
 .justify-between {
   justify-content: space-between;
 }
-.bg-blue-500 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(59 130 246 / var(--tw-bg-opacity));
+.rounded {
+  border-radius: 0.25rem;
 }
-.bg-amber-400 {
+.bg-background {
   --tw-bg-opacity: 1;
-  background-color: rgb(251 191 36 / var(--tw-bg-opacity));
+  background-color: rgb(242 242 242 / var(--tw-bg-opacity));
 }
-.bg-gray-400 {
+.bg-button-blue {
   --tw-bg-opacity: 1;
-  background-color: rgb(156 163 175 / var(--tw-bg-opacity));
-}
-.p-1 {
-  padding: 0.25rem;
+  background-color: rgb(104 150 200 / var(--tw-bg-opacity));
 }
 .px-6 {
   padding-left: 1.5rem;
   padding-right: 1.5rem;
+}
+.font-scada {
+  font-family: Scada-Regular;
+}
+.font-medium {
+  font-weight: 500;
+}
+.text-white {
+  --tw-text-opacity: 1;
+  color: rgb(255 255 255 / var(--tw-text-opacity));
+}
+@font-face {
+  font-family: Scada-Regular;
+  src: local("Scada-Regular"),
+    url(/static/editTaxonomyGraph/fonts/Scada-Regular.6f48d286.ttf)
+      format("truetype");
 }
