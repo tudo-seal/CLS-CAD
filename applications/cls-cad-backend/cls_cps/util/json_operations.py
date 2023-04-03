@@ -1,5 +1,9 @@
 def postprocess(data: dict):
-    propagate_part_counts_in_part_json(data, data["count"])
+    try:
+        propagate_part_counts_in_part_json(data, data["count"])
+    except TypeError:
+        data = data()
+        propagate_part_counts_in_part_json(data, data["count"])
     remove_unused_keys_prom_part_json(data)
     return data
 
