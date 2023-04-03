@@ -3,6 +3,7 @@ import os
 import urllib
 
 import adsk.core
+from adsk.fusion import DesignTypes
 
 from ... import config
 from ...lib import fusion360utils as futil
@@ -15,9 +16,9 @@ ui = app.userInterface
 joint = None
 
 CMD_ID = f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_migrate_uuids"
-CMD_NAME = "Migrate UUIDs"
-CMD_DESCRIPTION = "Migrate UUIDs files and migrate all UUIDs."
-IS_PROMOTED = False
+CMD_NAME = "Migrate UUIDs and Fix Files"
+CMD_DESCRIPTION = "Migrate UUIDs and fix nested components."
+IS_PROMOTED = True
 
 WORKSPACE_ID = "FusionSolidEnvironment"
 PANEL_ID = "CRAWL"
@@ -115,7 +116,7 @@ def recursively_submit(folders: adsk.core.DataFolders):
         progress_dialog.progressValue = 0
         progress_dialog.message = f'Preparing to process Folder "{folder.name}"...'
         # ignore auto-generated content
-        if folder.name in ["Synthesized Assemblies", "Taxonomies"]:
+        if folder.name not in ["Synthesized Assemblies", "Taxonomies"]:
             continue
         submit_and_update_files_in_folder(folder)
         recursively_submit(folder.dataFolders)
@@ -127,6 +128,7 @@ def submit_and_update_files_in_folder(folder):
         # Just in case we add PDFs etc.
         if not file.fileExtension == "f3d":
             continue
+        modified = False
         progress_dialog.maximumValue = len(
             wrapped_forge_call(folder.dataFiles.asArray, progress_dialog)
         )
@@ -137,6 +139,22 @@ def submit_and_update_files_in_folder(folder):
         app = adsk.core.Application.get()
         document = app.documents.open(file)
         design = adsk.fusion.Design.cast(app.activeProduct)
+        if design.designType == DesignTypes.DirectDesignType:
+            design.designType = DesignTypes.ParametricDesignType
+        root_comp = design.rootComponent
+        features = root_comp.features
+        remove_features = features.removeFeatures
+        while root_comp.allOccurrences.count > 0:
+            occ = root_comp.allOccurrences.item(0)
+            if occ.isReferencedComponent:
+                occ.breakLink()
+
+            while occ.bRepBodies.count > 0:
+                body = occ.bRepBodies.item(0)
+                body.moveToComponent(root_comp)
+                modified = True
+            remove_features.add(occ)
+
         for unique_attribute in list(
             {x.value: x for x in design.findAttributes("CLS-INFO", "UUID")}.values()
         ):
@@ -147,6 +165,7 @@ def submit_and_update_files_in_folder(folder):
                 if x.value == unique_attribute.value
             ]:
                 attribute.value = new_uuid
+            modified = True
         if design.findAttributes("CLS-JOINT", "ProvidesFormats"):
             part_dict = create_backend_json()
             req = urllib.request.Request("http://127.0.0.1:8000/submit/part")
@@ -157,10 +176,11 @@ def submit_and_update_files_in_folder(folder):
                 indent=4,
             ).encode("utf-8")
             req.add_header("Content-Length", len(payload))
-            document.save('Saved by "Migrate UUIDs"')
+            document.save('Saved by "Migrate UUIDs and Fix Files"')
             document.close(False)
         else:
-            document.save('Saved by "Migrate UUIDs"')
+            if modified:
+                document.save('Saved by "Migrate UUIDs and Fix Files"')
             document.close(False)
         progress_dialog.progressValue += 1
 
@@ -199,7 +219,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
             else app.data.activeProject.rootFolder
         )
         submit_and_update_files_in_folder(root_folder)
-        recursively_submit(root_folder.dateFolders)
+        recursively_submit(root_folder.dataFolders)
 
         # Load correct project taxonomies before submitting
         load_project_taxonomy_to_config()

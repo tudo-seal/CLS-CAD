@@ -448,18 +448,23 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
         progress_dialog.message = "Creating new assembly document..."
 
         doc = app.documents.add(adsk.core.DocumentTypes.FusionDesignDocumentType)
+        design = adsk.fusion.Design.cast(app.activeProduct)
+        if USE_NO_HISTORY:
+            design.designType = DesignTypes.DirectDesignType
         # Naming and stuff will need to be cleaned up, and multi-assembly
         doc.saveAs(str(generate_id()), request_folder, "", "")
         progress_dialog.progressValue = 1
         progress_dialog.message = "Inserting assembly base..."
         progress_dialog.progressValue = 0
-        design = adsk.fusion.Design.cast(app.activeProduct)
+
         root = design.rootComponent
-        root.occurrences.addByInsert(
+        inserted_document = root.occurrences.addByInsert(
             app.data.findFileById(message_data["forgeDocumentId"]),
             adsk.core.Matrix3D.create(),
-            False,
+            True,
         )
+        inserted_document.breakLink()
+
         progress_dialog.progressValue = 1
         progress_dialog.message = "Verifying base provides count..."
         progress_dialog.progressValue = 0
@@ -468,6 +473,7 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
         root_joint_origin = [
             x.parent for x in attributes if x.value == message_data["provides"]
         ]
+        print(len(root_joint_origin))
         if len(root_joint_origin) == 1:
             progress_dialog.progressValue = 1
             progress_dialog.message = "Anchoring base..."
@@ -485,9 +491,6 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
             progress_dialog.progressValue = 1
             progress_dialog.message = "Beginning assembly..."
             progress_dialog.progressValue = 0
-
-            if USE_NO_HISTORY:
-                design.designType = DesignTypes.DirectDesignType
 
             assembly_machine(create_initial_instructions(message_data))
 
