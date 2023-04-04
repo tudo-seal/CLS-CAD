@@ -9,7 +9,7 @@ __all__ = ["generate_id"]
 system_random = random.SystemRandom()
 
 
-def generate_id(separator="-", seed: Hashable = None, word_count=4) -> str:
+def generate_id(separator="-", seed: Hashable = None, word_count=6) -> str:
     """
     Generate a human readable ID
     :param separator: The string to use to separate words
