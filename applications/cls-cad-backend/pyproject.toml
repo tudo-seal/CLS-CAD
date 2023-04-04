@@ -12,7 +12,7 @@ bcls = {git = "https://github.com/christofsteel/bcls-python.git"}
 fastapi = "^0.94.0"
 uvicorn = "^0.21.0"
 jsonpickle = "^3.0.1"
-#hypermapper = "^2.2.12"
+hypermapper = { version = "^2.2.12", optional = true }
 plotly = "^5.13.1"
 pydantic = "^1.10.6"
 pandas = "^1.5.3"

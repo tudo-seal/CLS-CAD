@@ -36,10 +36,10 @@ from cls_cps.hypermapper_tools.hypermapper_visualisation import (
     visualize_pareto_front,
 )
 from cls_cps.repository_builder import RepositoryBuilder
-from cls_cps.responses import FastResponse
+from cls_cps.responses import BytesResponse, FastResponse
 from cls_cps.schemas import PartInf, SynthesisRequestInf, TaxonomyInf
 from cls_cps.util.hrid import generate_id
-from cls_cps.util.json_operations import postprocess
+from cls_cps.util.json_operations import fast_json_to_string, postprocess
 
 origins = [
     "http://localhost:3000",
@@ -62,6 +62,8 @@ mimetypes.add_type("application/javascript", ".js")
 
 app.mount("/static", StaticFiles(directory="static", html=True), name="static")
 init_database()
+
+cache = {}
 
 
 @app.post("/submit/part")
@@ -136,8 +138,10 @@ async def synthesize_assembly(
     )
 
     result = gamma.inhabit(query)
-    terms = enumerate_terms(query, result)
-    interpreted_terms = [postprocess(interpret_term(term)) for term in terms]
+    terms = enumerate_terms(query, result, max_count=100)
+    interpreted_terms = [
+        fast_json_to_string(postprocess(interpret_term(term))) for term in terms
+    ]
 
     if not interpreted_terms:
         return "FAIL"
@@ -166,7 +170,7 @@ async def list_result_ids(project_id: str):
     return [dict(x, id=x["_id"]) for x in get_all_result_ids_for_project(project_id)]
 
 
-@app.get("/results/{project_id}/{request_id}", response_class=FastResponse)
+@app.get("/results/{project_id}/{request_id}", response_class=BytesResponse)
 async def results_for_id(
     project_id: str,
     request_id: str,
@@ -176,33 +180,39 @@ async def results_for_id(
     if limit == 0:
         return []
 
-    results = get_result_for_id(request_id)["interpretedTerms"]
+    if request_id not in cache:
+        cache[request_id] = get_result_for_id(request_id)["interpretedTerms"]
+    results = cache[request_id]
 
     if skip is not None and limit is not None:
-        return FastResponse(
-            [
-                results[result_id]
-                for result_id in (
-                    range(
+        return BytesResponse(
+            b"["
+            + b",".join(
+                [
+                    results[result_id]
+                    for result_id in range(
                         skip if skip < len(results) else len(results) - 1,
                         skip + limit
                         if (skip + limit) <= len(results)
                         else len(results),
                     )
-                )
-            ]
+                ]
+            )
+            + b"]"
         )
     else:
         return results
 
 
-@app.get("/results/{project_id}/{request_id}/{result_id}", response_class=FastResponse)
+@app.get("/results/{project_id}/{request_id}/{result_id}", response_class=BytesResponse)
 async def results_for_id(project_id: str, request_id: str, result_id: int):
-    results = get_result_for_id(request_id)["interpretedTerms"]
+    if request_id not in cache:
+        cache[request_id] = get_result_for_id(request_id)["interpretedTerms"]
+    results = cache[request_id]
     if result_id < len(results) or len(results) == -1:
-        return FastResponse(results[result_id])
+        return BytesResponse(results[result_id])
     else:
-        return dict()
+        return b""
 
 
 # Finally, mount webpage for root.

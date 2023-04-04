@@ -19,3 +19,10 @@ class FastResponse(Response):
                 )
             except OverflowError:
                 return json.dumps(content, indent=2, ensure_ascii=False).encode("utf-8")
+
+
+class BytesResponse(Response):
+    media_type = "application/json"
+
+    def render(self, content: typing.Any) -> bytes:
+        return content
