@@ -4,6 +4,7 @@ from collections import deque
 from collections.abc import Callable
 from datetime import datetime
 from functools import partial
+from timeit import default_timer as timer
 
 import adsk.core
 from adsk.fusion import DesignTypes
@@ -40,7 +41,7 @@ ICON_FOLDER = os.path.join(os.path.dirname(__file__), "resources", "")
 # they are not released and garbage collected.
 local_handlers = []
 
-progress_dialog = None
+progress_dialog: adsk.core.ProgressDialog = None
 
 USE_NO_HISTORY = True
 
@@ -215,6 +216,32 @@ def palette_navigating(args: adsk.core.NavigationEventArgs):
         args.launchExternally = True
 
 
+def center_in_window():
+    app = adsk.core.Application.get()
+    ui = app.userInterface
+    des = adsk.fusion.Design.cast(app.activeProduct)
+    root = des.rootComponent
+
+    # Clear all current selections.
+    ui.activeSelections.clear()
+
+    # Select the occurrence.
+    ui.activeSelections.add(root)
+
+    # Get the "Find in Window" command.
+    findCmd = ui.commandDefinitions.itemById("FindInWindow")
+
+    # Execute the command.
+    findCmd.execute()
+    start_time = timer()
+    while timer() - start_time < 0.2:
+        adsk.doEvents()
+    ui.activeSelections.clear()
+    start_time = timer()
+    while timer() - start_time < 0.2:
+        adsk.doEvents()
+
+
 # Validation is optional, because we know the UUIDs exist, and if they don't
 # the backend is out of date, making the only fix to recrawl or reupdate part
 def create_part_insert_instruction(target: str, data: str):
@@ -312,7 +339,8 @@ def create_part_insert_instruction(target: str, data: str):
                 joint_input.setAsRevoluteJointMotion(
                     adsk.fusion.JointDirections.ZAxisJointDirection
                 )
-            joints.add(joint_input)
+            new_joint = joints.add(joint_input)
+            new_joint.isLightBulbOn = False if data["motion"] == "Rigid" else True
             progress_dialog.progressValue += 1
         # This is in outer, because inner just targets all UUIDs
         # If the previous step inserted six times, the next step
@@ -334,6 +362,7 @@ def create_part_insert_instruction(target: str, data: str):
 def assembly_machine(instructions: deque[AssemblyInstruction]):
     while instructions:
         instructions.extendleft(instructions.popleft()())
+        center_in_window()
 
 
 def create_initial_instructions(
@@ -453,6 +482,9 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
             design.designType = DesignTypes.DirectDesignType
         # Naming and stuff will need to be cleaned up, and multi-assembly
         doc.saveAs(str(generate_id()), request_folder, "", "")
+        ui.commandDefinitions.itemById(
+            "VisibilityOverrideCommand"
+        ).controlDefinition.listItems.item(9).isSelected = False
         progress_dialog.progressValue = 1
         progress_dialog.message = "Inserting assembly base..."
         progress_dialog.progressValue = 0
@@ -491,7 +523,7 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
             progress_dialog.progressValue = 1
             progress_dialog.message = "Beginning assembly..."
             progress_dialog.progressValue = 0
-
+            center_in_window()
             assembly_machine(create_initial_instructions(message_data))
 
             progress_dialog.hide()
