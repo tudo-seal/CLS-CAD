@@ -1,6 +1,7 @@
 import json
 import os
 import urllib
+from urllib.error import HTTPError
 
 import adsk.core
 from adsk.fusion import DesignTypes
@@ -116,7 +117,7 @@ def recursively_submit(folders: adsk.core.DataFolders):
         progress_dialog.progressValue = 0
         progress_dialog.message = f'Preparing to process Folder "{folder.name}"...'
         # ignore auto-generated content
-        if folder.name not in ["Synthesized Assemblies", "Taxonomies"]:
+        if folder.name in ["Synthesized Assemblies", "Taxonomies"]:
             continue
         submit_and_update_files_in_folder(folder)
         recursively_submit(folder.dataFolders)
@@ -176,6 +177,12 @@ def submit_and_update_files_in_folder(folder):
                 indent=4,
             ).encode("utf-8")
             req.add_header("Content-Length", len(payload))
+            try:
+                response = urllib.request.urlopen(req, payload)
+                print(response)
+            except HTTPError as err:
+                print(err.code)
+                print(err.reason)
             document.save('Saved by "Migrate UUIDs and Fix Files"')
             document.close(False)
         else:

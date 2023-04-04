@@ -103,33 +103,33 @@ def command_execute(args: adsk.core.CommandEventArgs):
             try:
                 jo = jointTyping.parent
                 jo_uuid = jo.attributes.itemByName("CLS-INFO", "UUID").value
+
+                tmatrix = adsk.core.Matrix3D.create()
+                tmatrix.setWithCoordinateSystem(
+                    jo.geometry.origin,
+                    jo.geometry.secondaryAxisVector,
+                    jo.geometry.thirdAxisVector,
+                    jo.geometry.primaryAxisVector,
+                )
+                # ToDo: Also respect x and y offsets
+                offset = jo.geometry.primaryAxisVector.copy()
+                offset.normalize()
+                offset.scaleBy(
+                    (1 if not jo.isFlipped else -1)
+                    * ((jo.offsetZ.value if jo.offsetZ else 0) + 0.05)
+                )
+                offset.add(tmatrix.translation)
+                tmatrix.translation = offset
+                custom_text = graphics.addText(
+                    f'Requires: {jo.attributes.itemByName("CLS-JOINT", "RequiresString").value or "None"}\n Provides: {jo.attributes.itemByName("CLS-JOINT", "ProvidesString").value or "None"}',
+                    "Courier New",
+                    0.2,
+                    tmatrix,
+                )
+                config.custom_text_dict[jo_uuid] = custom_text
             except:
                 traceback.print_exc()
-
-            tmatrix = adsk.core.Matrix3D.create()
-            tmatrix.setWithCoordinateSystem(
-                jo.geometry.origin,
-                jo.geometry.secondaryAxisVector,
-                jo.geometry.thirdAxisVector,
-                jo.geometry.primaryAxisVector,
-            )
-            # ToDo: Also respect x and y offsets
-            offset = jo.geometry.primaryAxisVector.copy()
-            offset.normalize()
-            offset.scaleBy(
-                (1 if not jo.isFlipped else -1)
-                * ((jo.offsetZ.value if jo.offsetZ else 0) + 0.05)
-            )
-            offset.add(tmatrix.translation)
-            tmatrix.translation = offset
-            custom_text = graphics.addText(
-                f'Requires: {jo.attributes.itemByName("CLS-JOINT", "RequiresString").value or "None"}\n Provides: {jo.attributes.itemByName("CLS-JOINT", "ProvidesString").value or "None"}',
-                "Courier New",
-                0.2,
-                tmatrix,
-            )
-            config.custom_text_dict[jo_uuid] = custom_text
-            config.custom_graphics_displaying = True
+        config.custom_graphics_displaying = True
 
     # Recompute or hide all custom graphic objects
 

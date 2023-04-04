@@ -268,7 +268,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
     req.add_header("Content-Type", "application/json; charset=utf-8")
     req.add_header("Content-Length", len(payload))
     response = urllib.request.urlopen(req, payload)
-    response
+    print(response.read().decode())
 
 
 def command_preview(args: adsk.core.CommandEventArgs):

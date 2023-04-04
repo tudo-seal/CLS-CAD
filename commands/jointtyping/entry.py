@@ -61,6 +61,7 @@ kinding_selection_drop_down_input: adsk.core.DropDownCommandInput = None
 name_string_value_input: adsk.core.ValueInput = None
 provides_type_text_box_input: adsk.core.TextBoxCommandInput = None
 joint_connect_type_input: adsk.core.ButtonRowCommandInput = None
+reset_bool_value_input: adsk.core.BoolValueCommandInput = None
 
 # Executed when add-in is run.
 
@@ -115,7 +116,7 @@ selected_joint_origins = []
     provides_formats,
     provides_parts,
     provides_attributes,
-) = ([], [], [], [], [], [])
+) = ([] for i in range(6))
 
 kinding = "Light"
 typing = "Blocked"
@@ -132,9 +133,9 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     futil.add_handler(
         args.command.execute, command_execute, local_handlers=local_handlers
     )
-    # futil.add_handler(args.command.inputChanged,
-    #                   command_input_changed,
-    #                   local_handlers=local_handlers)
+    futil.add_handler(
+        args.command.inputChanged, command_input_changed, local_handlers=local_handlers
+    )
     futil.add_handler(
         args.command.executePreview, command_preview, local_handlers=local_handlers
     )
@@ -178,7 +179,7 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     args.command.setDialogInitialSize(600, 800)
 
     # UI DEF
-    global type_text_box_input, parts_type_selection_browser_input, kinding_selection_drop_down_input, name_string_value_input, provides_type_text_box_input, joint_connect_type_input
+    global type_text_box_input, parts_type_selection_browser_input, kinding_selection_drop_down_input, name_string_value_input, provides_type_text_box_input, joint_connect_type_input, reset_bool_value_input
 
     selection_tab = inputs.addTabCommandInput("selectionTab", "Select/Configure Joint")
     requires_tab = inputs.addTabCommandInput("requiresTab", "Select Required Type")
@@ -205,6 +206,9 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     )
     provides_type_text_box_input = selection_tab_inputs.addTextBoxCommandInput(
         "providesTypeTextBox", "Provides Type", "", 2, True
+    )
+    reset_bool_value_input = selection_tab_inputs.addBoolValueInput(
+        "resetAttribsBoolInput", "Reset Typing", True
     )
     name_string_value_input = selection_tab_inputs.addStringValueInput(
         "nameTextBox", "Set Name", ""
@@ -294,6 +298,13 @@ def command_select(args: adsk.core.SelectionEventArgs):
                     "CLS-JOINT", "RequiresParts"
                 ).value
             )
+            if (
+                selected_joint_origin.attributes.itemByName(
+                    "CLS-JOINT", "JointConnectType"
+                ).value
+                == "Revolute"
+            ):
+                joint_connect_type_input.listItems.item(1).isSelected = True
             # If nothing went wrong here, properly generate the text
             type_text_box_input.text = f'({"∩".join(filter(None,["∩".join(req_formats),"∩".join(req_parts),"∩".join(req_attributes)]))})'.replace(
                 " ∩ ()", ""
@@ -335,25 +346,21 @@ def command_preselect(args: adsk.core.SelectionEventArgs):
 
 
 def command_preselect_end(args: adsk.core.SelectionEventArgs):
-    app = adsk.core.Application.get()
-    design = adsk.fusion.Design.cast(app.activeProduct)
-    selected_edge = adsk.fusion.BRepEdge.cast(args.selection.entity)
-    if design and selected_edge:
-        for group in design.rootComponent.customGraphicsGroups:
-            if group.id == "the_relevant_group":
-                group.deleteMe()
-                break
+    pass
 
 
-# def command_input_changed(args: adsk.core.InputChangedEventArgs):
-#     app = adsk.core.Application.get()
-#     design = adsk.fusion.Design.cast(app.activeProduct)
-#     if args.input.id == 'typeSelection':
-#         global typing
-#         typing = typeSelectionDropDownInput.selectedItem.name
-#     if args.input.id == 'kindingSelection':
-#         global kinding
-#         kinding = kindingSelectionDropDownInput.selectedItem.name
+def command_input_changed(args: adsk.core.InputChangedEventArgs):
+    if args.input.id == "resetAttribsBoolInput":
+        global reset_bool_value_input, req_formats, req_attributes, req_parts, provides_formats, provides_parts, provides_attributes
+        if reset_bool_value_input.value:
+            (
+                req_formats,
+                req_attributes,
+                req_parts,
+                provides_attributes,
+                provides_formats,
+                provides_parts,
+            ) = ([], [], [], [], [], [])
 
 
 def palette_navigating(args: adsk.core.NavigationEventArgs):
@@ -473,7 +480,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
     app = adsk.core.Application.get()
     design = adsk.fusion.Design.cast(app.activeProduct)
 
-    global typing, kinding, selected_joint_origins, name_string_value_input, parts_type_selection_browser_input, joint_connect_type_input
+    global typing, kinding, selected_joint_origins, name_string_value_input, parts_type_selection_browser_input, joint_connect_type_input, reset_bool_value_input
     global req_formats, req_attributes, req_parts, provides_formats, provides_parts, provides_attributes
 
     print("Trying to sync")
@@ -481,7 +488,6 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
     jo_uuid = str(generate_id())
     for jo in selected_joint_origins:
-
         # Add typing information as string (this is kinda okay, because we'll send it via JSON to the backend anyway)
         # Needs fixing
         jo.attributes.add(
