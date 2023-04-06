@@ -10,11 +10,13 @@ from bcls import (
     Subtypes,
     Type,
     enumerate_terms,
+    enumerate_terms_of_size,
     interpret_term,
 )
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from hypermapper import optimizer
+from starlette.background import BackgroundTasks
 from starlette.staticfiles import StaticFiles
 
 from cls_cps.database.commands import (
@@ -36,10 +38,10 @@ from cls_cps.hypermapper_tools.hypermapper_visualisation import (
     visualize_pareto_front,
 )
 from cls_cps.repository_builder import RepositoryBuilder
-from cls_cps.responses import BytesResponse, FastResponse
+from cls_cps.responses import FastResponse
 from cls_cps.schemas import PartInf, SynthesisRequestInf, TaxonomyInf
 from cls_cps.util.hrid import generate_id
-from cls_cps.util.json_operations import fast_json_to_string, postprocess
+from cls_cps.util.json_operations import postprocess
 
 origins = [
     "http://localhost:3000",
@@ -115,7 +117,7 @@ async def request_optimization(
 
 @app.post("/request/assembly")
 async def synthesize_assembly(
-    payload: SynthesisRequestInf,
+    payload: SynthesisRequestInf, background_tasks: BackgroundTasks
 ):
     taxonomy = Subtypes(get_taxonomy_for_project(payload.forgeProjectId)["taxonomy"])
     gamma = FiniteCombinatoryLogic(
@@ -138,16 +140,30 @@ async def synthesize_assembly(
     )
 
     result = gamma.inhabit(query)
-    terms = enumerate_terms(query, result, max_count=100)
-    interpreted_terms = [
-        fast_json_to_string(postprocess(interpret_term(term))) for term in terms
-    ]
+    terms = []
+    from timeit import default_timer as timer
+
+    start = timer()
+
+    if payload.depths:
+        for depth in payload.depths:
+            terms.extend(
+                enumerate_terms_of_size(
+                    query, result, term_size=depth, max_count=payload.resultsPerDepth
+                )
+            )
+    else:
+        terms.extend(enumerate_terms(query, result, max_count=100))
+    print(timer() - start)
+    interpreted_terms = [postprocess(interpret_term(term)) for term in terms]
+    print(timer() - start)
 
     if not interpreted_terms:
         return "FAIL"
 
     request_id = generate_id()
-    upsert_result(
+    background_tasks.add_task(
+        upsert_result,
         {
             "_id": request_id,
             "forgeProjectId": payload.forgeProjectId,
@@ -155,7 +171,7 @@ async def synthesize_assembly(
             "timestamp": datetime.today().strftime("%Y-%m-%d %H:%M:%S"),
             "count": len(interpreted_terms),
             "interpretedTerms": interpreted_terms,
-        }
+        },
     )
     return str(request_id)
 
@@ -170,7 +186,7 @@ async def list_result_ids(project_id: str):
     return [dict(x, id=x["_id"]) for x in get_all_result_ids_for_project(project_id)]
 
 
-@app.get("/results/{project_id}/{request_id}", response_class=BytesResponse)
+@app.get("/results/{project_id}/{request_id}", response_class=FastResponse)
 async def results_for_id(
     project_id: str,
     request_id: str,
@@ -185,34 +201,28 @@ async def results_for_id(
     results = cache[request_id]
 
     if skip is not None and limit is not None:
-        return BytesResponse(
-            b"["
-            + b",".join(
-                [
-                    results[result_id]
-                    for result_id in range(
-                        skip if skip < len(results) else len(results) - 1,
-                        skip + limit
-                        if (skip + limit) <= len(results)
-                        else len(results),
-                    )
-                ]
-            )
-            + b"]"
+        return FastResponse(
+            [
+                results[result_id]
+                for result_id in range(
+                    skip if skip < len(results) else len(results) - 1,
+                    skip + limit if (skip + limit) <= len(results) else len(results),
+                )
+            ]
         )
     else:
         return results
 
 
-@app.get("/results/{project_id}/{request_id}/{result_id}", response_class=BytesResponse)
+@app.get("/results/{project_id}/{request_id}/{result_id}", response_class=FastResponse)
 async def results_for_id(project_id: str, request_id: str, result_id: int):
     if request_id not in cache:
         cache[request_id] = get_result_for_id(request_id)["interpretedTerms"]
     results = cache[request_id]
     if result_id < len(results) or len(results) == -1:
-        return BytesResponse(results[result_id])
+        return FastResponse(results[result_id])
     else:
-        return b""
+        return ""
 
 
 # Finally, mount webpage for root.

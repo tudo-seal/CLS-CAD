@@ -48,3 +48,5 @@ class SynthesisRequestInf(BaseModel, frozen=True):
     whitelist: list | None = None
     sourceUuid: str | None = None
     propagate: list[list] = []
+    depths: list[int] | None = None
+    resultsPerDepth: int = 10

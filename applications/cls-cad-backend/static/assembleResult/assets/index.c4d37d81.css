@@ -437,6 +437,9 @@ html {
 .max-w-lg {
   max-width: 32rem;
 }
+.max-w-2xl {
+  max-width: 42rem;
+}
 .max-w-full {
   max-width: 100%;
 }
