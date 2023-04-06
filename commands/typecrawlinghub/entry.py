@@ -13,16 +13,11 @@ CMD_ID = f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_crawl_hub"
 CMD_NAME = "Crawl Hub"
 CMD_DESCRIPTION = "Crawl all hub files and collect all types."
 IS_PROMOTED = False
-
 WORKSPACE_ID = "FusionSolidEnvironment"
 PANEL_ID = "CRAWL"
 COMMAND_BESIDE_ID = "ScriptsManagerCommand"
-
-# Resources
 ICON_FOLDER = os.path.join(os.path.dirname(__file__), "resources", "")
 
-# Local list of event handlers used to maintain a reference so
-# they are not released and garbage collected.
 local_handlers = []
 
 
@@ -32,7 +27,6 @@ def start():
     )
     futil.add_handler(cmd_def.commandCreated, command_created)
 
-    # UI Register
     workspace = ui.workspaces.itemById(WORKSPACE_ID)
     panel = workspace.toolbarPanels.itemById(PANEL_ID)
     control = panel.controls.addCommand(cmd_def, COMMAND_BESIDE_ID, False)
@@ -40,7 +34,6 @@ def start():
 
 
 def stop():
-    # Clean entire Panel
     workspace = ui.workspaces.itemById(WORKSPACE_ID)
     panel = workspace.toolbarPanels.itemById(PANEL_ID)
     command_definition = ui.commandDefinitions.itemById(CMD_ID)
@@ -49,16 +42,13 @@ def stop():
         if panel.controls.item(0):
             panel.controls.item(0).deleteMe()
 
-    # Delete the command definition
     if command_definition:
         command_definition.deleteMe()
 
 
 def command_created(args: adsk.core.CommandCreatedEventArgs):
-    # General logging for debug.
     futil.log(f"{CMD_NAME} Command Created Event")
 
-    # Handlers
     futil.add_handler(
         args.command.execute, command_execute, local_handlers=local_handlers
     )
@@ -72,26 +62,13 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
         args.command.destroy, command_destroy, local_handlers=local_handlers
     )
 
-    inputs = args.command.commandInputs
-
-    # UI
-    nesting_input = inputs.addBoolValueInput(
-        "nesting", "Crawl nested components?", True, "", False
-    )
-
 
 def command_execute_preview(args: adsk.core.CommandEventHandler):
     return
 
 
 def command_execute(args: adsk.core.CommandEventArgs):
-    # General logging for debug
     futil.log(f"{CMD_NAME} Command Execute Event")
-
-    inputs = args.command.commandInputs
-
-    # Get Inputs
-    nesting_input: adsk.core.BoolValueCommandInput = inputs.itemById("nesting")
 
 
 def command_preview(args: adsk.core.CommandEventArgs):

@@ -14,19 +14,13 @@ CMD_ID = f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_toggle_display"
 CMD_NAME = "Toggle Display"
 CMD_DESCRIPTION = "Toggle Display of Typing (default off)."
 IS_PROMOTED = True
-
 WORKSPACE_ID = "FusionSolidEnvironment"
 PANEL_ID = "VIZ"
 COMMAND_BESIDE_ID = "ScriptsManagerCommand"
-
-# Resources
 ICON_FOLDER = os.path.join(os.path.dirname(__file__), "resources", "")
 DISABLED_ICON_FOLDER = os.path.join(os.path.dirname(__file__), "disabled-resources", "")
 
-# Local list of event handlers used to maintain a reference so
-# they are not released and garbage collected.
 local_handlers = []
-
 isDisplaying = False
 
 
@@ -36,7 +30,6 @@ def start():
     )
     futil.add_handler(cmd_def.commandCreated, command_created)
 
-    # UI Register
     workspace = ui.workspaces.itemById(WORKSPACE_ID)
     panel = workspace.toolbarPanels.itemById(PANEL_ID)
     control = panel.controls.addCommand(cmd_def, COMMAND_BESIDE_ID, False)
@@ -44,7 +37,6 @@ def start():
 
 
 def stop():
-    # Clean entire Panel
     workspace = ui.workspaces.itemById(WORKSPACE_ID)
     panel = workspace.toolbarPanels.itemById(PANEL_ID)
     command_definition = ui.commandDefinitions.itemById(CMD_ID)
@@ -53,16 +45,13 @@ def stop():
         if panel.controls.item(0):
             panel.controls.item(0).deleteMe()
 
-    # Delete the command definition
     if command_definition:
         command_definition.deleteMe()
 
 
 def command_created(args: adsk.core.CommandCreatedEventArgs):
-    # General logging for debug.
     futil.log(f"{CMD_NAME} Command Created Event")
 
-    # Handlers
     futil.add_handler(
         args.command.execute, command_execute, local_handlers=local_handlers
     )
@@ -76,24 +65,19 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
         args.command.destroy, command_destroy, local_handlers=local_handlers
     )
 
-    # No UI
-
 
 def command_execute_preview(args: adsk.core.CommandEventHandler):
     return
 
 
 def command_execute(args: adsk.core.CommandEventArgs):
-    # General logging for debug
     futil.log(f"{CMD_NAME} Command Execute Event")
 
-    print("Executed")
     global isDisplaying
     app = adsk.core.Application.get()
     design = adsk.fusion.Design.cast(app.activeProduct)
     if config.custom_graphics_displaying:
         for i in range(design.rootComponent.customGraphicsGroups.count):
-            print("Deleted")
             design.rootComponent.customGraphicsGroups.item(0).deleteMe()
             config.custom_graphics_displaying = False
 
@@ -130,8 +114,6 @@ def command_execute(args: adsk.core.CommandEventArgs):
             except:
                 traceback.print_exc()
         config.custom_graphics_displaying = True
-
-    # Recompute or hide all custom graphic objects
 
 
 def command_preview(args: adsk.core.CommandEventArgs):

@@ -15,16 +15,11 @@ CMD_ID = f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_upload_taxonomy"
 CMD_NAME = "Upload Taxonomy"
 CMD_DESCRIPTION = "Upload Taxonomy to current workspace"
 IS_PROMOTED = True
-
 WORKSPACE_ID = "FusionSolidEnvironment"
 PANEL_ID = "TAXONOMY"
 COMMAND_BESIDE_ID = "ScriptsManagerCommand"
-
-# Resources
 ICON_FOLDER = os.path.join(os.path.dirname(__file__), "resources", "")
 
-# Local list of event handlers used to maintain a reference so
-# they are not released and garbage collected.
 local_handlers = []
 
 isDisplaying = False
@@ -36,7 +31,6 @@ def start():
     )
     futil.add_handler(cmd_def.commandCreated, command_created)
 
-    # UI Register
     workspace = ui.workspaces.itemById(WORKSPACE_ID)
     panel = workspace.toolbarPanels.itemById(PANEL_ID)
     control = panel.controls.addCommand(cmd_def, COMMAND_BESIDE_ID, False)
@@ -44,7 +38,6 @@ def start():
 
 
 def stop():
-    # Clean entire Panel
     workspace = ui.workspaces.itemById(WORKSPACE_ID)
     panel = workspace.toolbarPanels.itemById(PANEL_ID)
     command_definition = ui.commandDefinitions.itemById(CMD_ID)
@@ -53,16 +46,13 @@ def stop():
         if panel.controls.item(0):
             panel.controls.item(0).deleteMe()
 
-    # Delete the command definition
     if command_definition:
         command_definition.deleteMe()
 
 
 def command_created(args: adsk.core.CommandCreatedEventArgs):
-    # General logging for debug.
     futil.log(f"{CMD_NAME} Command Created Event")
 
-    # Handlers
     futil.add_handler(
         args.command.execute, command_execute, local_handlers=local_handlers
     )
@@ -75,8 +65,6 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     futil.add_handler(
         args.command.destroy, command_destroy, local_handlers=local_handlers
     )
-
-    # No UI
 
 
 def command_execute_preview(args: adsk.core.CommandEventHandler):
@@ -98,10 +86,8 @@ def upload_taxonomy_to_forge(taxonomy_folder, taxonomy_name: str):
 
 
 def command_execute(args: adsk.core.CommandEventArgs):
-    # General logging for debug
     futil.log(f"{CMD_NAME} Command Execute Event")
 
-    # If file active, use that files project, else use current sidebar project
     root_folder_children = (
         app.activeDocument.dataFile.parentProject.rootFolder.dataFolders
         if app.activeDocument.dataFile is not None

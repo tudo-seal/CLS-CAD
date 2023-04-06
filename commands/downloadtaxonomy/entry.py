@@ -14,18 +14,12 @@ CMD_ID = f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_download_taxonomy"
 CMD_NAME = "Download Taxonomy"
 CMD_DESCRIPTION = "Download Taxonomy to current workspace"
 IS_PROMOTED = True
-
 WORKSPACE_ID = "FusionSolidEnvironment"
 PANEL_ID = "TAXONOMY"
 COMMAND_BESIDE_ID = "ScriptsManagerCommand"
-
-# Resources
 ICON_FOLDER = os.path.join(os.path.dirname(__file__), "resources", "")
 
-# Local list of event handlers used to maintain a reference so
-# they are not released and garbage collected.
 local_handlers = []
-
 isDisplaying = False
 
 
@@ -35,7 +29,6 @@ def start():
     )
     futil.add_handler(cmd_def.commandCreated, command_created)
 
-    # UI Register
     workspace = ui.workspaces.itemById(WORKSPACE_ID)
     panel = workspace.toolbarPanels.itemById(PANEL_ID)
     control = panel.controls.addCommand(cmd_def, COMMAND_BESIDE_ID, False)
@@ -43,7 +36,6 @@ def start():
 
 
 def stop():
-    # Clean entire Panel
     workspace = ui.workspaces.itemById(WORKSPACE_ID)
     panel = workspace.toolbarPanels.itemById(PANEL_ID)
     command_definition = ui.commandDefinitions.itemById(CMD_ID)
@@ -52,16 +44,13 @@ def stop():
         if panel.controls.item(0):
             panel.controls.item(0).deleteMe()
 
-    # Delete the command definition
     if command_definition:
         command_definition.deleteMe()
 
 
 def command_created(args: adsk.core.CommandCreatedEventArgs):
-    # General logging for debug.
     futil.log(f"{CMD_NAME} Command Created Event")
 
-    # Handlers
     futil.add_handler(
         args.command.execute, command_execute, local_handlers=local_handlers
     )
@@ -75,18 +64,14 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
         args.command.destroy, command_destroy, local_handlers=local_handlers
     )
 
-    # No UI
-
 
 def command_execute_preview(args: adsk.core.CommandEventHandler):
     return
 
 
 def command_execute(args: adsk.core.CommandEventArgs):
-    # General logging for debug
     futil.log(f"{CMD_NAME} Command Execute Event")
 
-    # If file active, use that files project, else use current sidebar project
     root_folder_children = (
         app.activeDocument.dataFile.parentProject.rootFolder.dataFolders
         if app.activeDocument.dataFile is not None
@@ -108,7 +93,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
         )
     )
     p.mkdir(parents=True, exist_ok=True)
-    # Bug in API: If the path gets created first and it is a folder, the file is not downloaded
+    # Bug in API: If the path gets created first, and it is a folder, the file is not downloaded
     for file in taxonomy_folder.dataFiles.asArray():
         file.download(
             winapi_path(

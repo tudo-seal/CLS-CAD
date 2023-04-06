@@ -1,11 +1,8 @@
-import json
-import os
 import urllib
 from urllib.error import HTTPError
 
 import adsk.core
 
-from ... import config
 from ...lib import fusion360utils as futil
 from ...lib.cls_python_compat import *
 from ...lib.general_utils import *
@@ -19,18 +16,13 @@ CMD_ID = f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_crawl_project"
 CMD_NAME = "Crawl Project"
 CMD_DESCRIPTION = "Crawl project files and collect all types."
 IS_PROMOTED = True
-
 WORKSPACE_ID = "FusionSolidEnvironment"
 PANEL_ID = "CRAWL"
 COMMAND_BESIDE_ID = "ScriptsManagerCommand"
-
-# Resources
 ICON_FOLDER = os.path.join(os.path.dirname(__file__), "resources", "")
 
-# Local list of event handlers used to maintain a reference so
-# they are not released and garbage collected.
-local_handlers = []
 
+local_handlers = []
 progress_dialog: adsk.core.ProgressDialog = None
 
 
@@ -47,7 +39,6 @@ def start():
     )
     futil.add_handler(cmd_def.commandCreated, command_created)
 
-    # UI Register
     workspace = ui.workspaces.itemById(WORKSPACE_ID)
     panel = workspace.toolbarPanels.itemById(PANEL_ID)
     control = panel.controls.addCommand(cmd_def, COMMAND_BESIDE_ID, False)
@@ -62,7 +53,6 @@ def stop():
     Returns:
 
     """
-    # Clean entire Panel
     workspace = ui.workspaces.itemById(WORKSPACE_ID)
     panel = workspace.toolbarPanels.itemById(PANEL_ID)
     command_definition = ui.commandDefinitions.itemById(CMD_ID)
@@ -71,7 +61,6 @@ def stop():
         if panel.controls.item(0):
             panel.controls.item(0).deleteMe()
 
-    # Delete the command definition
     if command_definition:
         command_definition.deleteMe()
 
@@ -89,7 +78,6 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     """
     futil.log(f"{CMD_NAME} Command Created Event")
 
-    # Handlers
     futil.add_handler(
         args.command.execute, command_execute, local_handlers=local_handlers
     )
@@ -126,7 +114,6 @@ def submit_files_in_folder(folder):
     global progress_dialog
     folder_data_files = wrapped_forge_call(folder.dataFiles.asArray, progress_dialog)
     for file in folder_data_files:
-        # Just in case we add PDFs etc.
         if not file.fileExtension == "f3d":
             continue
         progress_dialog.maximumValue = len(folder_data_files)
@@ -173,7 +160,6 @@ def command_execute(args: adsk.core.CommandEventArgs):
     Returns:
 
     """
-    # General logging for debug
     futil.log(f"{CMD_NAME} Command Execute Event")
 
     result = ui.messageBox(
@@ -183,7 +169,6 @@ def command_execute(args: adsk.core.CommandEventArgs):
         "Proceed to Crawl",
         adsk.core.MessageBoxButtonTypes.OKCancelButtonType,
     )
-    # ok returns zero, so if not
     if not result:
         global progress_dialog
         progress_dialog = ui.createProgressDialog()
@@ -195,7 +180,6 @@ def command_execute(args: adsk.core.CommandEventArgs):
             else app.data.activeProject.rootFolder
         )
 
-        # Load correct project taxonomies before submitting
         load_project_taxonomy_to_config()
 
         submit_files_in_folder(root_folder)
@@ -203,7 +187,6 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
         progress_dialog.hide()
 
-        # why not also update the taxonomy in the backend while we are at it?
         payload_dict = create_backend_taxonomy()
         req = urllib.request.Request("http://127.0.0.1:8000/submit/taxonomy")
         req.add_header("Content-Type", "application/json; charset=utf-8")

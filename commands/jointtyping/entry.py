@@ -17,23 +17,17 @@ from ...lib.general_utils import (
 app = adsk.core.Application.get()
 ui = app.userInterface
 
-# TODO ********************* Change these names *********************
 CMD_ID = f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_type_joint"
 CMD_NAME = "Typed Joint"
 CMD_DESCRIPTION = "Annotate joint origins with a combinatorial term, allowing combinatory logic to connect parts automatically."
 IS_PROMOTED = True
-
 WORKSPACE_ID = "FusionSolidEnvironment"
 PANEL_ID = "TYPES"
 COMMAND_BESIDE_ID = "ScriptsManagerCommand"
-
 PARTTYPES_ID = "partsTaxonomyBrowser"
 FORMATTYPES_ID = "formatsTaxonomyBrowser"
 FORMATPROVIDESTYPES_ID = "providesFormatsTaxonomyBrowser"
 ATTRIBUTETYPES_ID = "attributesTaxonomyBrowser"
-
-# Specify the full path to the local html. You can also use a web URL
-# such as 'https://www.autodesk.com/'
 PALETTE_URL = os.path.join(
     os.path.dirname(__file__),
     "..",
@@ -43,17 +37,10 @@ PALETTE_URL = os.path.join(
     "unrolledTaxonomyDisplay",
     "index.html",
 )
-
-# The path function builds a valid OS path. This fixes it to be a valid local URL.
 PALETTE_URL = PALETTE_URL.replace("\\", "/")
-
-# Resource location
 ICON_FOLDER = os.path.join(os.path.dirname(__file__), "resources", "")
-
 ROOT_FOLDER = os.path.join(os.path.dirname(__file__), "..", "..")
 
-# Local list of event handlers used to maintain a reference so
-# they are not released and garbage collected.
 local_handlers = []
 type_text_box_input: adsk.core.TextBoxCommandInput = None
 parts_type_selection_browser_input: adsk.core.BrowserCommandInput = None
@@ -63,17 +50,13 @@ provides_type_text_box_input: adsk.core.TextBoxCommandInput = None
 joint_connect_type_input: adsk.core.ButtonRowCommandInput = None
 reset_bool_value_input: adsk.core.BoolValueCommandInput = None
 
-# Executed when add-in is run.
-
 
 def start():
-    # Command Definition.
     cmd_def = ui.commandDefinitions.addButtonDefinition(
         CMD_ID, CMD_NAME, CMD_DESCRIPTION, ICON_FOLDER
     )
     futil.add_handler(cmd_def.commandCreated, command_created)
 
-    # Register
     workspace = ui.workspaces.itemById(WORKSPACE_ID)
     panel = workspace.toolbarPanels.itemById(PANEL_ID)
 
@@ -84,9 +67,7 @@ def start():
     control.isPromoted = IS_PROMOTED
 
 
-# Executed when add-in is stopped.
 def stop():
-    # Get the various UI elements for this command
     workspace = ui.workspaces.itemById(WORKSPACE_ID)
     panel = workspace.toolbarPanels.itemById(PANEL_ID)
     command_definition = ui.commandDefinitions.itemById(CMD_ID)
@@ -95,20 +76,12 @@ def stop():
         if panel.controls.item(0):
             panel.controls.item(0).deleteMe()
 
-    # Delete the command definition
     if command_definition:
         command_definition.deleteMe()
 
 
 joint_origin = adsk.fusion.JointOrigin.cast(None)
-
-# Unsure if this is a better approach than iterating over the actual selection_input
 selected_joint_origins = []
-# Initializing like this is nice but not necessary I guess
-# typeTextBoxInput = adsk.core.TextBoxCommandInput.cast(None)
-# nameStringValueInput = adsk.core.StringValueCommandInput.cast(None)
-# partsTypeSelectionBrowserInput = adsk.core.BrowserCommandInput.cast(None)
-
 (
     req_formats,
     req_attributes,
@@ -117,19 +90,15 @@ selected_joint_origins = []
     provides_parts,
     provides_attributes,
 ) = ([] for i in range(6))
-
 kinding = "Light"
 typing = "Blocked"
 
 
 def command_created(args: adsk.core.CommandCreatedEventArgs):
-    # General logging for debug.
     futil.log(f"{CMD_NAME} Command Created Event")
 
-    # Load appropriate taxonomies
     load_project_taxonomy_to_config()
 
-    # Handlers
     futil.add_handler(
         args.command.execute, command_execute, local_handlers=local_handlers
     )
@@ -178,7 +147,6 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     args.command.setDialogMinimumSize(600, 800)
     args.command.setDialogInitialSize(600, 800)
 
-    # UI DEF
     global type_text_box_input, parts_type_selection_browser_input, kinding_selection_drop_down_input, name_string_value_input, provides_type_text_box_input, joint_connect_type_input, reset_bool_value_input
 
     selection_tab = inputs.addTabCommandInput("selectionTab", "Select/Configure Joint")
@@ -213,10 +181,6 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     name_string_value_input = selection_tab_inputs.addStringValueInput(
         "nameTextBox", "Set Name", ""
     )
-
-    # group_typing_cmd_input = inputs.addGroupCommandInput('typingGroup', 'Typing')
-    # group_typing_cmd_input.is_expanded = True
-    # group_typing_children = group_typing_cmd_input.children
     formats_type_selection_browser_input = requires_tab_inputs.addBrowserCommandInput(
         id=FORMATTYPES_ID,
         name="Select format/format family",
@@ -237,8 +201,6 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
             minimumHeight=300,
         )
     )
-
-    # Mot synced with other formats browser, figure that out still
     provides_type_selection_browser_input = provides_tab_inputs.addBrowserCommandInput(
         id=FORMATPROVIDESTYPES_ID,
         name="Select format present at joint",
@@ -402,9 +364,6 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
             " ∩ ()", ""
         )
     if message_action == "updateDataNotification":
-        # Update loaded and saved taxonomies
-
-        # The browser IDs should be refactored into constants
         if html_args.browserCommandInput.id == PARTTYPES_ID:
             taxonomy_id = "parts"
         elif html_args.browserCommandInput.id == ATTRIBUTETYPES_ID:
@@ -446,7 +405,6 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
             json.dump(message_data, f, ensure_ascii=False, indent=4)
 
     if message_action == "readyNotification":
-        # ADSK was injected, so now we send the payload
         taxonomy_id = None
         taxonomy_data_message = None
         if html_args.browserCommandInput.id == PARTTYPES_ID:
@@ -466,15 +424,12 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
         )
         html_args.browserCommandInput.sendInfoToHTML("taxonomyIDMessage", taxonomy_id)
 
-    # Return value.
     now = datetime.now()
     current_time = now.strftime("%H:%M:%S")
     html_args.returnData = f"OK - {current_time}"
 
 
-# EXECUTE
 def command_execute(args: adsk.core.CommandEventArgs):
-    # General logging for debug
     futil.log(f"{CMD_NAME} Command Execute Event")
 
     app = adsk.core.Application.get()
@@ -488,8 +443,6 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
     jo_uuid = str(generate_id())
     for jo in selected_joint_origins:
-        # Add typing information as string (this is kinda okay, because we'll send it via JSON to the backend anyway)
-        # Needs fixing
         jo.attributes.add(
             "CLS-JOINT",
             "RequiresString",
@@ -508,22 +461,12 @@ def command_execute(args: adsk.core.CommandEventArgs):
             "CLS-JOINT", "JointConnectType", joint_connect_type_input.selectedItem.name
         )
 
-        # The first time a joint is typed, assign a UUID and change its name
         if not jo.attributes.itemByName("CLS-INFO", "UUID"):
             print("Added UUID to %s" % jo.name)
             jo.name = "Typed Joint"
             jo.attributes.add("CLS-INFO", "UUID", jo_uuid)
 
-    ################################################
-    ################################################
-    # GRAPHICAL DISPLAY STUFF, IMPORTANT A BIT LATER
-    # This could be done smarter, avoiding flicker, but this is a lot easier
-    config.custom_graphics_displaying = True
-    cmd = ui.commandDefinitions.itemById(
-        f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_toggle_display"
-    )
-    cmd.execute()
-    cmd.execute()
+    update_type_information_graphics()
     try:
         design.selectionSets.add(
             selected_joint_origins, name_string_value_input.value or "Typed Joint Set"
@@ -540,6 +483,15 @@ def command_execute(args: adsk.core.CommandEventArgs):
             provides_formats,
             provides_parts,
         ) = ([], [], [], [], [], [])
+
+
+def update_type_information_graphics():
+    config.custom_graphics_displaying = True
+    cmd = ui.commandDefinitions.itemById(
+        f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_toggle_display"
+    )
+    cmd.execute()
+    cmd.execute()
 
 
 def command_preview(args: adsk.core.CommandEventArgs):

@@ -1,45 +1,30 @@
-import os
-
 import adsk.core
 
-from ... import config
 from ...lib import fusion360utils as futil
-from ...lib.cls_python_compat import *
-from ...lib.general_utils import *
+from ...lib.general_utils import config, load_project_taxonomy_to_config, os
 
 app = adsk.core.Application.get()
 ui = app.userInterface
 
-# TODO ********************* Change these names *********************
 CMD_ID = f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_manage_part"
 CMD_NAME = "Manage Part"
 CMD_DESCRIPTION = "Annotate Parts with Cost and Availability information."
 IS_PROMOTED = True
-
 WORKSPACE_ID = "FusionSolidEnvironment"
 PANEL_ID = "MANAGE"
 COMMAND_BESIDE_ID = "ScriptsManagerCommand"
-
-
-# Resource location
 ICON_FOLDER = os.path.join(os.path.dirname(__file__), "resources", "")
-
 ROOT_FOLDER = os.path.join(os.path.dirname(__file__), "..", "..")
 
-# Local list of event handlers used to maintain a reference so
-# they are not released and garbage collected.
 local_handlers = []
 
 
-# Executed when add-in is run.
 def start():
-    # Command Definition.
     cmd_def = ui.commandDefinitions.addButtonDefinition(
         CMD_ID, CMD_NAME, CMD_DESCRIPTION, ICON_FOLDER
     )
     futil.add_handler(cmd_def.commandCreated, command_created)
 
-    # Register
     workspace = ui.workspaces.itemById(WORKSPACE_ID)
     panel = workspace.toolbarPanels.itemById(PANEL_ID)
 
@@ -47,9 +32,7 @@ def start():
     control.isPromoted = IS_PROMOTED
 
 
-# Executed when add-in is stopped.
 def stop():
-    # Get the various UI elements for this command
     workspace = ui.workspaces.itemById(WORKSPACE_ID)
     panel = workspace.toolbarPanels.itemById(PANEL_ID)
     command_definition = ui.commandDefinitions.itemById(CMD_ID)
@@ -58,14 +41,11 @@ def stop():
         if panel.controls.item(0):
             panel.controls.item(0).deleteMe()
 
-    # Delete the command definition
     if command_definition:
         command_definition.deleteMe()
 
 
 joint_origin = adsk.fusion.JointOrigin.cast(None)
-
-# Initializing like this is nice but not necessary I guess
 cost_value_input = adsk.core.ValueInput.cast(None)
 availability_value_input = adsk.core.FloatSliderCommandInput.cast(None)
 
@@ -73,13 +53,10 @@ availability_value_input = adsk.core.FloatSliderCommandInput.cast(None)
 def command_created(args: adsk.core.CommandCreatedEventArgs):
     global cost_value_input, availability_value_input
 
-    # General logging for debug.
     futil.log(f"{CMD_NAME} Command Created Event")
 
-    # Load appropriate taxonomies
     load_project_taxonomy_to_config()
 
-    # Handlers
     futil.add_handler(
         args.command.execute, command_execute, local_handlers=local_handlers
     )
@@ -96,7 +73,6 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     args.command.setDialogMinimumSize(1200, 800)
     args.command.setDialogInitialSize(1200, 800)
 
-    # UI DEF
     cost_value_input = inputs.addValueInput(
         "costValue",
         "Price per Unit",
@@ -126,9 +102,7 @@ def command_activate(args: adsk.core.CommandEventArgs):
     app.log("In command_activate event handler.")
 
 
-# EXECUTE
 def command_execute(args: adsk.core.CommandEventArgs):
-    # General logging for debug
     futil.log(f"{CMD_NAME} Command Execute Event")
 
     global cost_value_input, availability_value_input

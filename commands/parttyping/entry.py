@@ -17,16 +17,11 @@ CMD_ID = f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_type_part"
 CMD_NAME = "Typed Part"
 CMD_DESCRIPTION = "Annotate Parts with Attribute and Type information."
 IS_PROMOTED = True
-
 WORKSPACE_ID = "FusionSolidEnvironment"
 PANEL_ID = "TYPES"
 COMMAND_BESIDE_ID = "ScriptsManagerCommand"
-
 PARTTYPES_ID = "partsTaxonomyBrowser_Part"
 ATTRIBUTETYPES_ID = "attributesTaxonomyBrowser_Part"
-
-# Specify the full path to the local html. You can also use a web URL
-# such as 'https://www.autodesk.com/'
 PALETTE_URL = os.path.join(
     os.path.dirname(__file__),
     "..",
@@ -36,31 +31,20 @@ PALETTE_URL = os.path.join(
     "unrolledTaxonomyDisplay",
     "index.html",
 )
-
-# The path function builds a valid OS path. This fixes it to be a valid local URL.
 PALETTE_URL = PALETTE_URL.replace("\\", "/")
-
-# Resource location
 ICON_FOLDER = os.path.join(os.path.dirname(__file__), "resources", "")
-
 ROOT_FOLDER = os.path.join(os.path.dirname(__file__), "..", "..")
 
-# Local list of event handlers used to maintain a reference so
-# they are not released and garbage collected.
 local_handlers = []
 provides_parts, provides_attributes = [], []
 
-# Executed when add-in is run.
-
 
 def start():
-    # Command Definition.
     cmd_def = ui.commandDefinitions.addButtonDefinition(
         CMD_ID, CMD_NAME, CMD_DESCRIPTION, ICON_FOLDER
     )
     futil.add_handler(cmd_def.commandCreated, command_created)
 
-    # Register
     workspace = ui.workspaces.itemById(WORKSPACE_ID)
     panel = workspace.toolbarPanels.itemById(PANEL_ID)
 
@@ -68,9 +52,7 @@ def start():
     control.isPromoted = IS_PROMOTED
 
 
-# Executed when add-in is stopped.
 def stop():
-    # Get the various UI elements for this command
     workspace = ui.workspaces.itemById(WORKSPACE_ID)
     panel = workspace.toolbarPanels.itemById(PANEL_ID)
     command_definition = ui.commandDefinitions.itemById(CMD_ID)
@@ -79,14 +61,11 @@ def stop():
         if panel.controls.item(0):
             panel.controls.item(0).deleteMe()
 
-    # Delete the command definition
     if command_definition:
         command_definition.deleteMe()
 
 
 joint_origin = adsk.fusion.JointOrigin.cast(None)
-
-# Initializing like this is nice but not necessary I guess
 type_text_box_input = adsk.core.TextBoxCommandInput.cast(None)
 parts_type_selection_browser_input = adsk.core.BrowserCommandInput.cast(None)
 
@@ -94,19 +73,13 @@ parts_type_selection_browser_input = adsk.core.BrowserCommandInput.cast(None)
 def command_created(args: adsk.core.CommandCreatedEventArgs):
     global type_text_box_input, parts_type_selection_browser_input, provides_parts, provides_attributes
 
-    # General logging for debug.
     futil.log(f"{CMD_NAME} Command Created Event")
 
-    # Load appropriate taxonomies
     load_project_taxonomy_to_config()
 
-    # Handlers
     futil.add_handler(
         args.command.execute, command_execute, local_handlers=local_handlers
     )
-    # futil.add_handler(args.command.inputChanged,
-    #                   command_input_changed,
-    #                   local_handlers=local_handlers)
     futil.add_handler(
         args.command.executePreview, command_preview, local_handlers=local_handlers
     )
@@ -139,16 +112,10 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     args.command.setDialogMinimumSize(1200, 800)
     args.command.setDialogInitialSize(1200, 800)
 
-    # UI DEF
-
     type_text_box_input = inputs.addTextBoxCommandInput(
         "typeTextBox", "Part Type", "", 1, True
     )
     type_text_box_input.numRows = 12
-
-    # groupTypingCmdInput = inputs.addGroupCommandInput('typingGroup', 'Typing')
-    # groupTypingCmdInput.isExpanded = True
-    # groupTypingChildren = groupTypingCmdInput.children
 
     parts_type_selection_browser_input = inputs.addBrowserCommandInput(
         id=PARTTYPES_ID,
@@ -232,9 +199,6 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
             provides_attributes = message_data["selections"]
         type_text_box_input.formattedText = generate_type_text()
     if message_action == "updateDataNotification":
-        # Update loaded and saved taxonomies
-
-        # The browser IDs should be refactored into constants
         if html_args.browserCommandInput.id == PARTTYPES_ID:
             taxonomy_id = "parts"
         elif html_args.browserCommandInput.id == ATTRIBUTETYPES_ID:
@@ -271,7 +235,6 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
             json.dump(message_data, f, ensure_ascii=False, indent=4)
 
     if message_action == "readyNotification":
-        # ADSK was injected, so now we send the payload
         taxonomy_id = None
         taxonomy_data_message = None
         if html_args.browserCommandInput.id == PARTTYPES_ID:
@@ -285,7 +248,6 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
         )
         html_args.browserCommandInput.sendInfoToHTML("taxonomyIDMessage", taxonomy_id)
 
-    # Return value.
     now = datetime.now()
     current_time = now.strftime("%H:%M:%S")
     html_args.returnData = f"OK - {current_time}"
@@ -300,9 +262,7 @@ def winapi_path(dos_path, encoding=None):
     return "\\\\?\\" + path
 
 
-# EXECUTE
 def command_execute(args: adsk.core.CommandEventArgs):
-    # General logging for debug
     futil.log(f"{CMD_NAME} Command Execute Event")
 
     global provides_attributes, provides_parts

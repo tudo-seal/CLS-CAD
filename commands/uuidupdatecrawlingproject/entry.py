@@ -1,12 +1,9 @@
-import json
-import os
 import urllib
 from urllib.error import HTTPError
 
 import adsk.core
 from adsk.fusion import DesignTypes
 
-from ... import config
 from ...lib import fusion360utils as futil
 from ...lib.cls_python_compat import *
 from ...lib.general_utils import *
@@ -20,18 +17,12 @@ CMD_ID = f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_migrate_uuids"
 CMD_NAME = "Migrate UUIDs and Fix Files"
 CMD_DESCRIPTION = "Migrate UUIDs and fix nested components."
 IS_PROMOTED = True
-
 WORKSPACE_ID = "FusionSolidEnvironment"
 PANEL_ID = "CRAWL"
 COMMAND_BESIDE_ID = "ScriptsManagerCommand"
-
-# Resources
 ICON_FOLDER = os.path.join(os.path.dirname(__file__), "resources", "")
 
-# Local list of event handlers used to maintain a reference so
-# they are not released and garbage collected.
 local_handlers = []
-
 progress_dialog: adsk.core.ProgressDialog = None
 
 
@@ -48,7 +39,6 @@ def start():
     )
     futil.add_handler(cmd_def.commandCreated, command_created)
 
-    # UI Register
     workspace = ui.workspaces.itemById(WORKSPACE_ID)
     panel = workspace.toolbarPanels.itemById(PANEL_ID)
     control = panel.controls.addCommand(cmd_def, COMMAND_BESIDE_ID, False)
@@ -63,7 +53,6 @@ def stop():
     Returns:
 
     """
-    # Clean entire Panel
     workspace = ui.workspaces.itemById(WORKSPACE_ID)
     panel = workspace.toolbarPanels.itemById(PANEL_ID)
     command_definition = ui.commandDefinitions.itemById(CMD_ID)
@@ -72,7 +61,6 @@ def stop():
         if panel.controls.item(0):
             panel.controls.item(0).deleteMe()
 
-    # Delete the command definition
     if command_definition:
         command_definition.deleteMe()
 
@@ -90,7 +78,6 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     """
     futil.log(f"{CMD_NAME} Command Created Event")
 
-    # Handlers
     futil.add_handler(
         args.command.execute, command_execute, local_handlers=local_handlers
     )
@@ -116,7 +103,6 @@ def recursively_submit(folders: adsk.core.DataFolders):
     for folder in wrapped_forge_call(folders.asArray, progress_dialog):
         progress_dialog.progressValue = 0
         progress_dialog.message = f'Preparing to process Folder "{folder.name}"...'
-        # ignore auto-generated content
         if folder.name in ["Synthesized Assemblies", "Taxonomies"]:
             continue
         submit_and_update_files_in_folder(folder)
@@ -126,7 +112,6 @@ def recursively_submit(folders: adsk.core.DataFolders):
 def submit_and_update_files_in_folder(folder):
     global progress_dialog
     for file in wrapped_forge_call(folder.dataFiles.asArray, progress_dialog):
-        # Just in case we add PDFs etc.
         if not file.fileExtension == "f3d":
             continue
         modified = False
@@ -205,7 +190,6 @@ def command_execute(args: adsk.core.CommandEventArgs):
     Returns:
 
     """
-    # General logging for debug
     futil.log(f"{CMD_NAME} Command Execute Event")
 
     result = ui.messageBox(
@@ -215,7 +199,6 @@ def command_execute(args: adsk.core.CommandEventArgs):
         "Proceed to migrate and upload UUIDs?",
         adsk.core.MessageBoxButtonTypes.OKCancelButtonType,
     )
-    # ok returns zero, so if not
     if not result:
         global progress_dialog
         progress_dialog = ui.createProgressDialog()
@@ -228,10 +211,8 @@ def command_execute(args: adsk.core.CommandEventArgs):
         submit_and_update_files_in_folder(root_folder)
         recursively_submit(root_folder.dataFolders)
 
-        # Load correct project taxonomies before submitting
         load_project_taxonomy_to_config()
 
-        # Also update the taxonomy to be safe
         progress_dialog.message = "Sending current taxonomy to backend..."
         payload_dict = create_backend_taxonomy()
         req = urllib.request.Request("http://127.0.0.1:8000/submit/taxonomy")
@@ -239,7 +220,6 @@ def command_execute(args: adsk.core.CommandEventArgs):
         payload = json.dumps(payload_dict, indent=4).encode("utf-8")
         req.add_header("Content-Length", len(payload))
 
-        # Finally, release progress dialog
         progress_dialog.hide()
 
 

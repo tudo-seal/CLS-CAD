@@ -18,34 +18,15 @@ CMD_NAME = "Edit Taxonomy"
 CMD_DESCRIPTION = "Allows selecting or adding new taxonomy from the taxonomy tree"
 PALETTE_NAME = "Taxonomy"
 IS_PROMOTED = True
-
-# Using "global" variables by referencing values from /config.py
 PALETTE_ID = "partsTaxonomyBrowser_tax"
-
-# Specify the full path to the local html. You can also use a web URL
-# such as 'https://www.autodesk.com/'
 PALETTE_URL = "http://localhost:8000/static/editTaxonomyGraph/index.html"
-
-# The path function builds a valid OS path. This fixes it to be a valid local URL.
-PALETTE_URL = PALETTE_URL.replace("\\", "/")
-
-# Set a default docking behavior for the palette
 PALETTE_DOCKING = adsk.core.PaletteDockingStates.PaletteDockStateRight
-
-# TODO *** Define the location where the command button will be created. ***
-# This is done by specifying the workspace, the tab, and the panel, and the
-# command it will be inserted beside. Not providing the command to position it
-# will insert it at the end.
 WORKSPACE_ID = "FusionSolidEnvironment"
 PANEL_ID = "TAXONOMY"
 COMMAND_BESIDE_ID = "ScriptsManagerCommand"
-
-# Resource location for command icons, here we assume a sub folder in this directory named "resources".
 ICON_FOLDER = os.path.join(os.path.dirname(__file__), "resources", "")
 ROOT_FOLDER = os.path.join(os.path.dirname(__file__), "..", "..")
 
-# Local list of event handlers used to maintain a reference so
-# they are not released and garbage collected.
 local_handlers = []
 
 
@@ -64,21 +45,17 @@ def start():
 
 
 def stop():
-    # Get the various UI elements for this command
     workspace = ui.workspaces.itemById(WORKSPACE_ID)
     panel = workspace.toolbarPanels.itemById(PANEL_ID)
     command_control = panel.controls.itemById(CMD_ID)
     command_definition = ui.commandDefinitions.itemById(CMD_ID)
     palette = ui.palettes.itemById(PALETTE_ID)
 
-    # Delete the button command control
     if command_control:
         command_control.deleteMe()
 
-    # Delete the command definition
     if command_definition:
         command_definition.deleteMe()
-    # Delete the Palette
     if palette:
         palette.deleteMe()
 
