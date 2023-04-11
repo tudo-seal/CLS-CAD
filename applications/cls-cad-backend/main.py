@@ -120,7 +120,7 @@ async def synthesize_assembly(
     payload: SynthesisRequestInf, background_tasks: BackgroundTasks
 ):
     taxonomy = Subtypes(
-        suffix_taxonomy(get_taxonomy_for_project(payload.forgeProjectId)["taxonomy"])
+        suffix_taxonomy(get_taxonomy_for_project(payload.forgeProjectId))
     )
     gamma = FiniteCombinatoryLogic(
         RepositoryBuilder.add_all_to_repository(

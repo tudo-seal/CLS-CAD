@@ -92,11 +92,13 @@ def invert_sub_taxonomy(sub_taxonomy):
 def suffix_taxonomy(taxonomy):
     suffixed_taxonomy = {}
     for key, individual_taxonomy in taxonomy["taxonomies"].items():
+        suffixed_individual_taxonomy = {}
         for entry in individual_taxonomy:
-            individual_taxonomy[f"{entry}_{key}"] = [
-                f"{name}_{key}" for name in individual_taxonomy.pop(entry)
+            suffixed_individual_taxonomy[f"{entry}_{key}"] = [
+                f"{name}_{key}" for name in individual_taxonomy[entry]
             ]
-        suffixed_taxonomy.update(individual_taxonomy)
+        suffixed_taxonomy.update(suffixed_individual_taxonomy)
+    print(suffixed_taxonomy)
     return suffixed_taxonomy
 
 
