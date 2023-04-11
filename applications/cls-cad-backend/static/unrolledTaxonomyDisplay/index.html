@@ -100,15 +100,6 @@
             items: function (node) {
               if (node.parents.length < 2) {
                 return {
-                  rename: {
-                    label: "Rename",
-                    action: function (data) {
-                      var inst = $.jstree.reference(data.reference),
-                        obj = inst.get_node(data.reference);
-                      inst.edit(obj);
-                      inst.sort(inst.get_node(obj.parent));
-                    },
-                  },
                   create: {
                     label: "Create New",
                     action: function (data) {
@@ -244,7 +235,11 @@
             ].push(change["text"]);
           }
           // If it did exist, it is autounrolled/copied
-          else {
+          else if (
+            window.taxonomyData[
+              $("#data").jstree(true).get_node(change["node"].parent).text
+            ] != undefined
+          ) {
             console.log("This happened");
             window.taxonomyData[
               $("#data").jstree(true).get_node(change["node"].parent).text

@@ -41,7 +41,7 @@ from cls_cps.repository_builder import RepositoryBuilder
 from cls_cps.responses import FastResponse
 from cls_cps.schemas import PartInf, SynthesisRequestInf, TaxonomyInf
 from cls_cps.util.hrid import generate_id
-from cls_cps.util.json_operations import postprocess
+from cls_cps.util.json_operations import invert_taxonomy, postprocess, suffix_taxonomy
 
 origins = [
     "http://localhost:3000",
@@ -119,7 +119,9 @@ async def request_optimization(
 async def synthesize_assembly(
     payload: SynthesisRequestInf, background_tasks: BackgroundTasks
 ):
-    taxonomy = Subtypes(get_taxonomy_for_project(payload.forgeProjectId)["taxonomy"])
+    taxonomy = Subtypes(
+        suffix_taxonomy(get_taxonomy_for_project(payload.forgeProjectId)["taxonomy"])
+    )
     gamma = FiniteCombinatoryLogic(
         RepositoryBuilder.add_all_to_repository(
             payload.forgeProjectId,
@@ -174,6 +176,11 @@ async def synthesize_assembly(
         },
     )
     return str(request_id)
+
+
+@app.get("/data/taxonomy/{project_id}", response_class=FastResponse)
+async def get_taxonomy(project_id: str):
+    return invert_taxonomy(get_taxonomy_for_project(project_id))
 
 
 @app.get("/results", response_class=FastResponse)

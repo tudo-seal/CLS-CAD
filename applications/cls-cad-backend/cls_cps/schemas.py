@@ -36,7 +36,7 @@ class PartInf(BaseModel, frozen=True):
 class TaxonomyInf(BaseModel, frozen=True):
     id: str = Field(..., alias="_id")
     forgeProjectId: str
-    taxonomy: dict
+    taxonomies: dict
 
 
 class SynthesisRequestInf(BaseModel, frozen=True):

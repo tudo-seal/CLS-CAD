@@ -63,6 +63,43 @@ def remove_unused_keys_from_part_json(data: dict):
     return data
 
 
+def invert_taxonomy(taxonomy):
+    inverted_taxonomy = {}
+    if not taxonomy:
+        return {
+            "parts": {"Part": []},
+            "formats": {"Format": []},
+            "attributes:": {"Attribute": []},
+        }
+    for key, individual_taxonomy in taxonomy["taxonomies"].items():
+        inverted_taxonomy[key] = invert_sub_taxonomy(individual_taxonomy)
+        inverted_taxonomy[key] = {
+            key.capitalize()[:-1]: inverted_taxonomy[key].pop(key.capitalize()[:-1]),
+            **inverted_taxonomy[key],
+        }
+    return inverted_taxonomy
+
+
+def invert_sub_taxonomy(sub_taxonomy):
+    subtypes = defaultdict(list)
+    for key, values in sub_taxonomy.items():
+        subtypes[key] = subtypes[key]
+        for value in values:
+            subtypes[value].append(key)
+    return subtypes
+
+
+def suffix_taxonomy(taxonomy):
+    suffixed_taxonomy = {}
+    for key, individual_taxonomy in taxonomy["taxonomies"].items():
+        for entry in individual_taxonomy:
+            individual_taxonomy[f"{entry}_{key}"] = [
+                f"{name}_{key}" for name in individual_taxonomy.pop(entry)
+            ]
+        suffixed_taxonomy.update(individual_taxonomy)
+    return suffixed_taxonomy
+
+
 def fast_json_to_string(content: dict):
     try:
         return orjson.dumps(content)
