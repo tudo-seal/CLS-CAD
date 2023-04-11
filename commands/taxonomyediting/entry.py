@@ -1,13 +1,15 @@
 import json
 import os
 from datetime import datetime
-from pathlib import Path
 
 import adsk.core
 
 from ... import config
 from ...lib import fusion360utils as futil
-from ...lib.general_utils import load_project_taxonomy_to_config, winapi_path
+from ...lib.general_utils import (
+    load_project_taxonomy_to_config,
+    update_taxonomy_in_backend,
+)
 
 app = adsk.core.Application.get()
 ui = app.userInterface
@@ -19,7 +21,7 @@ CMD_DESCRIPTION = "Allows selecting or adding new taxonomy from the taxonomy tre
 PALETTE_NAME = "Taxonomy"
 IS_PROMOTED = True
 PALETTE_ID = "partsTaxonomyBrowser_tax"
-PALETTE_URL = "http://localhost:8000/static/editTaxonomyGraph/index.html"
+PALETTE_URL = f"{config.SERVER_URL}/static/editTaxonomyGraph/index.html"
 PALETTE_DOCKING = adsk.core.PaletteDockingStates.PaletteDockStateRight
 WORKSPACE_ID = "FusionSolidEnvironment"
 PANEL_ID = "TAXONOMY"
@@ -122,7 +124,6 @@ def palette_navigating(args: adsk.core.NavigationEventArgs):
 
 def palette_incoming(html_args: adsk.core.HTMLEventArgs):
     futil.log(f"{CMD_NAME}: Palette incoming event.")
-    app = adsk.core.Application.get()
 
     message_data: dict = json.loads(html_args.data)
     message_action = html_args.action
@@ -141,36 +142,8 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
 
     if message_action == "taxonomyDataMessage":
         taxonomy_id = "parts"
-        active_id = (
-            app.activeDocument.dataFile.parentProject.id
-            if app.activeDocument.dataFile is not None
-            else app.data.activeProject.id
-        )
         config.taxonomies[taxonomy_id] = message_data
-        p = Path(
-            winapi_path(
-                os.path.join(
-                    config.ROOT_FOLDER,
-                    "Taxonomies",
-                    "CAD",
-                    active_id.replace(":", "-"),
-                )
-            )
-        )
-        p.mkdir(parents=True, exist_ok=True)
-        with open(
-            winapi_path(
-                os.path.join(
-                    ROOT_FOLDER,
-                    "Taxonomies",
-                    "CAD",
-                    active_id.replace(":", "-"),
-                    "%s.taxonomy" % taxonomy_id,
-                )
-            ),
-            "w+",
-        ) as f:
-            json.dump(message_data, f, ensure_ascii=False, indent=4)
+        update_taxonomy_in_backend()
     # Return value.
     now = datetime.now()
     current_time = now.strftime("%H:%M:%S")

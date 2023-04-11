@@ -7,7 +7,6 @@ from .. import config
 from ..lib import fusion360utils as futil
 from .assembleresult import entry as assemble_result
 from .checkandsubmit import entry as check_and_submit
-from .downloadtaxonomy import entry as download_taxonomy
 from .jointtyping import entry as joint_typing
 from .partmanagement import entry as part_management
 from .parttyping import entry as part_typing
@@ -16,7 +15,6 @@ from .taxonomyediting import entry as taxonomy_editing
 from .togglecustomgraphics import entry as toggle_custom_graphics
 from .typecrawlinghub import entry as type_crawling_hub
 from .typecrawlingproject import entry as type_crawling_project
-from .uploadtaxonomy import entry as upload_taxonomy
 from .uuidupdatecrawlingproject import entry as uuid_update_crawling_project
 
 app = adsk.core.Application.get()
@@ -36,8 +34,6 @@ commands = [
     uuid_update_crawling_project,
     toggle_custom_graphics,
     taxonomy_editing,
-    upload_taxonomy,
-    download_taxonomy,
     request_synthesis,
     assemble_result,
 ]

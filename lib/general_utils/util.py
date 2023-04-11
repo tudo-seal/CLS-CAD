@@ -1,11 +1,15 @@
 import json
 import os
+import urllib
+import urllib.request
+from collections import defaultdict
 from collections.abc import Callable
-from pathlib import Path
+from urllib.error import HTTPError
 
 import adsk
 
 from ... import config
+from ..fusion360utils import app
 
 ROOT_FOLDER = os.path.join(os.path.dirname(__file__), "..", "..")
 
@@ -51,6 +55,14 @@ def wrapped_forge_call(forge_call: Callable, progress_dialog=None):
     return request
 
 
+def invert_sub_taxonomy(sub_taxonomy):
+    subtypes = defaultdict(list)
+    for key, values in sub_taxonomy.items():
+        for value in values:
+            subtypes[value].append(key)
+    return subtypes
+
+
 def load_project_taxonomy_to_config():
     app = adsk.core.Application.get()
     active_id = (
@@ -58,49 +70,14 @@ def load_project_taxonomy_to_config():
         if app.activeDocument.dataFile is not None
         else app.data.activeProject.id
     )
-    path_part_taxonomy = Path(
-        os.path.join(
-            ROOT_FOLDER,
-            "Taxonomies",
-            "CAD",
-            active_id,
-            "parts.taxonomy",
-        )
-    )
-    path_format_taxonomy = Path(
-        os.path.join(
-            ROOT_FOLDER,
-            "Taxonomies",
-            "CAD",
-            active_id,
-            "formats.taxonomy",
-        )
-    )
-    path_attribute_taxonomy = Path(
-        os.path.join(
-            ROOT_FOLDER,
-            "Taxonomies",
-            "CAD",
-            active_id,
-            "attributes.taxonomy",
-        )
-    )
 
-    if path_part_taxonomy.is_file():
-        with open(path_part_taxonomy) as json_file:
-            config.taxonomies["parts"] = json.load(json_file)
-    else:
-        config.taxonomies["parts"] = {"AnyPart": []}
-    if path_format_taxonomy.is_file():
-        with open(path_format_taxonomy) as json_file:
-            config.taxonomies["formats"] = json.load(json_file)
-    else:
-        config.taxonomies["formats"] = {"AnyFormat": []}
-    if path_attribute_taxonomy.is_file():
-        with open(path_attribute_taxonomy) as json_file:
-            config.taxonomies["attributes"] = json.load(json_file)
-    else:
-        config.taxonomies["attributes"] = {"AnyAttrib": []}
+    config.taxonomies = json.loads(
+        urllib.request.urlopen(
+            urllib.request.Request(f"{config.SERVER_URL}/data/taxonomy/{active_id}")
+        )
+        .read()
+        .decode("utf-8")
+    )
 
 
 def winapi_path(dos_path, encoding=None):
@@ -110,3 +87,38 @@ def winapi_path(dos_path, encoding=None):
     if path.startswith("\\\\"):
         return "\\\\?\\UNC\\" + path[2:]
     return "\\\\?\\" + path
+
+
+def update_taxonomy_in_backend():
+    payload_dict = create_backend_taxonomy()
+    req = urllib.request.Request("http://127.0.0.1:8000/submit/taxonomy")
+    req.add_header("Content-Type", "application/json; charset=utf-8")
+    payload = json.dumps(payload_dict, indent=4).encode("utf-8")
+    req.add_header("Content-Length", len(payload))
+    try:
+        response = urllib.request.urlopen(req, payload)
+        print(response)
+    except HTTPError as err:
+        print(err.code)
+        print(err.reason)
+
+
+def create_backend_taxonomy():
+    """
+    Creates a taxonomy in the format that the backend expects. Each individual taxonomy is suffixed with its identifier,
+    guaranteeing that namespaces don't overlap. The Forge ProjectID is also added to the JSON.
+
+    Returns: The created JSON/dict.
+
+    """
+    suffixed_taxonomy = {}
+    for key, value in config.taxonomies.items():
+        suffixed_taxonomy[key] = invert_sub_taxonomy(value)
+    payload_dict = {
+        "_id": app.activeDocument.dataFile.parentProject.id,
+        "taxonomies": suffixed_taxonomy,
+        "forgeProjectId": app.activeDocument.dataFile.parentProject.id
+        if app.activeDocument.dataFile is not None
+        else app.data.activeProject.id,
+    }
+    return payload_dict

@@ -1,12 +1,9 @@
-import urllib
-from urllib.error import HTTPError
-
 import adsk.core
 
 from ...lib import fusion360utils as futil
 from ...lib.cls_python_compat import *
 from ...lib.general_utils import *
-from ..checkandsubmit.entry import create_backend_json, create_backend_taxonomy
+from ..checkandsubmit.entry import create_backend_json
 
 app = adsk.core.Application.get()
 ui = app.userInterface
@@ -186,18 +183,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
         recursively_submit(root_folder.dataFolders)
 
         progress_dialog.hide()
-
-        payload_dict = create_backend_taxonomy()
-        req = urllib.request.Request("http://127.0.0.1:8000/submit/taxonomy")
-        req.add_header("Content-Type", "application/json; charset=utf-8")
-        payload = json.dumps(payload_dict, indent=4).encode("utf-8")
-        req.add_header("Content-Length", len(payload))
-        try:
-            response = urllib.request.urlopen(req, payload)
-            print(response)
-        except HTTPError as err:
-            print(err.code)
-            print(err.reason)
+        update_taxonomy_in_backend()
 
 
 def command_destroy(args: adsk.core.CommandEventArgs):

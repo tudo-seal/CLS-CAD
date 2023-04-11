@@ -1,6 +1,4 @@
-import os
 import urllib.request
-from urllib.error import HTTPError
 
 import adsk.core
 
@@ -144,38 +142,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
     load_project_taxonomy_to_config()
 
     # why not also update the taxonomy in the backend while we are at it?
-    payload_dict = create_backend_taxonomy()
-    req = urllib.request.Request("http://127.0.0.1:8000/submit/taxonomy")
-    req.add_header("Content-Type", "application/json; charset=utf-8")
-    payload = json.dumps(payload_dict, indent=4).encode("utf-8")
-    req.add_header("Content-Length", len(payload))
-    try:
-        response = urllib.request.urlopen(req, payload)
-        print(response)
-    except HTTPError as err:
-        print(err.code)
-        print(err.reason)
-
-
-def create_backend_taxonomy():
-    """
-    Creates a taxonomy in the format that the backend expects. Each individual taxonomy is suffixed with its identifier,
-    guaranteeing that namespaces don't overlap. The Forge ProjectID is also added to the JSON.
-
-    Returns: The created JSON/dict.
-
-    """
-    suffixed_taxonomy = {}
-    for key, value in config.taxonomies.items():
-        suffixed_taxonomy.update(TaxonomyConverter.convert(value, key))
-    payload_dict = {
-        "_id": app.activeDocument.dataFile.parentProject.id,
-        "taxonomy": suffixed_taxonomy,
-        "forgeProjectId": app.activeDocument.dataFile.parentProject.id
-        if app.activeDocument.dataFile is not None
-        else app.data.activeProject.id,
-    }
-    return payload_dict
+    update_taxonomy_in_backend()
 
 
 def create_backend_json():

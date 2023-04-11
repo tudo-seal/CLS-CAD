@@ -18,6 +18,7 @@ DEBUG = True
 ADDIN_NAME = os.path.basename(os.path.dirname(__file__))
 COMPANY_NAME = "ACME"
 ROOT_FOLDER = os.path.join(os.path.dirname(__file__))
+SERVER_URL = "http://127.0.0.1:8000"
 
 # Palettes
 taxonomy_palette_id = f"{COMPANY_NAME}_{ADDIN_NAME}_palette_taxonomy"

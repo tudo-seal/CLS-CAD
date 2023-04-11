@@ -1,10 +1,16 @@
+import os
 import urllib
 from datetime import datetime
 
 import adsk.core
 
 from ...lib import fusion360utils as futil
-from ...lib.general_utils import Path, config, json, load_project_taxonomy_to_config, os
+from ...lib.general_utils import (
+    config,
+    json,
+    load_project_taxonomy_to_config,
+    update_taxonomy_in_backend,
+)
 
 app = adsk.core.Application.get()
 ui = app.userInterface
@@ -18,15 +24,7 @@ PANEL_ID = "SYNTH_ASSEMBLY"
 COMMAND_BESIDE_ID = "ScriptsManagerCommand"
 PARTTYPES_ID = "partsTaxonomyBrowser_Part"
 ATTRIBUTETYPES_ID = "attributesTaxonomyBrowser_Part"
-PALETTE_URL = os.path.join(
-    os.path.dirname(__file__),
-    "..",
-    "..",
-    "resources",
-    "html",
-    "unrolledTaxonomyDisplay",
-    "index.html",
-)
+PALETTE_URL = f"{config.SERVER_URL}/static/unrolledTaxonomyDisplay/index.html"
 PALETTE_URL = PALETTE_URL.replace("\\", "/")
 ICON_FOLDER = os.path.join(os.path.dirname(__file__), "resources", "")
 ROOT_FOLDER = os.path.join(os.path.dirname(__file__), "..", "..")
@@ -153,30 +151,7 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
         elif html_args.browserCommandInput.id == ATTRIBUTETYPES_ID:
             taxonomy_id = "attributes"
         config.taxonomies[taxonomy_id] = message_data
-        p = Path(
-            winapi_path(
-                os.path.join(
-                    config.ROOT_FOLDER,
-                    "Taxonomies",
-                    "CAD",
-                    app.activeDocument.dataFile.parentProject.id.replace(":", "-"),
-                )
-            )
-        )
-        p.mkdir(parents=True, exist_ok=True)
-        with open(
-            winapi_path(
-                os.path.join(
-                    ROOT_FOLDER,
-                    "Taxonomies",
-                    "CAD",
-                    app.activeDocument.dataFile.parentProject.id,
-                    "%s.taxonomy" % taxonomy_id,
-                )
-            ),
-            "w+",
-        ) as f:
-            json.dump(message_data, f, ensure_ascii=False, indent=4)
+        update_taxonomy_in_backend()
 
     if message_action == "readyNotification":
         taxonomy_id = None

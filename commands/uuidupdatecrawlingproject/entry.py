@@ -1,13 +1,10 @@
-import urllib
-from urllib.error import HTTPError
-
 import adsk.core
 from adsk.fusion import DesignTypes
 
 from ...lib import fusion360utils as futil
 from ...lib.cls_python_compat import *
 from ...lib.general_utils import *
-from ..checkandsubmit.entry import create_backend_json, create_backend_taxonomy
+from ..checkandsubmit.entry import create_backend_json
 
 app = adsk.core.Application.get()
 ui = app.userInterface

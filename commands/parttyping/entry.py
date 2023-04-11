@@ -1,13 +1,15 @@
-import os
 from datetime import datetime
-from pathlib import Path
 
 import adsk.core
 
-from ... import config
 from ...lib import fusion360utils as futil
-from ...lib.cls_python_compat import *
-from ...lib.general_utils import *
+from ...lib.general_utils import (
+    config,
+    json,
+    load_project_taxonomy_to_config,
+    os,
+    update_taxonomy_in_backend,
+)
 
 app = adsk.core.Application.get()
 ui = app.userInterface
@@ -22,15 +24,7 @@ PANEL_ID = "TYPES"
 COMMAND_BESIDE_ID = "ScriptsManagerCommand"
 PARTTYPES_ID = "partsTaxonomyBrowser_Part"
 ATTRIBUTETYPES_ID = "attributesTaxonomyBrowser_Part"
-PALETTE_URL = os.path.join(
-    os.path.dirname(__file__),
-    "..",
-    "..",
-    "resources",
-    "html",
-    "unrolledTaxonomyDisplay",
-    "index.html",
-)
+PALETTE_URL = f"{config.SERVER_URL}/static/unrolledTaxonomyDisplay/index.html"
 PALETTE_URL = PALETTE_URL.replace("\\", "/")
 ICON_FOLDER = os.path.join(os.path.dirname(__file__), "resources", "")
 ROOT_FOLDER = os.path.join(os.path.dirname(__file__), "..", "..")
@@ -203,36 +197,8 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
             taxonomy_id = "parts"
         elif html_args.browserCommandInput.id == ATTRIBUTETYPES_ID:
             taxonomy_id = "attributes"
-        active_id = (
-            app.activeDocument.dataFile.parentProject.id
-            if app.activeDocument.dataFile is not None
-            else app.data.activeProject.id
-        )
         config.taxonomies[taxonomy_id] = message_data
-        p = Path(
-            winapi_path(
-                os.path.join(
-                    config.ROOT_FOLDER,
-                    "Taxonomies",
-                    "CAD",
-                    active_id.replace(":", "-"),
-                )
-            )
-        )
-        p.mkdir(parents=True, exist_ok=True)
-        with open(
-            winapi_path(
-                os.path.join(
-                    ROOT_FOLDER,
-                    "Taxonomies",
-                    "CAD",
-                    active_id.replace(":", "-"),
-                    "%s.taxonomy" % taxonomy_id,
-                )
-            ),
-            "w+",
-        ) as f:
-            json.dump(message_data, f, ensure_ascii=False, indent=4)
+        update_taxonomy_in_backend()
 
     if message_action == "readyNotification":
         taxonomy_id = None

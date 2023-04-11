@@ -2,7 +2,6 @@ import json
 import os
 import traceback
 from datetime import datetime
-from pathlib import Path
 
 import adsk.core
 
@@ -11,7 +10,7 @@ from ...lib import fusion360utils as futil
 from ...lib.general_utils import (
     generate_id,
     load_project_taxonomy_to_config,
-    winapi_path,
+    update_taxonomy_in_backend,
 )
 
 app = adsk.core.Application.get()
@@ -28,15 +27,7 @@ PARTTYPES_ID = "partsTaxonomyBrowser"
 FORMATTYPES_ID = "formatsTaxonomyBrowser"
 FORMATPROVIDESTYPES_ID = "providesFormatsTaxonomyBrowser"
 ATTRIBUTETYPES_ID = "attributesTaxonomyBrowser"
-PALETTE_URL = os.path.join(
-    os.path.dirname(__file__),
-    "..",
-    "..",
-    "resources",
-    "html",
-    "unrolledTaxonomyDisplay",
-    "index.html",
-)
+PALETTE_URL = f"{config.SERVER_URL}/static/unrolledTaxonomyDisplay/index.html"
 PALETTE_URL = PALETTE_URL.replace("\\", "/")
 ICON_FOLDER = os.path.join(os.path.dirname(__file__), "resources", "")
 ROOT_FOLDER = os.path.join(os.path.dirname(__file__), "..", "..")
@@ -339,7 +330,6 @@ def palette_navigating(args: adsk.core.NavigationEventArgs):
 
 def palette_incoming(html_args: adsk.core.HTMLEventArgs):
     futil.log(f"{CMD_NAME}: Palette incoming event.")
-    app = adsk.core.Application.get()
     message_data: dict = json.loads(html_args.data)
     message_action = html_args.action
 
@@ -373,36 +363,9 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
             or html_args.browserCommandInput.id == FORMATPROVIDESTYPES_ID
         ):
             taxonomy_id = "formats"
-        active_id = (
-            app.activeDocument.dataFile.parentProject.id
-            if app.activeDocument.dataFile is not None
-            else app.data.activeProject.id
-        )
+        print("updateDatNotification")
         config.taxonomies[taxonomy_id] = message_data
-        p = Path(
-            winapi_path(
-                os.path.join(
-                    config.ROOT_FOLDER,
-                    "Taxonomies",
-                    "CAD",
-                    active_id.replace(":", "-"),
-                )
-            )
-        )
-        p.mkdir(parents=True, exist_ok=True)
-        with open(
-            winapi_path(
-                os.path.join(
-                    ROOT_FOLDER,
-                    "Taxonomies",
-                    "CAD",
-                    active_id.replace(":", "-"),
-                    "%s.taxonomy" % taxonomy_id,
-                )
-            ),
-            "w+",
-        ) as f:
-            json.dump(message_data, f, ensure_ascii=False, indent=4)
+        update_taxonomy_in_backend()
 
     if message_action == "readyNotification":
         taxonomy_id = None
