@@ -10,17 +10,20 @@ from cls_cps.repository_builder import Part
 part_counts: defaultdict = defaultdict(lambda: {"count": 0, "name": "", "cost": 0})
 total_count, total_cost = 0, 0
 instructions: list = []
+links: defaultdict = defaultdict(lambda: defaultdict(int))
+link_index = 0
 
 
 def postprocess(data: dict):
-    global part_counts, instructions, total_count, total_cost
+    global part_counts, instructions, total_count, total_cost, links, link_index
     part_counts = defaultdict(lambda: {"count": 0, "name": "", "cost": 0})
+    links, link_index = defaultdict(lambda: defaultdict(int)), 0
     instructions = []
     total_count, total_cost = 0, 0
     data = data() if isinstance(data, Part) else data
     name = re.sub("v[0-9]+$", "", data["name"])
     data = {"connections": {"origin": data}, "name": "origin", "count": 1}
-    propagate_part_counts_in_part_json(data)
+    data = propagate_part_counts_in_part_json(data, 0)
     remove_unused_keys_from_part_json(data)
     data.pop("connections")
     data = {
@@ -28,13 +31,14 @@ def postprocess(data: dict):
         "cost": total_cost,
         "count": total_count,
         "quantities": part_counts,
+        "links": link_index + 1,
         "instructions": instructions,
     }
     return data
 
 
-def propagate_part_counts_in_part_json(data: dict):
-    global part_counts, instructions, total_count, total_cost
+def propagate_part_counts_in_part_json(data: dict, index):
+    global part_counts, instructions, total_count, total_cost, link_index
     for k, v in data["connections"].items():
         v["count"] *= data["count"]
         v["cost"] *= v["count"]
@@ -43,16 +47,20 @@ def propagate_part_counts_in_part_json(data: dict):
         part_counts[v["forgeDocumentId"]]["name"] = re.sub("v[0-9]+$", "", v["name"])
         total_count += v["count"]
         total_cost += v["cost"]
+        if v["motion"] != "Rigid":
+            link_index += 1
+            index = link_index
         instructions.append(
             {
                 "target": k,
                 "source": v["provides"],
                 "count": v["count"],
                 "motion": v["motion"],
+                "link": f"link{index}",
                 "humanReadable": f"Connect {re.sub('v[0-9]+$', '', v['name'])} to {re.sub('v[0-9]+$', '', data['name'])}.",
             }
         )
-        propagate_part_counts_in_part_json(v)
+        propagate_part_counts_in_part_json(v, index)
     return data
 
 
