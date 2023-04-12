@@ -87,20 +87,8 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
         args.command.activate, command_activate, local_handlers=local_handlers
     )
 
-    app = adsk.core.Application.get()
-    design = adsk.fusion.Design.cast(app.activeProduct)
-    provides_attributes = json.loads(
-        design.rootComponent.attributes.itemByName(
-            "CLS-PART", "ProvidesAttributes"
-        ).value
-        if design.rootComponent.attributes.itemByName("CLS-PART", "ProvidesAttributes")
-        else "[]"
-    )
-    provides_parts = json.loads(
-        design.rootComponent.attributes.itemByName("CLS-PART", "ProvidesParts").value
-        if design.rootComponent.attributes.itemByName("CLS-PART", "ProvidesParts")
-        else "[]"
-    )
+    provides_attributes = []
+    provides_parts = []
 
     inputs = args.command.commandInputs
     args.command.setDialogMinimumSize(1200, 800)

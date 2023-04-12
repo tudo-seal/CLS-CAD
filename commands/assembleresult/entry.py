@@ -141,18 +141,24 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
 
 def center_in_window():
+    global progress_dialog
     app = adsk.core.Application.get()
     ui = app.userInterface
     des = adsk.fusion.Design.cast(app.activeProduct)
     root = des.rootComponent
 
-    ui.activeSelections.clear()
+    progress = progress_dialog.progressValue
+    progress_dialog.hide()
     ui.activeSelections.add(root)
     find_cmd = ui.commandDefinitions.itemById("FindInWindow")
     find_cmd.execute()
-    do_events_for_duration(0.2)
+    do_events_for_duration(0.01)
     ui.activeSelections.clear()
-    do_events_for_duration(0.2)
+    adsk.doEvents()
+    progress_dialog.show(
+        progress_dialog.title, progress_dialog.message, 0, progress_dialog.maximumValue
+    )
+    progress_dialog.progressValue = progress
 
 
 def do_events_for_duration(duration: float):
@@ -250,8 +256,6 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
 
         doc = app.documents.add(adsk.core.DocumentTypes.FusionDesignDocumentType)
         design = adsk.fusion.Design.cast(app.activeProduct)
-        if USE_NO_HISTORY:
-            design.designType = DesignTypes.DirectDesignType
 
         doc.saveAs(
             name, request_folder, "Automatically synthesized assembly.", "Synthesized"
@@ -261,7 +265,7 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
         ).controlDefinition.listItems.item(9).isSelected = False
         root = design.rootComponent
         for forge_document_id, infos in message_data["quantities"].items():
-            do_events_for_duration(0.2)
+            do_events_for_duration(0.05)
             document = app.data.findFileById(forge_document_id)
             progress_dialog.progressValue = 0
             progress_dialog.maximumValue = infos["count"]
@@ -277,18 +281,44 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
                     adsk.core.Matrix3D.create()
                 )
                 parts_container.component.name = (
-                    f"{inserted_occurrence.name} Quantity:{infos}"
+                    f"{inserted_occurrence.name}s Quantity:{infos['count']}"
                 )
-            for i in range(infos["count"] - 1):
-                copied_occurrence = root.occurrences.addNewComponentCopy(
-                    inserted_occurrence.component, adsk.core.Matrix3D.create()
-                )
-                copied_occurrence.breakLink()
-                copied_occurrence.moveToComponent(parts_container)
-                progress_dialog.progressValue += 1
-            inserted_occurrence.breakLink()
-            if infos["count"] > 1:
                 inserted_occurrence.moveToComponent(parts_container)
+                object_collection_wrapper_for_part = adsk.core.ObjectCollection.create()
+                object_collection_wrapper_for_part.add(inserted_occurrence)
+                rectangular_pattern_features = (
+                    parts_container.component.features.rectangularPatternFeatures
+                )
+                quantity_one = adsk.core.ValueInput.createByString(str(infos["count"]))
+                distance_one = adsk.core.ValueInput.createByString("0 cm")
+                quantity_two = adsk.core.ValueInput.createByString("1")
+                distance_two = adsk.core.ValueInput.createByString("0 cm")
+                rectangular_pattern_feature_input = (
+                    rectangular_pattern_features.createInput(
+                        object_collection_wrapper_for_part,
+                        root.xConstructionAxis,
+                        quantity_one,
+                        distance_one,
+                        adsk.fusion.PatternDistanceType.SpacingPatternDistanceType,
+                    )
+                )
+                rectangular_pattern_feature_input.setDirectionTwo(
+                    root.yConstructionAxis, quantity_two, distance_two
+                )
+                for i in range(infos["count"] - 1):
+                    progress_dialog.progressValue += 1
+
+        if USE_NO_HISTORY:
+            design.designType = DesignTypes.DirectDesignType
+
+        progress_dialog.message = "Breaking all Links..."
+        progress_dialog.progressValue = 0
+        progress_dialog.maximumValue = message_data["count"]
+
+        for part in root.allOccurrences:
+            if part.isReferencedComponent:
+                part.breakLink()
+                progress_dialog.progressValue += 1
 
         progress_dialog.message = "Creating all Joints..."
         progress_dialog.progressValue = 0
@@ -311,9 +341,11 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
                     create_joint_from_typed_joint_origins(
                         targets[i], sources[i], motion
                     )
+                progress_dialog.progressValue += 1
+
             center_in_window()
 
-            progress_dialog.hide()
+        progress_dialog.hide()
 
     if message_action == "readyNotification":
         # ADSK was injected, so now we send the payload
