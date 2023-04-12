@@ -314,25 +314,52 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
 
         if USE_NO_HISTORY:
             design.designType = DesignTypes.DirectDesignType
-        link_occurences = {}
+        link_occurrences = {}
         for i in range(message_data["links"]):
             link = root.occurrences.addNewComponent(adsk.core.Matrix3D.create())
             link.component.name = f"link_{i}"
-            link_occurences[f"link{i}"] = link
+            link_occurrences[f"link{i}"] = link
+
+        idx = 0
+        for part in root.allOccurrences:
+            if part.isReferencedComponent:
+                part.attributes.add("Order", "Id", str(idx))
+                idx += 1
+
+        for joint_info in message_data["instructions"]:
+            link, move, count = (
+                joint_info["link"],
+                joint_info["move"],
+                joint_info["count"],
+            )
+            bucket: adsk.fusion.Occurrence = [
+                x.parent
+                for x in design.findAttributes("Meta", "forgeDocumentId")
+                if x.value == move
+            ][0]
+            for i in range(count):
+                bucket.childOccurrences.item(0).moveToComponent(link_occurrences[link])
+
+        for bucket_occurrence in [
+            x.parent for x in design.findAttributes("Meta", "forgeDocumentId")
+        ]:
+            bucket_occurrence.deleteMe()
 
         progress_dialog.message = "Breaking all Links..."
         progress_dialog.progressValue = 0
         progress_dialog.maximumValue = message_data["count"]
 
-        for part in root.allOccurrences:
-            if part.isReferencedComponent:
-                part.breakLink()
-                adsk.doEvents()
-                progress_dialog.progressValue += 1
+        for attribs in sorted(
+            [x for x in design.findAttributes("Order", "Id")],
+            key=lambda x: int(x.value),
+        ):
+            attribs.parent.breakLink()
+            adsk.doEvents()
+            progress_dialog.progressValue += 1
 
         progress_dialog.message = "Creating all Joints..."
         progress_dialog.progressValue = 0
-        occurrences_to_move = []
+
         for joint_info in message_data["instructions"]:
             target, source, count, motion, link_id = (
                 joint_info["target"],
@@ -353,33 +380,15 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
                 adsk.doEvents()
                 if target == "origin":
                     joint = create_ground_joint(sources[i])
-                    occurrences_to_move.append(
-                        (joint.occurrenceOne, link_occurences[link_id])
-                    )
+
                 else:
                     joint = create_joint_from_typed_joint_origins(
-                        targets[i], sources[i], motion, link=link_occurences[link_id]
-                    )
-                    occurrences_to_move.append(
-                        (
-                            joint.occurrenceTwo,
-                            create_named_sub_group(
-                                count, link_occurences[link_id], sources[i]
-                            )
-                            if count > 1
-                            else link_occurences[link_id],
-                        )
+                        targets[i], sources[i], motion
                     )
                 progress_dialog.progressValue += 1
 
             center_in_window()
-        for source, target in occurrences_to_move:
-            source.moveToComponent(target)
 
-        for bucket_occurrence in [
-            x.parent for x in design.findAttributes("Meta", "forgeDocumentId")
-        ]:
-            bucket_occurrence.deleteMe()
         progress_dialog.hide()
 
     if message_action == "readyNotification":
