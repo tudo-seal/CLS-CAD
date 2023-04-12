@@ -19,8 +19,8 @@ def postprocess(data: dict):
     total_count, total_cost = 0, 0
     data = data() if isinstance(data, Part) else data
     name = re.sub("v[0-9]+$", "", data["name"])
-    data = {"connections": {"origin": data}, "name": "origin"}
-    propagate_part_counts_in_part_json(data, 1)
+    data = {"connections": {"origin": data}, "name": "origin", "count": 1}
+    propagate_part_counts_in_part_json(data)
     remove_unused_keys_from_part_json(data)
     data.pop("connections")
     data = {
@@ -33,11 +33,11 @@ def postprocess(data: dict):
     return data
 
 
-def propagate_part_counts_in_part_json(data: dict, multiplier: int):
+def propagate_part_counts_in_part_json(data: dict):
     global part_counts, instructions, total_count, total_cost
     for k, v in data["connections"].items():
-        v["count"] *= multiplier
-        v["cost"] *= multiplier
+        v["count"] *= data["count"]
+        v["cost"] *= v["count"]
         part_counts[v["forgeDocumentId"]]["count"] += v["count"]
         part_counts[v["forgeDocumentId"]]["cost"] += v["cost"]
         part_counts[v["forgeDocumentId"]]["name"] = re.sub("v[0-9]+$", "", v["name"])
@@ -52,7 +52,7 @@ def propagate_part_counts_in_part_json(data: dict, multiplier: int):
                 "humanReadable": f"Connect {re.sub('v[0-9]+$', '', v['name'])} to {re.sub('v[0-9]+$', '', data['name'])}.",
             }
         )
-        propagate_part_counts_in_part_json(v, v["count"])
+        propagate_part_counts_in_part_json(v)
     return data
 
 
@@ -98,7 +98,6 @@ def suffix_taxonomy(taxonomy):
                 f"{name}_{key}" for name in individual_taxonomy[entry]
             ]
         suffixed_taxonomy.update(suffixed_individual_taxonomy)
-    print(suffixed_taxonomy)
     return suffixed_taxonomy
 
 
