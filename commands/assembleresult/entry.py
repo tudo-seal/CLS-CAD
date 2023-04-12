@@ -202,7 +202,9 @@ def create_ground_joint(ground_joint):
         ),
     )
     joint_input.isFlipped = True
-    joints.add(joint_input).isLightBulbOn = False
+    joint = joints.add(joint_input)
+    joint.isLightBulbOn = False
+    return joint
 
 
 def palette_incoming(html_args: adsk.core.HTMLEventArgs):
@@ -276,14 +278,15 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
                 True,
             )
             progress_dialog.progressValue = 1
+            parts_container = root.occurrences.addNewComponent(
+                adsk.core.Matrix3D.create()
+            )
+            parts_container.component.name = (
+                f"{inserted_occurrence.name}s Quantity:{infos['count']}"
+            )
+            parts_container.attributes.add("Meta", "forgeDocumentId", forge_document_id)
+            inserted_occurrence.moveToComponent(parts_container)
             if infos["count"] > 1:
-                parts_container = root.occurrences.addNewComponent(
-                    adsk.core.Matrix3D.create()
-                )
-                parts_container.component.name = (
-                    f"{inserted_occurrence.name}s Quantity:{infos['count']}"
-                )
-                inserted_occurrence.moveToComponent(parts_container)
                 object_collection_wrapper_for_part = adsk.core.ObjectCollection.create()
                 object_collection_wrapper_for_part.add(inserted_occurrence)
                 rectangular_pattern_features = (
@@ -305,11 +308,17 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
                 rectangular_pattern_feature_input.setDirectionTwo(
                     root.yConstructionAxis, quantity_two, distance_two
                 )
+                rectangular_pattern_features.add(rectangular_pattern_feature_input)
                 for i in range(infos["count"] - 1):
                     progress_dialog.progressValue += 1
 
         if USE_NO_HISTORY:
             design.designType = DesignTypes.DirectDesignType
+        link_occurences = {}
+        for i in range(message_data["links"]):
+            link = root.occurrences.addNewComponent(adsk.core.Matrix3D.create())
+            link.component.name = f"link_{i}"
+            link_occurences[f"link{i}"] = link
 
         progress_dialog.message = "Breaking all Links..."
         progress_dialog.progressValue = 0
@@ -318,33 +327,59 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
         for part in root.allOccurrences:
             if part.isReferencedComponent:
                 part.breakLink()
+                adsk.doEvents()
                 progress_dialog.progressValue += 1
 
         progress_dialog.message = "Creating all Joints..."
         progress_dialog.progressValue = 0
+        occurrences_to_move = []
         for joint_info in message_data["instructions"]:
-            target, source, count, motion = (
+            target, source, count, motion, link_id = (
                 joint_info["target"],
                 joint_info["source"],
                 joint_info["count"],
                 joint_info["motion"],
+                joint_info["link"],
             )
 
             attributes = design.findAttributes("CLS-INFO", "UUID")
-            targets = [x.parent for x in attributes if x.value == target]
-            sources = [x.parent for x in attributes if x.value == source]
+            targets: list[adsk.fusion.JointOrigin] = [
+                x.parent for x in attributes if x.value == target
+            ]
+            sources: list[adsk.fusion.JointOrigin] = [
+                x.parent for x in attributes if x.value == source
+            ]
             for i in range(count):
                 adsk.doEvents()
                 if target == "origin":
-                    create_ground_joint(sources[i])
+                    joint = create_ground_joint(sources[i])
+                    occurrences_to_move.append(
+                        (joint.occurrenceOne, link_occurences[link_id])
+                    )
                 else:
-                    create_joint_from_typed_joint_origins(
-                        targets[i], sources[i], motion
+                    joint = create_joint_from_typed_joint_origins(
+                        targets[i], sources[i], motion, link=link_occurences[link_id]
+                    )
+                    occurrences_to_move.append(
+                        (
+                            joint.occurrenceTwo,
+                            create_named_sub_group(
+                                count, link_occurences[link_id], sources[i]
+                            )
+                            if count > 1
+                            else link_occurences[link_id],
+                        )
                     )
                 progress_dialog.progressValue += 1
 
             center_in_window()
+        for source, target in occurrences_to_move:
+            source.moveToComponent(target)
 
+        for bucket_occurrence in [
+            x.parent for x in design.findAttributes("Meta", "forgeDocumentId")
+        ]:
+            bucket_occurrence.deleteMe()
         progress_dialog.hide()
 
     if message_action == "readyNotification":
@@ -363,6 +398,14 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
     now = datetime.now()
     current_time = now.strftime("%H:%M:%S")
     html_args.returnData = f"OK - {current_time}"
+
+
+def create_named_sub_group(count, occurrence, target):
+    link_sub_group = occurrence.component.occurrences.addNewComponent(
+        adsk.core.Matrix3D.create()
+    )
+    link_sub_group.component.name = f"{target.parentComponent.name}s Quantity:{count}"
+    return link_sub_group
 
 
 def create_result_class_folder(progress_dialog, name="User Picked Name"):
@@ -401,13 +444,16 @@ def create_results_folder(progress_dialog):
 
 
 def create_joint_from_typed_joint_origins(
-    target_joint_origin, source_joint_origin, motion
+    target_joint_origin,
+    source_joint_origin,
+    motion,
+    link: adsk.fusion.Occurrence = None,
 ):
     design = adsk.fusion.Design.cast(app.activeProduct)
     root = design.rootComponent
     target_joint_origin.attributes.add("CLS-INFO", "UUID", generate_id())
     source_joint_origin.attributes.add("CLS-INFO", "UUID", generate_id())
-    joints = root.joints
+    joints = root.joints if not link else link.component.joints
     joint_input = joints.createInput(target_joint_origin, source_joint_origin)
     joint_input.isFlipped = True
     if motion == "Revolute":
@@ -416,6 +462,7 @@ def create_joint_from_typed_joint_origins(
         )
     new_joint = joints.add(joint_input)
     new_joint.isLightBulbOn = False if motion == "Rigid" else True
+    return new_joint
 
 
 def command_destroy(args: adsk.core.CommandEventArgs):
