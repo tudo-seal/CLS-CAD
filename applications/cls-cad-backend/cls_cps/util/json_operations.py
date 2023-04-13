@@ -54,6 +54,7 @@ def propagate_part_counts_in_part_json(data: dict, index):
             {
                 "target": k,
                 "source": v["provides"],
+                "move": v["forgeDocumentId"],
                 "count": v["count"],
                 "motion": v["motion"],
                 "link": f"link{index}",
