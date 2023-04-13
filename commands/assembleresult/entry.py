@@ -246,150 +246,7 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
         if cancelled:
             return
 
-        global progress_dialog
-        progress_dialog = ui.createProgressDialog()
-        progress_dialog.show(
-            "Assembly Progress", "Preparing project for synthesized assemblies...", 0, 1
-        )
-
-        request_folder = create_results_folder(progress_dialog)
-
-        progress_dialog.message = "Creating new assembly document..."
-
-        doc = app.documents.add(adsk.core.DocumentTypes.FusionDesignDocumentType)
-        design = adsk.fusion.Design.cast(app.activeProduct)
-
-        doc.saveAs(
-            name, request_folder, "Automatically synthesized assembly.", "Synthesized"
-        )
-        ui.commandDefinitions.itemById(
-            "VisibilityOverrideCommand"
-        ).controlDefinition.listItems.item(9).isSelected = False
-        root = design.rootComponent
-        for forge_document_id, infos in message_data["quantities"].items():
-            do_events_for_duration(0.05)
-            document = app.data.findFileById(forge_document_id)
-            progress_dialog.progressValue = 0
-            progress_dialog.maximumValue = infos["count"]
-            progress_dialog.message = f"Inserting all instances of {document.name}..."
-            inserted_occurrence = root.occurrences.addByInsert(
-                document,
-                adsk.core.Matrix3D.create(),
-                True,
-            )
-            progress_dialog.progressValue = 1
-            parts_container = root.occurrences.addNewComponent(
-                adsk.core.Matrix3D.create()
-            )
-            parts_container.component.name = (
-                f"{inserted_occurrence.name}s Quantity:{infos['count']}"
-            )
-            parts_container.attributes.add("Meta", "forgeDocumentId", forge_document_id)
-            inserted_occurrence.moveToComponent(parts_container)
-            if infos["count"] > 1:
-                object_collection_wrapper_for_part = adsk.core.ObjectCollection.create()
-                object_collection_wrapper_for_part.add(inserted_occurrence)
-                rectangular_pattern_features = (
-                    parts_container.component.features.rectangularPatternFeatures
-                )
-                quantity_one = adsk.core.ValueInput.createByString(str(infos["count"]))
-                distance_one = adsk.core.ValueInput.createByString("0 cm")
-                quantity_two = adsk.core.ValueInput.createByString("1")
-                distance_two = adsk.core.ValueInput.createByString("0 cm")
-                rectangular_pattern_feature_input = (
-                    rectangular_pattern_features.createInput(
-                        object_collection_wrapper_for_part,
-                        root.xConstructionAxis,
-                        quantity_one,
-                        distance_one,
-                        adsk.fusion.PatternDistanceType.SpacingPatternDistanceType,
-                    )
-                )
-                rectangular_pattern_feature_input.setDirectionTwo(
-                    root.yConstructionAxis, quantity_two, distance_two
-                )
-                rectangular_pattern_features.add(rectangular_pattern_feature_input)
-                for i in range(infos["count"] - 1):
-                    progress_dialog.progressValue += 1
-
-        if USE_NO_HISTORY:
-            design.designType = DesignTypes.DirectDesignType
-        link_occurrences = {}
-        for i in range(message_data["links"]):
-            link = root.occurrences.addNewComponent(adsk.core.Matrix3D.create())
-            link.component.name = f"link_{i}"
-            link_occurrences[f"link{i}"] = link
-
-        idx = 0
-        for part in root.allOccurrences:
-            if part.isReferencedComponent:
-                part.attributes.add("Order", "Id", str(idx))
-                idx += 1
-
-        for joint_info in message_data["instructions"]:
-            link, move, count = (
-                joint_info["link"],
-                joint_info["move"],
-                joint_info["count"],
-            )
-            bucket: adsk.fusion.Occurrence = [
-                x.parent
-                for x in design.findAttributes("Meta", "forgeDocumentId")
-                if x.value == move
-            ][0]
-            for i in range(count):
-                bucket.childOccurrences.item(0).moveToComponent(link_occurrences[link])
-
-        for bucket_occurrence in [
-            x.parent for x in design.findAttributes("Meta", "forgeDocumentId")
-        ]:
-            bucket_occurrence.deleteMe()
-
-        progress_dialog.message = "Breaking all Links..."
-        progress_dialog.progressValue = 0
-        progress_dialog.maximumValue = message_data["count"]
-
-        for attribs in sorted(
-            [x for x in design.findAttributes("Order", "Id")],
-            key=lambda x: int(x.value),
-        ):
-            attribs.parent.breakLink()
-            adsk.doEvents()
-            progress_dialog.progressValue += 1
-
-        progress_dialog.message = "Creating all Joints..."
-        progress_dialog.progressValue = 0
-
-        for joint_info in message_data["instructions"]:
-            target, source, count, motion, link_id = (
-                joint_info["target"],
-                joint_info["source"],
-                joint_info["count"],
-                joint_info["motion"],
-                joint_info["link"],
-            )
-
-            attributes = design.findAttributes("CLS-INFO", "UUID")
-            targets: list[adsk.fusion.JointOrigin] = [
-                x.parent for x in attributes if x.value == target
-            ]
-            sources: list[adsk.fusion.JointOrigin] = [
-                x.parent for x in attributes if x.value == source
-            ]
-            for i in range(count):
-                adsk.doEvents()
-                if target == "origin":
-                    joint = create_ground_joint(sources[i])
-
-                else:
-                    joint = create_joint_from_typed_joint_origins(
-                        targets[i], sources[i], motion
-                    )
-                progress_dialog.progressValue += 1
-
-            center_in_window()
-
-        progress_dialog.hide()
+        create_assembly_document(message_data, name)
 
     if message_action == "readyNotification":
         # ADSK was injected, so now we send the payload
@@ -407,6 +264,192 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
     now = datetime.now()
     current_time = now.strftime("%H:%M:%S")
     html_args.returnData = f"OK - {current_time}"
+
+
+def create_assembly_document(data, name):
+    global progress_dialog
+    progress_dialog = ui.createProgressDialog()
+    progress_dialog.show(
+        "Assembly Progress", "Preparing project for synthesized assemblies...", 0, 1
+    )
+    request_folder = create_results_folder(progress_dialog)
+    progress_dialog.message = "Creating new assembly document..."
+    doc = app.documents.add(adsk.core.DocumentTypes.FusionDesignDocumentType)
+    design = adsk.fusion.Design.cast(app.activeProduct)
+    doc.saveAs(
+        name, request_folder, "Automatically synthesized assembly.", "Synthesized"
+    )
+    ui.commandDefinitions.itemById(
+        "VisibilityOverrideCommand"
+    ).controlDefinition.listItems.item(9).isSelected = False
+
+    for forge_document_id, infos in data["quantities"].items():
+        do_events_for_duration(0.05)
+        insert_part_into_bucket_from_quantity_information(forge_document_id, infos)
+
+    if USE_NO_HISTORY:
+        design.designType = DesignTypes.DirectDesignType
+
+    link_occurrences = create_links(data["links"])
+    tag_referenced_components_with_order()
+    move_part_to_links_from_instructions(data["instructions"], link_occurrences)
+
+    remove_tagged_occurrences("Meta", "forgeDocumentId")
+    break_all_links(data)
+
+    create_joints_from_instructions(data["instructions"])
+
+    progress_dialog.hide()
+
+
+def insert_part_into_bucket_from_quantity_information(forge_document_id, infos):
+    global progress_dialog
+    root = adsk.fusion.Design.cast(app.activeProduct).rootComponent
+    document = app.data.findFileById(forge_document_id)
+    progress_dialog.progressValue = 0
+    progress_dialog.maximumValue = infos["count"]
+    progress_dialog.message = f"Inserting all instances of {document.name}..."
+    inserted_occurrence = root.occurrences.addByInsert(
+        document,
+        adsk.core.Matrix3D.create(),
+        True,
+    )
+    progress_dialog.progressValue = 1
+
+    parts_container = root.occurrences.addNewComponent(adsk.core.Matrix3D.create())
+    parts_container.component.name = (
+        f"{inserted_occurrence.name}s Quantity:{infos['count']}"
+    )
+    parts_container.attributes.add("Meta", "forgeDocumentId", forge_document_id)
+    inserted_occurrence.moveToComponent(parts_container)
+    if infos["count"] > 1:
+        create_copies_of_part_in_container(
+            infos["count"], inserted_occurrence, parts_container
+        )
+
+
+def create_copies_of_part_in_container(count, inserted_occurrence, parts_container):
+    global progress_dialog
+    root = adsk.fusion.Design.cast(app.activeProduct).rootComponent
+    object_collection_wrapper_for_part = adsk.core.ObjectCollection.create()
+    object_collection_wrapper_for_part.add(inserted_occurrence)
+    rectangular_pattern_features = (
+        parts_container.component.features.rectangularPatternFeatures
+    )
+    quantity_one = adsk.core.ValueInput.createByString(str(count))
+    distance_one = adsk.core.ValueInput.createByString("0 cm")
+    quantity_two = adsk.core.ValueInput.createByString("1")
+    distance_two = adsk.core.ValueInput.createByString("0 cm")
+    rectangular_pattern_feature_input = rectangular_pattern_features.createInput(
+        object_collection_wrapper_for_part,
+        root.xConstructionAxis,
+        quantity_one,
+        distance_one,
+        adsk.fusion.PatternDistanceType.SpacingPatternDistanceType,
+    )
+    rectangular_pattern_feature_input.setDirectionTwo(
+        root.yConstructionAxis, quantity_two, distance_two
+    )
+    rectangular_pattern_features.add(rectangular_pattern_feature_input)
+    for i in range(count - 1):
+        progress_dialog.progressValue += 1
+
+
+def tag_referenced_components_with_order():
+    idx = 0
+    for part in adsk.fusion.Design.cast(app.activeProduct).rootComponent.allOccurrences:
+        if part.isReferencedComponent:
+            part.attributes.add("Order", "Id", str(idx))
+            idx += 1
+
+
+def create_links(count):
+    root = adsk.fusion.Design.cast(app.activeProduct).rootComponent
+    link_occurrences = {}
+    for i in range(count):
+        link = root.occurrences.addNewComponent(adsk.core.Matrix3D.create())
+        link.component.name = f"link_{i}"
+        link_occurrences[f"link{i}"] = link
+    return link_occurrences
+
+
+def move_part_to_links_from_instructions(
+    instructions, link_occurrences, group: str = "Meta", tag: str = "forgeDocumentId"
+):
+    design = adsk.fusion.Design.cast(app.activeProduct)
+    for joint_info in instructions:
+        link, move, count = (
+            joint_info["link"],
+            joint_info["move"],
+            joint_info["count"],
+        )
+        bucket: adsk.fusion.Occurrence = [
+            x.parent for x in design.findAttributes(group, tag) if x.value == move
+        ][0]
+        move_to = link_occurrences[link]
+        if count > 1:
+            move_to = link_occurrences[link].component.occurrences.addNewComponent(
+                adsk.core.Matrix3D.create()
+            )
+            move_to.component.name = (
+                f"{bucket.childOccurrences.item(0).name}s Quantity:{count}"
+            )
+        for i in range(count):
+            bucket.childOccurrences.item(0).moveToComponent(move_to)
+
+
+def remove_tagged_occurrences(group: str, tag: str):
+    design = adsk.fusion.Design.cast(app.activeProduct)
+    for bucket_occurrence in [x.parent for x in design.findAttributes(group, tag)]:
+        bucket_occurrence.deleteMe()
+
+
+def create_joints_from_instructions(instructions):
+    global progress_dialog
+    design = adsk.fusion.Design.cast(app.activeProduct)
+    progress_dialog.message = "Creating all Joints..."
+    progress_dialog.progressValue = 0
+    for joint_info in instructions:
+        target, source, count, motion, link_id = (
+            joint_info["target"],
+            joint_info["source"],
+            joint_info["count"],
+            joint_info["motion"],
+            joint_info["link"],
+        )
+
+        attributes = design.findAttributes("CLS-INFO", "UUID")
+        targets: list[adsk.fusion.JointOrigin] = [
+            x.parent for x in attributes if x.value == target
+        ]
+        sources: list[adsk.fusion.JointOrigin] = [
+            x.parent for x in attributes if x.value == source
+        ]
+        for i in range(count):
+            adsk.doEvents()
+            if target == "origin":
+                create_ground_joint(sources[i])
+
+            else:
+                create_joint_from_typed_joint_origins(targets[i], sources[i], motion)
+            progress_dialog.progressValue += 1
+
+        center_in_window()
+
+
+def break_all_links(data):
+    global progress_dialog
+    design = adsk.fusion.Design.cast(app.activeProduct)
+    progress_dialog.message = "Breaking all Links..."
+    progress_dialog.progressValue = 0
+    progress_dialog.maximumValue = data["count"]
+    for attribs in sorted(
+        [x for x in design.findAttributes("Order", "Id")],
+        key=lambda x: int(x.value),
+    ):
+        attribs.parent.breakLink()
+        adsk.doEvents()
+        progress_dialog.progressValue += 1
 
 
 def create_named_sub_group(count, occurrence, target):
