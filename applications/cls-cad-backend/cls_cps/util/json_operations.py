@@ -1,6 +1,6 @@
 import json
 import re
-from collections import defaultdict
+from collections import defaultdict, deque
 
 import ujson
 from orjson import orjson
@@ -11,19 +11,19 @@ part_counts: defaultdict = defaultdict(lambda: {"count": 0, "name": "", "cost": 
 total_count, total_cost = 0, 0
 instructions: list = []
 links: defaultdict = defaultdict(lambda: defaultdict(int))
-link_index = 0
 
 
 def postprocess(data: dict):
-    global part_counts, instructions, total_count, total_cost, links, link_index
+    global part_counts, instructions, total_count, total_cost, links
     part_counts = defaultdict(lambda: {"count": 0, "name": "", "cost": 0})
-    links, link_index = defaultdict(lambda: defaultdict(int)), 0
+    links = defaultdict(lambda: defaultdict(int))
     instructions = []
     total_count, total_cost = 0, 0
     data = data() if isinstance(data, Part) else data
     name = re.sub("v[0-9]+$", "", data["name"])
     data = {"connections": {"origin": data}, "name": "origin", "count": 1}
-    data = propagate_part_counts_in_part_json(data, 0)
+    data = propagate_part_counts_in_part_json(data)
+    link_index = compute_instructions(data)
     remove_unused_keys_from_part_json(data)
     data.pop("connections")
     data = {
@@ -37,9 +37,9 @@ def postprocess(data: dict):
     return data
 
 
-def propagate_part_counts_in_part_json(data: dict, index):
-    global part_counts, instructions, total_count, total_cost, link_index
-    for k, v in data["connections"].items():
+def propagate_part_counts_in_part_json(data: dict):
+    global part_counts, total_count, total_cost
+    for v in data["connections"].values():
         v["count"] *= data["count"]
         v["cost"] *= v["count"]
         part_counts[v["forgeDocumentId"]]["count"] += v["count"]
@@ -47,9 +47,19 @@ def propagate_part_counts_in_part_json(data: dict, index):
         part_counts[v["forgeDocumentId"]]["name"] = re.sub("v[0-9]+$", "", v["name"])
         total_count += v["count"]
         total_cost += v["cost"]
+        propagate_part_counts_in_part_json(v)
+    return data
+
+
+def compute_instructions(data):
+    global instructions
+    idx = 0
+    to_traverse = deque([list(tup) + [idx] for tup in data["connections"].items()])
+    while to_traverse:
+        k, v, idx = to_traverse.popleft()
         if v["motion"] != "Rigid":
-            link_index += 1
-            index = link_index
+            idx += 1
+        to_traverse.extend([list(tup) + [idx] for tup in v["connections"].items()])
         instructions.append(
             {
                 "target": k,
@@ -57,12 +67,10 @@ def propagate_part_counts_in_part_json(data: dict, index):
                 "move": v["forgeDocumentId"],
                 "count": v["count"],
                 "motion": v["motion"],
-                "link": f"link{index}",
-                "humanReadable": f"Connect {re.sub('v[0-9]+$', '', v['name'])} to {re.sub('v[0-9]+$', '', data['name'])}.",
+                "link": f"link{idx}",
             }
         )
-        propagate_part_counts_in_part_json(v, index)
-    return data
+    return idx
 
 
 def remove_unused_keys_from_part_json(data: dict):

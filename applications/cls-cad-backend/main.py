@@ -15,7 +15,6 @@ from bcls import (
 )
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from hypermapper import optimizer
 from starlette.background import BackgroundTasks
 from starlette.staticfiles import StaticFiles
 
@@ -42,6 +41,12 @@ from cls_cps.responses import FastResponse
 from cls_cps.schemas import PartInf, SynthesisRequestInf, TaxonomyInf
 from cls_cps.util.hrid import generate_id
 from cls_cps.util.json_operations import invert_taxonomy, postprocess, suffix_taxonomy
+
+no_hypermapper = False
+try:
+    from hypermapper import optimizer
+except ImportError:
+    no_hypermapper = True
 
 origins = [
     "http://localhost:3000",
@@ -87,6 +92,8 @@ async def save_taxonomy(
 async def request_optimization(
     payload: SynthesisRequestInf,
 ):
+    if no_hypermapper:
+        return "Unsupported."
     request_id = str(generate_id())
     p = Path(os.path.join("Results", "Hypermapper", payload.forgeProjectId, request_id))
     p.mkdir(parents=True, exist_ok=True)
