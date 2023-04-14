@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from datetime import datetime
 from functools import partial
 from timeit import default_timer as timer
@@ -291,7 +292,6 @@ def create_assembly_document(data, name):
         design.designType = DesignTypes.DirectDesignType
 
     link_occurrences = create_links(data["links"])
-    tag_referenced_components_with_order()
     move_part_to_links_from_instructions(data["instructions"], link_occurrences)
 
     remove_tagged_occurrences("Meta", "forgeDocumentId")
@@ -355,14 +355,6 @@ def create_copies_of_part_in_container(count, inserted_occurrence, parts_contain
         progress_dialog.progressValue += 1
 
 
-def tag_referenced_components_with_order():
-    idx = 0
-    for part in adsk.fusion.Design.cast(app.activeProduct).rootComponent.allOccurrences:
-        if part.isReferencedComponent:
-            part.attributes.add("Order", "Id", str(idx))
-            idx += 1
-
-
 def create_links(count):
     root = adsk.fusion.Design.cast(app.activeProduct).rootComponent
     link_occurrences = {}
@@ -391,9 +383,7 @@ def move_part_to_links_from_instructions(
             move_to = link_occurrences[link].component.occurrences.addNewComponent(
                 adsk.core.Matrix3D.create()
             )
-            move_to.component.name = (
-                f"{bucket.childOccurrences.item(0).name}s Quantity:{count}"
-            )
+            move_to.component.name = f"{re.sub(' v[0-9]+:*[0-9]*', '', bucket.childOccurrences.item(0).name)}s - Quantity:{count}"
         for i in range(count):
             bucket.childOccurrences.item(0).moveToComponent(move_to)
 
@@ -443,21 +433,12 @@ def break_all_links(data):
     progress_dialog.message = "Breaking all Links..."
     progress_dialog.progressValue = 0
     progress_dialog.maximumValue = data["count"]
-    for attribs in sorted(
-        [x for x in design.findAttributes("Order", "Id")],
-        key=lambda x: int(x.value),
-    ):
-        attribs.parent.breakLink()
-        adsk.doEvents()
-        progress_dialog.progressValue += 1
-
-
-def create_named_sub_group(count, occurrence, target):
-    link_sub_group = occurrence.component.occurrences.addNewComponent(
-        adsk.core.Matrix3D.create()
-    )
-    link_sub_group.component.name = f"{target.parentComponent.name}s Quantity:{count}"
-    return link_sub_group
+    for part in design.rootComponent.allOccurrences:
+        if part.isReferencedComponent:
+            part.breakLink()
+            part.component.name = re.sub(" v[0-9]+", "", part.component.name)
+            adsk.doEvents()
+            progress_dialog.progressValue += 1
 
 
 def create_result_class_folder(progress_dialog, name="User Picked Name"):
