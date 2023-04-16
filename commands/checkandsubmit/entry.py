@@ -143,6 +143,9 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
     # why not also update the taxonomy in the backend while we are at it?
     update_taxonomy_in_backend()
+    app = adsk.core.Application.get()
+    app.activeDocument.save("Saved by CLS-CAD: Submitted to backend.")
+
 
 
 def create_backend_json():
