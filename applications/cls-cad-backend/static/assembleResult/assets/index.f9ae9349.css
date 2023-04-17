@@ -362,6 +362,9 @@ html {
 .col-span-1 {
   grid-column: span 1 / span 1;
 }
+.float-right {
+  float: right;
+}
 .ml-4 {
   margin-left: 1rem;
 }
@@ -542,6 +545,10 @@ html {
 .px-4 {
   padding-left: 1rem;
   padding-right: 1rem;
+}
+.px-1 {
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
 }
 .pr-3 {
   padding-right: 0.75rem;

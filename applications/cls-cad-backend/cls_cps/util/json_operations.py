@@ -1,3 +1,4 @@
+import copy
 import json
 import re
 from collections import defaultdict, deque
@@ -7,23 +8,14 @@ from orjson import orjson
 
 from cls_cps.repository_builder import Part
 
-part_counts: defaultdict = defaultdict(lambda: {"count": 0, "name": "", "cost": 0})
-total_count, total_cost = 0, 0
-instructions: list = []
-links: defaultdict = defaultdict(lambda: defaultdict(int))
-
 
 def postprocess(data: dict):
-    global part_counts, instructions, total_count, total_cost, links
-    part_counts = defaultdict(lambda: {"count": 0, "name": "", "cost": 0})
-    links = defaultdict(lambda: defaultdict(int))
-    instructions = []
-    total_count, total_cost = 0, 0
     data = data() if isinstance(data, Part) else data
     name = re.sub("v[0-9]+$", "", data["name"])
     data = {"connections": {"origin": data}, "name": "origin", "count": 1}
-    data = propagate_part_counts_in_part_json(data)
-    link_index = compute_instructions(data)
+    data = resolve_multiplicity(data)
+    part_counts, total_count, total_cost = compute_insertions_and_totals(data)
+    instructions, link_index = compute_instructions(data)
     remove_unused_keys_from_part_json(data)
     data.pop("connections")
     data = {
@@ -37,45 +29,64 @@ def postprocess(data: dict):
     return data
 
 
-def propagate_part_counts_in_part_json(data: dict):
-    global part_counts, total_count, total_cost
-    for v in data["connections"].values():
+def resolve_multiplicity(data: dict):
+    connection_list = []
+    for k, v in data["connections"].items():
         v["count"] *= data["count"]
+        if v["motion"] != "Rigid":
+            for i in range(v["count"]):
+                separate_link_beginning = copy.deepcopy(v)
+                separate_link_beginning["count"] = 1
+                connection_list.append((k, separate_link_beginning))
+            continue
         v["cost"] *= v["count"]
+        connection_list.append((k, v))
+    data["connections"] = connection_list
+    for k, v in data["connections"]:
+        resolve_multiplicity(v)
+    return data
+
+
+def compute_insertions_and_totals(data: dict):
+    part_counts = defaultdict(lambda: {"count": 0, "name": "", "cost": 0})
+    total_count, total_cost = 0, 0
+    to_traverse = deque(data["connections"])
+    while to_traverse:
+        k, v = to_traverse.popleft()
         part_counts[v["forgeDocumentId"]]["count"] += v["count"]
         part_counts[v["forgeDocumentId"]]["cost"] += v["cost"]
         part_counts[v["forgeDocumentId"]]["name"] = re.sub("v[0-9]+$", "", v["name"])
         total_count += v["count"]
         total_cost += v["cost"]
-        propagate_part_counts_in_part_json(v)
-    return data
+        to_traverse.extend(v["connections"])
+    return part_counts, total_count, total_cost
 
 
 def compute_instructions(data):
-    global instructions
+    instructions = []
     idx = 0
-    to_traverse = deque([list(tup) + [idx] for tup in data["connections"].items()])
+    to_traverse = deque([list(tup) + [idx] for tup in data["connections"]])
     while to_traverse:
         k, v, idx = to_traverse.popleft()
         if v["motion"] != "Rigid":
             idx += 1
-        to_traverse.extend([list(tup) + [idx] for tup in v["connections"].items()])
+        to_traverse.extend([list(tup) + [idx] for tup in v["connections"]])
         instructions.append(
             {
                 "target": k,
                 "source": v["provides"],
                 "move": v["forgeDocumentId"],
-                "count": v["count"],
+                "count": 1 if v["motion"] != "Rigid" else v["count"],
                 "motion": v["motion"],
                 "link": f"link{idx}",
             }
         )
-    return idx
+    return instructions, idx
 
 
 def remove_unused_keys_from_part_json(data: dict):
     data.pop("requiredJointOriginsInfo", None)
-    for k, v in data["connections"].items():
+    for k, v in data["connections"]:
         remove_unused_keys_from_part_json(v)
     return data
 
