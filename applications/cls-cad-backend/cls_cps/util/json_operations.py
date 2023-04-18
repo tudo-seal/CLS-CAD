@@ -117,13 +117,16 @@ def invert_sub_taxonomy(sub_taxonomy):
     return subtypes
 
 
-def suffix_taxonomy(taxonomy):
+def suffix_taxonomy_and_add_mirror(taxonomy: dict):
     suffixed_taxonomy = {}
     for key, individual_taxonomy in taxonomy["taxonomies"].items():
         suffixed_individual_taxonomy = {}
         for entry in individual_taxonomy:
             suffixed_individual_taxonomy[f"{entry}_{key}"] = [
                 f"{name}_{key}" for name in individual_taxonomy[entry]
+            ]
+            suffixed_individual_taxonomy[f"Has_{entry}_{key}"] = [
+                f"Has_{name}_{key}" for name in individual_taxonomy[entry]
             ]
         suffixed_taxonomy.update(suffixed_individual_taxonomy)
     return suffixed_taxonomy

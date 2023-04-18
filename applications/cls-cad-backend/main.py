@@ -40,7 +40,11 @@ from cls_cps.repository_builder import RepositoryBuilder
 from cls_cps.responses import FastResponse
 from cls_cps.schemas import PartInf, SynthesisRequestInf, TaxonomyInf
 from cls_cps.util.hrid import generate_id
-from cls_cps.util.json_operations import invert_taxonomy, postprocess, suffix_taxonomy
+from cls_cps.util.json_operations import (
+    invert_taxonomy,
+    postprocess,
+    suffix_taxonomy_and_add_mirror,
+)
 
 no_hypermapper = False
 try:
@@ -127,7 +131,7 @@ async def synthesize_assembly(
     payload: SynthesisRequestInf, background_tasks: BackgroundTasks
 ):
     taxonomy = Subtypes(
-        suffix_taxonomy(get_taxonomy_for_project(payload.forgeProjectId))
+        suffix_taxonomy_and_add_mirror(get_taxonomy_for_project(payload.forgeProjectId))
     )
     gamma = FiniteCombinatoryLogic(
         RepositoryBuilder.add_all_to_repository(

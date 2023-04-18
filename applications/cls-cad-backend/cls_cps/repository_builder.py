@@ -50,9 +50,9 @@ class Role(str, Enum):
     provides = "provides"
 
 
-def get_joint_origin_type(uuid: str, part: dict, role: Role):
+def get_joint_origin_type(uuid: str, part: dict, role: Role, prefix=""):
     return Type.intersect(
-        [Constructor(tpe) for tpe in part["jointOrigins"][uuid][role]]
+        [Constructor(f"{prefix}{tpe}") for tpe in part["jointOrigins"][uuid][role]]
     )
 
 
@@ -100,10 +100,10 @@ def create_virtual_substitute_part(part, required_joint_origin_uuid):
     )
 
 
-def types_from_uuids(uuids: list, part: dict):
+def types_from_uuids(uuids: list, part: dict, prefix=""):
     return [
-        *[get_joint_origin_type(x, part, Role.requires) for x in uuids[:-1]],
-        *[get_joint_origin_type(uuids[-1], part, Role.provides)],
+        *[get_joint_origin_type(x, part, Role.requires, prefix) for x in uuids[:-1]],
+        *[get_joint_origin_type(uuids[-1], part, Role.provides, prefix)],
     ]
 
 
@@ -134,7 +134,7 @@ class RepositoryBuilder:
         blacklist=None,
         connect_uuid=None,
         taxonomy: Subtypes = None,
-        propagated_types=[]
+        propagated_types=[],
     ):
         """
         Adds a part to a repository to be used for synthesis. Adds necessary Constructors for the parts configurations,
@@ -174,6 +174,11 @@ class RepositoryBuilder:
             ]
 
             config_types = types_from_uuids(ordered_list_of_configuration_uuids, part)
+            has_types = types_from_uuids(
+                ordered_list_of_configuration_uuids, part, prefix="Has_"
+            )
+
+            config_types[-1] = Type.intersect([*[config_types[-1]], *has_types])
             config_multiarrow = multiarrow_from_types(config_types)
 
             if propagated_types:
@@ -226,7 +231,7 @@ class RepositoryBuilder:
         blacklist=None,
         connect_uuid=None,
         taxonomy=None,
-        propagated_types=[]
+        propagated_types=[],
     ):
         repository = {}
         for part in get_all_parts_for_project(project_id):
