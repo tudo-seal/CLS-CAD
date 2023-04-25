@@ -219,38 +219,38 @@ def command_select(args: adsk.core.SelectionEventArgs):
     global req_attributes, req_formats, req_parts, provides_formats, selected_joint_origins
     if design and selected_joint_origin:
         try:
-            type_text_box_input.text = (
-                selected_joint_origin.attributes.itemByName(
-                    "CLS-JOINT", "RequiresString"
-                ).value
-                or "None"
-            )
-            provides_type_text_box_input.text = (
-                selected_joint_origin.attributes.itemByName(
-                    "CLS-JOINT", "ProvidesString"
-                ).value
-                or "None"
-            )
-            provides_formats = json.loads(
-                selected_joint_origin.attributes.itemByName(
-                    "CLS-JOINT", "ProvidesFormats"
-                ).value
-            )
-            req_attributes = json.loads(
-                selected_joint_origin.attributes.itemByName(
-                    "CLS-JOINT", "RequiresAttributes"
-                ).value
-            )
-            req_formats = json.loads(
-                selected_joint_origin.attributes.itemByName(
-                    "CLS-JOINT", "RequiresFormats"
-                ).value
-            )
-            req_parts = json.loads(
-                selected_joint_origin.attributes.itemByName(
-                    "CLS-JOINT", "RequiresParts"
-                ).value
-            )
+            provides_formats = [
+                config.inverted_mappings["formats"][x]
+                for x in json.loads(
+                    selected_joint_origin.attributes.itemByName(
+                        "CLS-JOINT", "ProvidesFormats"
+                    ).value
+                )
+            ]
+            req_attributes = [
+                config.inverted_mappings["attributes"][x]
+                for x in json.loads(
+                    selected_joint_origin.attributes.itemByName(
+                        "CLS-JOINT", "RequiresAttributes"
+                    ).value
+                )
+            ]
+            req_formats = [
+                config.inverted_mappings["formats"][x]
+                for x in json.loads(
+                    selected_joint_origin.attributes.itemByName(
+                        "CLS-JOINT", "RequiresFormats"
+                    ).value
+                )
+            ]
+            req_parts = [
+                config.inverted_mappings["parts"][x]
+                for x in json.loads(
+                    selected_joint_origin.attributes.itemByName(
+                        "CLS-JOINT", "RequiresParts"
+                    ).value
+                )
+            ]
             if (
                 selected_joint_origin.attributes.itemByName(
                     "CLS-JOINT", "JointConnectType"
@@ -330,7 +330,7 @@ def palette_navigating(args: adsk.core.NavigationEventArgs):
 
 def palette_incoming(html_args: adsk.core.HTMLEventArgs):
     futil.log(f"{CMD_NAME}: Palette incoming event.")
-    message_data: dict = json.loads(html_args.data)
+    message_data = json.loads(html_args.data)
     message_action = html_args.action
 
     log_msg = f"Event received from {html_args.firingEvent.sender.objectType}\n"
@@ -363,9 +363,23 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
             or html_args.browserCommandInput.id == FORMATPROVIDESTYPES_ID
         ):
             taxonomy_id = "formats"
-        print("updateDatNotification")
         config.taxonomies[taxonomy_id] = message_data
         update_taxonomy_in_backend()
+
+    if message_action == "renameDataNotification":
+        if html_args.browserCommandInput.id == PARTTYPES_ID:
+            taxonomy_id = "parts"
+        elif html_args.browserCommandInput.id == ATTRIBUTETYPES_ID:
+            taxonomy_id = "attributes"
+        elif (
+            html_args.browserCommandInput.id == FORMATTYPES_ID
+            or html_args.browserCommandInput.id == FORMATPROVIDESTYPES_ID
+        ):
+            taxonomy_id = "formats"
+        print("Updating mapping")
+        config.mappings[taxonomy_id][message_data[1]] = config.mappings[
+            taxonomy_id
+        ].pop(message_data[0])
 
     if message_action == "readyNotification":
         taxonomy_id = None
@@ -408,18 +422,24 @@ def command_execute(args: adsk.core.CommandEventArgs):
     for jo in selected_joint_origins:
         jo.attributes.add(
             "CLS-JOINT",
-            "RequiresString",
-            type_text_box_input.text if type_text_box_input.text != "()" else "None",
+            "RequiresFormats",
+            json.dumps([config.mappings["formats"][x] for x in req_formats]),
         )
         jo.attributes.add(
             "CLS-JOINT",
-            "ProvidesString",
-            f'({"∩".join(provides_formats)})'.replace(" ∩ ()", "").replace("()", ""),
+            "RequiresParts",
+            json.dumps([config.mappings["parts"][x] for x in req_parts]),
         )
-        jo.attributes.add("CLS-JOINT", "RequiresFormats", json.dumps(req_formats))
-        jo.attributes.add("CLS-JOINT", "RequiresParts", json.dumps(req_parts))
-        jo.attributes.add("CLS-JOINT", "RequiresAttributes", json.dumps(req_attributes))
-        jo.attributes.add("CLS-JOINT", "ProvidesFormats", json.dumps(provides_formats))
+        jo.attributes.add(
+            "CLS-JOINT",
+            "RequiresAttributes",
+            json.dumps([config.mappings["attributes"][x] for x in req_attributes]),
+        )
+        jo.attributes.add(
+            "CLS-JOINT",
+            "ProvidesFormats",
+            json.dumps([config.mappings["formats"][x] for x in provides_formats]),
+        )
         jo.attributes.add(
             "CLS-JOINT", "JointConnectType", joint_connect_type_input.selectedItem.name
         )

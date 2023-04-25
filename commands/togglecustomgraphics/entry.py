@@ -1,3 +1,4 @@
+import json
 import os
 import traceback
 
@@ -105,7 +106,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
                 offset.add(tmatrix.translation)
                 tmatrix.translation = offset
                 custom_text = graphics.addText(
-                    f'Requires: {jo.attributes.itemByName("CLS-JOINT", "RequiresString").value or "None"}\n Provides: {jo.attributes.itemByName("CLS-JOINT", "ProvidesString").value or "None"}',
+                    f'Requires: {"∩".join([config.inverted_mappings["formats"][x] for x in json.loads(jo.attributes.itemByName("CLS-JOINT", "RequiresFormats").value)] + [config.inverted_mappings["parts"][x] for x in json.loads(jo.attributes.itemByName("CLS-JOINT", "RequiresParts").value)] + [config.inverted_mappings["attributes"][x] for x in json.loads(jo.attributes.itemByName("CLS-JOINT", "RequiresAttributes").value)]) or "None"}\n Provides: {"∩".join([config.inverted_mappings["formats"][x] for x in json.loads(jo.attributes.itemByName("CLS-JOINT", "ProvidesFormats").value)]) or "None"}',
                     "Courier New",
                     0.2,
                     tmatrix,

@@ -2,6 +2,7 @@ import urllib.request
 
 import adsk.core
 
+from ... import config
 from ...lib import fusion360utils as futil
 from ...lib.cls_python_compat import *
 from ...lib.general_utils import *
@@ -147,7 +148,6 @@ def command_execute(args: adsk.core.CommandEventArgs):
     app.activeDocument.save("Saved by CLS-CAD: Submitted to backend.")
 
 
-
 def create_backend_json():
     """
      Assembles the JSON representing the part by creating a type for every "provides" joint.
@@ -201,12 +201,30 @@ def create_backend_json():
         jo_infos.append(
             (
                 jo_uuid,
-                [s + "_formats" for s in jo_req_formats]
-                + [s + "_parts" for s in jo_req_parts]
-                + [s + "_attributes" for s in jo_req_attributes],
-                [s + "_attributes" for s in provides_attributes]
-                + [s + "_parts" for s in provides_parts]
-                + [s + "_formats" for s in jo_prov_formats],
+                [
+                    config.inverted_mappings["formats"][s] + "_formats"
+                    for s in jo_req_formats
+                ]
+                + [
+                    config.inverted_mappings["parts"][s] + "_parts"
+                    for s in jo_req_parts
+                ]
+                + [
+                    config.inverted_mappings["attributes"][s] + "_attributes"
+                    for s in jo_req_attributes
+                ],
+                [
+                    config.inverted_mappings["attributes"][s] + "_attributes"
+                    for s in provides_attributes
+                ]
+                + [
+                    config.inverted_mappings["parts"][s] + "_parts"
+                    for s in provides_parts
+                ]
+                + [
+                    config.inverted_mappings["formats"][s] + "_formats"
+                    for s in jo_prov_formats
+                ],
                 jo_connect_type,
                 len(jo_prov_formats),
             )

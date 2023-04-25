@@ -86,21 +86,30 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     futil.add_handler(
         args.command.activate, command_activate, local_handlers=local_handlers
     )
-
     app = adsk.core.Application.get()
     design = adsk.fusion.Design.cast(app.activeProduct)
-    provides_attributes = json.loads(
-        design.rootComponent.attributes.itemByName(
-            "CLS-PART", "ProvidesAttributes"
-        ).value
-        if design.rootComponent.attributes.itemByName("CLS-PART", "ProvidesAttributes")
-        else "[]"
-    )
-    provides_parts = json.loads(
-        design.rootComponent.attributes.itemByName("CLS-PART", "ProvidesParts").value
-        if design.rootComponent.attributes.itemByName("CLS-PART", "ProvidesParts")
-        else "[]"
-    )
+    provides_attributes = [
+        config.inverted_mappings["attributes"][x]
+        for x in json.loads(
+            design.rootComponent.attributes.itemByName(
+                "CLS-PART", "ProvidesAttributes"
+            ).value
+            if design.rootComponent.attributes.itemByName(
+                "CLS-PART", "ProvidesAttributes"
+            )
+            else "[]"
+        )
+    ]
+    provides_parts = [
+        config.inverted_mappings["parts"][x]
+        for x in json.loads(
+            design.rootComponent.attributes.itemByName(
+                "CLS-PART", "ProvidesParts"
+            ).value
+            if design.rootComponent.attributes.itemByName("CLS-PART", "ProvidesParts")
+            else "[]"
+        )
+    ]
 
     inputs = args.command.commandInputs
     args.command.setDialogMinimumSize(1200, 800)
@@ -139,23 +148,47 @@ def generate_type_text():
     design = adsk.fusion.Design.cast(app.activeProduct)
     typed_jos = []
     guarded_types = []
+    global provides_parts, provides_attributes
     for joint_typing in list(
         {x.value: x for x in design.findAttributes("CLS-INFO", "UUID")}.values()
     ):
         jo = joint_typing.parent
-        req_string = jo.attributes.itemByName("CLS-JOINT", "RequiresString").value
-        prov_string = jo.attributes.itemByName("CLS-JOINT", "ProvidesString").value
-        jo_uuid = jo.attributes.itemByName("CLS-INFO", "UUID").value[0:4]
-        typed_jos.append((req_string, prov_string, jo_uuid))
+        req_string = "∩".join(
+            [
+                config.inverted_mappings["formats"][x]
+                for x in json.loads(
+                    jo.attributes.itemByName("CLS-JOINT", "RequiresFormats").value
+                )
+            ]
+            + [
+                config.inverted_mappings["parts"][x]
+                for x in json.loads(
+                    jo.attributes.itemByName("CLS-JOINT", "RequiresParts").value
+                )
+            ]
+            + [
+                config.inverted_mappings["attributes"][x]
+                for x in json.loads(
+                    jo.attributes.itemByName("CLS-JOINT", "RequiresAttributes").value
+                )
+            ]
+        )
+        prov_string = "∩".join(
+            [
+                config.inverted_mappings["formats"][x]
+                for x in json.loads(
+                    jo.attributes.itemByName("CLS-JOINT", "ProvidesFormats").value
+                )
+            ]
+        )
+        typed_jos.append((req_string, prov_string))
     print(typed_jos)
     for joInfo in typed_jos:
         if joInfo[1].strip() == "":
             continue
         req_list = [x[0] for x in typed_jos if x != joInfo]
-        uuid_list = [x[2] for x in typed_jos if x != joInfo]
         guarded_types.append(
-            f'(Constructor("Config",{"×".join(uuid_list)})) → '
-            + "→".join(req_list)
+            " → ".join(req_list)
             + " → ("
             + joInfo[1]
             + f' ∩ ({"∩".join(provides_parts)}) ∩ ({"∩".join(provides_attributes)}))'
@@ -192,6 +225,7 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
         elif html_args.browserCommandInput.id == ATTRIBUTETYPES_ID:
             provides_attributes = message_data["selections"]
         type_text_box_input.formattedText = generate_type_text()
+
     if message_action == "updateDataNotification":
         if html_args.browserCommandInput.id == PARTTYPES_ID:
             taxonomy_id = "parts"
@@ -199,6 +233,16 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
             taxonomy_id = "attributes"
         config.taxonomies[taxonomy_id] = message_data
         update_taxonomy_in_backend()
+
+    if message_action == "renameDataNotification":
+        if html_args.browserCommandInput.id == PARTTYPES_ID:
+            taxonomy_id = "parts"
+        elif html_args.browserCommandInput.id == ATTRIBUTETYPES_ID:
+            taxonomy_id = "attributes"
+            taxonomy_id = "formats"
+        config.mappings[taxonomy_id][message_data[1]] = config.mappings[
+            taxonomy_id
+        ].pop(message_data[0])
 
     if message_action == "readyNotification":
         taxonomy_id = None
@@ -237,13 +281,14 @@ def command_execute(args: adsk.core.CommandEventArgs):
     root_comp = design.rootComponent
     root_comp.attributes.add(
         "CLS-PART",
-        "ProvidesString",
-        f'({"∩".join(provides_parts)}) ∩ ({"∩".join(provides_attributes)})',
+        "ProvidesAttributes",
+        json.dumps([config.mappings["attributes"][x] for x in provides_attributes]),
     )
     root_comp.attributes.add(
-        "CLS-PART", "ProvidesAttributes", json.dumps(provides_attributes)
+        "CLS-PART",
+        "ProvidesParts",
+        json.dumps([config.mappings["parts"][x] for x in provides_parts]),
     )
-    root_comp.attributes.add("CLS-PART", "ProvidesParts", json.dumps(provides_parts))
 
 
 def command_preview(args: adsk.core.CommandEventArgs):

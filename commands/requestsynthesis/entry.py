@@ -133,6 +133,7 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
             provides_parts = message_data["selections"]
         elif html_args.browserCommandInput.id == ATTRIBUTETYPES_ID:
             provides_attributes = message_data["selections"]
+
     if message_action == "updateDataNotification":
         if html_args.browserCommandInput.id == PARTTYPES_ID:
             taxonomy_id = "parts"
@@ -140,6 +141,15 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
             taxonomy_id = "attributes"
         config.taxonomies[taxonomy_id] = message_data
         update_taxonomy_in_backend()
+
+    if message_action == "renameDataNotification":
+        if html_args.browserCommandInput.id == PARTTYPES_ID:
+            taxonomy_id = "parts"
+        elif html_args.browserCommandInput.id == ATTRIBUTETYPES_ID:
+            taxonomy_id = "attributes"
+        config.mappings[taxonomy_id][message_data[1]] = config.mappings[
+            taxonomy_id
+        ].pop(message_data[0])
 
     if message_action == "readyNotification":
         taxonomy_id = None

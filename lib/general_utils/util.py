@@ -10,6 +10,7 @@ import adsk
 
 from ... import config
 from ..fusion360utils import app
+from . import generate_id
 
 ROOT_FOLDER = os.path.join(os.path.dirname(__file__), "..", "..")
 
@@ -70,14 +71,16 @@ def load_project_taxonomy_to_config():
         if app.activeDocument.dataFile is not None
         else app.data.activeProject.id
     )
-
-    config.taxonomies = json.loads(
+    data = json.loads(
         urllib.request.urlopen(
             urllib.request.Request(f"{config.SERVER_URL}/data/taxonomy/{active_id}")
         )
         .read()
         .decode("utf-8")
     )
+    config.taxonomies = data["taxonomies"]
+    config.mappings = data["mappings"]
+    config.inverted_mappings = invert_map(config.mappings)
 
 
 def winapi_path(dos_path, encoding=None):
@@ -112,13 +115,41 @@ def create_backend_taxonomy():
 
     """
     suffixed_taxonomy = {}
+    update_map_for_taxonomies(config.taxonomies, config.mappings)
     for key, value in config.taxonomies.items():
         suffixed_taxonomy[key] = invert_sub_taxonomy(value)
     payload_dict = {
         "_id": app.activeDocument.dataFile.parentProject.id,
         "taxonomies": suffixed_taxonomy,
+        "mappings": config.mappings,
         "forgeProjectId": app.activeDocument.dataFile.parentProject.id
         if app.activeDocument.dataFile is not None
         else app.data.activeProject.id,
     }
     return payload_dict
+
+
+def apply_map_to_taxonomy(taxonomies: dict, mapping: dict):
+    resolved_taxonomies = defaultdict(dict)
+    for name, taxonomy in taxonomies.items():
+        for k, v in taxonomy.items():
+            resolved_taxonomies[name][mapping[k]] = [mapping[x] for x in v]
+    return resolved_taxonomies
+
+
+def update_map_for_taxonomies(taxonomies: dict, mapping=defaultdict(dict)):
+    for name, taxonomy in taxonomies.items():
+        for k, v in taxonomy.items():
+            if k not in mapping[name]:
+                mapping[name][k] = generate_id()
+            for e in v:
+                if e not in mapping[name]:
+                    mapping[name][e] = generate_id()
+    return mapping
+
+
+def invert_map(mapping: dict):
+    inverted_mapping = defaultdict(dict)
+    for name, s_map in mapping.items():
+        inverted_mapping[name] = {v: k for k, v in s_map.items()}
+    return inverted_mapping

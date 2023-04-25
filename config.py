@@ -9,6 +9,8 @@ import os
 # are ready to distribute it.
 from collections import defaultdict
 
+from .lib.general_utils import invert_map, load_project_taxonomy_to_config
+
 DEBUG = True
 
 # Gets the name of the add-in from the name of the folder the py file is in.
@@ -26,8 +28,12 @@ taxonomy_palette_id = f"{COMPANY_NAME}_{ADDIN_NAME}_palette_taxonomy"
 custom_text_dict = defaultdict(list)
 custom_graphics_displaying = False
 
-taxonomies = {
-    "parts": {"AnyPart": []},
-    "formats": {"AnyFormat": []},
-    "attributes": {"AnyAttrib": []},
-}
+taxonomies = {}
+
+mappings = {}
+
+try:
+    load_project_taxonomy_to_config()
+    inverted_mappings = invert_map(mappings)
+except:
+    pass
