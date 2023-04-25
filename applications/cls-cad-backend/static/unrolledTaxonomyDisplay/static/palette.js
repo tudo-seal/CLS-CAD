@@ -46,6 +46,16 @@ var taxonomyData;
 
 var populated = false;
 
+function sendRenameData(oldVal, newVal) {
+  var returnData = [oldVal, newVal];
+  returnDataString = JSON.stringify(returnData);
+  if (returnDataString !== taxonomyOriginalData) {
+    adsk
+      .fusionSendData("renameDataNotification", returnDataString)
+      .then((result) => console.log(result));
+  }
+}
+
 function sendUpdatedData() {
   var returnData = taxonomyData;
   returnDataString = JSON.stringify(returnData);

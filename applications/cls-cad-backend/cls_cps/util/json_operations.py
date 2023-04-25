@@ -7,6 +7,7 @@ import ujson
 from orjson import orjson
 
 from cls_cps.repository_builder import Part
+from cls_cps.util.hrid import generate_id
 
 
 def postprocess(data: dict):
@@ -92,18 +93,28 @@ def remove_unused_keys_from_part_json(data: dict):
 
 
 def invert_taxonomy(taxonomy):
-    inverted_taxonomy = {}
     if not taxonomy:
         return {
-            "parts": {"Part": []},
-            "formats": {"Format": []},
-            "attributes:": {"Attribute": []},
+            "taxonomies": {
+                "parts": {"Part": []},
+                "formats": {"Format": []},
+                "attributes": {"Attribute": []},
+            },
+            "mappings": {
+                "parts": {"Part": generate_id()},
+                "formats": {"Format": generate_id()},
+                "attributes": {"Attribute": generate_id()},
+            },
         }
+
+    inverted_taxonomy = {"taxonomies": {}, "mappings": taxonomy["mappings"]}
     for key, individual_taxonomy in taxonomy["taxonomies"].items():
-        inverted_taxonomy[key] = invert_sub_taxonomy(individual_taxonomy)
-        inverted_taxonomy[key] = {
-            key.capitalize()[:-1]: inverted_taxonomy[key].pop(key.capitalize()[:-1]),
-            **inverted_taxonomy[key],
+        inverted_taxonomy["taxonomies"][key] = invert_sub_taxonomy(individual_taxonomy)
+        inverted_taxonomy["taxonomies"][key] = {
+            key.capitalize()[:-1]: inverted_taxonomy["taxonomies"][key].pop(
+                key.capitalize()[:-1], []
+            ),
+            **inverted_taxonomy["taxonomies"][key],
         }
     return inverted_taxonomy
 

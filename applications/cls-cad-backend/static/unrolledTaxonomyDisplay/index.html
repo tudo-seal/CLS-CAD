@@ -270,6 +270,7 @@
               value[index] = change["text"];
             }
           }
+          sendRenameData(change["old"], change["text"]);
           sendUpdatedData();
         });
 
