@@ -57,6 +57,20 @@
 
       <div id="data"></div>
       <script>
+        function makeid(length) {
+          let result = "";
+          const characters =
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+          const charactersLength = characters.length;
+          let counter = 0;
+          while (counter < length) {
+            result += characters.charAt(
+              Math.floor(Math.random() * charactersLength)
+            );
+            counter += 1;
+          }
+          return result;
+        }
         $("#data").jstree({
           core: {
             data: [],
@@ -70,24 +84,6 @@
             ) {
               // operation can be 'create_node', 'rename_node', 'delete_node', 'move_node', 'copy_node' or 'edit'
               // in case of 'rename_node' node_position is filled with the new node name
-              if (operation === "rename_node") {
-                if (window.taxonomyData.hasOwnProperty(node_position)) {
-                  // Check if this will lead to a cycle on insert
-                  console.log(node);
-                  checkTax = JSON.parse(JSON.stringify(window.taxonomyData));
-                  checkTax[
-                    $("#data").jstree(true).get_node(node.parent).text
-                  ].push(node_position);
-                  cycle = window.getCycle(checkTax);
-                  if (cycle != null) {
-                    alert("This would lead to a cycle: " + cycle.toString());
-                    $("#data").jstree(true).delete_node(node);
-                    return false;
-                  } else {
-                    return true;
-                  }
-                }
-              }
               return true;
             },
           },
@@ -105,15 +101,20 @@
                     action: function (data) {
                       var inst = $.jstree.reference(data.reference),
                         obj = inst.get_node(data.reference);
-                      inst.create_node(obj, {}, "last", function (new_node) {
-                        try {
-                          inst.edit(new_node);
-                        } catch (ex) {
-                          setTimeout(function () {
+                      inst.create_node(
+                        obj,
+                        { text: makeid(12) },
+                        "last",
+                        function (new_node) {
+                          try {
                             inst.edit(new_node);
-                          }, 0);
+                          } catch (ex) {
+                            setTimeout(function () {
+                              inst.edit(new_node);
+                            }, 0);
+                          }
                         }
-                      });
+                      );
                     },
                   },
                 };
@@ -133,15 +134,20 @@
                   action: function (data) {
                     var inst = $.jstree.reference(data.reference),
                       obj = inst.get_node(data.reference);
-                    inst.create_node(obj, {}, "last", function (new_node) {
-                      try {
-                        inst.edit(new_node);
-                      } catch (ex) {
-                        setTimeout(function () {
+                    inst.create_node(
+                      obj,
+                      { text: makeid(12) },
+                      "last",
+                      function (new_node) {
+                        try {
                           inst.edit(new_node);
-                        }, 0);
+                        } catch (ex) {
+                          setTimeout(function () {
+                            inst.edit(new_node);
+                          }, 0);
+                        }
                       }
-                    });
+                    );
                   },
                 },
                 remove: {
@@ -212,47 +218,34 @@
           }, 250);
         });
 
-        $("#data").on("create_node.jstree", function (node, change) {
-          //if (window.populated) {
-          //   window.taxonomyData[change.parent].push(change.node.text)
-          //    winow.taxonomyData[change.node.text] = []
-          // }
-        });
+        $("#data").on("create_node.jstree", function (node, change) {});
 
         $("#data").on("rename_node.jstree", function (node, change) {
           console.log(change);
-          if (change["text"] === change["old"]) {
+          console.log(window.taxonomyData);
+          // If the renamed thing did exist in data, rollback
+          if (window.taxonomyData.hasOwnProperty(change["text"])) {
+            $("#data").jstree(true).rename_node(change["node"], change["old"]);
+            change["text"] = change["old"];
+          }
+          //The change was already in data as well, snooze
+          if (window.taxonomyData.hasOwnProperty(change["old"])) {
             return;
           }
-          // If the renamed thing did not exist in data, it is not a rename but a new thing
-          if (
-            !window.taxonomyData.hasOwnProperty(change["old"]) &
-            !window.taxonomyData.hasOwnProperty(change["text"])
-          ) {
-            window.taxonomyData[change["text"]] = [];
-            window.taxonomyData[
-              $("#data").jstree(true).get_node(change["node"].parent).text
-            ].push(change["text"]);
-          }
-          // If it did exist, it is autounrolled/copied
-          else if (
-            window.taxonomyData[
-              $("#data").jstree(true).get_node(change["node"].parent).text
-            ] != undefined
-          ) {
-            console.log("This happened");
-            window.taxonomyData[
-              $("#data").jstree(true).get_node(change["node"].parent).text
-            ].push(change["text"]);
+          //else record change in data
+          console.log(change["text"]);
+          window.taxonomyData[change["text"]] = [];
+          window.taxonomyData[
+            $("#data").jstree(true).get_node(change["node"].parent).text
+          ].push(change["text"]);
+          console.log(window.taxonomyData);
 
-            let idx = window.taxonomyData[
-              $("#data").jstree(true).get_node(change["node"].parent).text
-            ].indexOf(change["old"]);
-            window.taxonomyData[
-              $("#data").jstree(true).get_node(change["node"].parent).text
-            ].splice(idx, 1);
-            // This works but isn't exactly clean, properly updating the tree would be better
+          //if rollback or snooze, just update and do nothing
+          if (change["old"] == change["text"]) {
+            sendUpdatedData();
+            return;
           }
+          //If we actually renamed, propagate
           for (const [key, value] of Object.entries(window.taxonomyData)) {
             if (key === change["old"]) {
               Object.defineProperty(
