@@ -156,9 +156,13 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     joint_connect_type_input = selection_tab_inputs.addButtonRowCommandInput(
         "jointTypeSelection", "Joint Type", False
     )
-    joint_connect_type_input.listItems.add("Rigid", False, "resources")
+    joint_connect_type_input.listItems.add(
+        "Rigid", False, os.path.join(ICON_FOLDER, "Rigid")
+    )
     joint_connect_type_input.listItems.item(0).isSelected = True
-    joint_connect_type_input.listItems.add("Revolute", False, "resources")
+    joint_connect_type_input.listItems.add(
+        "Revolute", False, os.path.join(ICON_FOLDER, "Revolute")
+    )
 
     type_text_box_input = selection_tab_inputs.addTextBoxCommandInput(
         "typeTextBox", "Requires Type", "", 2, True
