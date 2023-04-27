@@ -24,13 +24,17 @@ PANEL_ID = "SYNTH_ASSEMBLY"
 COMMAND_BESIDE_ID = "ScriptsManagerCommand"
 PARTTYPES_ID = "partsTaxonomyBrowser_Part"
 ATTRIBUTETYPES_ID = "attributesTaxonomyBrowser_Part"
+PROP_FORMATS_ID = "propformatsTaxonomyBrowser_Part"
+PROP_PARTS_ID = "proppartsTaxonomyBrowser_Part"
+PROP_ATTRIBUTES_ID = "propattributesTaxonomyBrowser_Part"
 PALETTE_URL = f"{config.SERVER_URL}/static/unrolledTaxonomyDisplay/index.html"
 PALETTE_URL = PALETTE_URL.replace("\\", "/")
 ICON_FOLDER = os.path.join(os.path.dirname(__file__), "resources", "")
 ROOT_FOLDER = os.path.join(os.path.dirname(__file__), "..", "..")
 
 local_handlers = []
-provides_parts, provides_attributes = [], []
+request_parts, request_attributes = [], []
+propagate_parts, propagate_attributes, propagate_formats = [], [], []
 
 
 def start():
@@ -65,7 +69,7 @@ parts_type_selection_browser_input = adsk.core.BrowserCommandInput.cast(None)
 
 
 def command_created(args: adsk.core.CommandCreatedEventArgs):
-    global type_text_box_input, parts_type_selection_browser_input, provides_parts, provides_attributes
+    global type_text_box_input, parts_type_selection_browser_input, request_parts, request_attributes, propagate_parts, propagate_attributes, propagate_formats
 
     futil.log(f"{CMD_NAME} Command Created Event")
 
@@ -87,21 +91,44 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
         args.command.activate, command_activate, local_handlers=local_handlers
     )
 
-    provides_attributes = []
-    provides_parts = []
-
+    request_attributes = []
+    request_parts = []
+    propagate_parts, propagate_attributes, propagate_formats = [], [], []
     inputs = args.command.commandInputs
     args.command.setDialogMinimumSize(1200, 800)
     args.command.setDialogInitialSize(1200, 800)
 
-    parts_type_selection_browser_input = inputs.addBrowserCommandInput(
+    request_tab = inputs.addTabCommandInput("requestTab", "Select Requested Type")
+    propagate_tab = inputs.addTabCommandInput("propagateTab", "Select Propagated Types")
+    request_tab_inputs = request_tab.children
+    propagate_tab_inputs = propagate_tab.children
+
+    parts_type_selection_browser_input = request_tab_inputs.addBrowserCommandInput(
         id=PARTTYPES_ID,
         name="Select part/part family",
         htmlFileURL=PALETTE_URL,
         minimumHeight=300,
     )
-    attributes_type_selection_browser_input = inputs.addBrowserCommandInput(
+    attributes_type_selection_browser_input = request_tab_inputs.addBrowserCommandInput(
         id=ATTRIBUTETYPES_ID,
+        name="Select attributes/attribute family",
+        htmlFileURL=PALETTE_URL,
+        minimumHeight=300,
+    )
+    propagate_tab_inputs.addBrowserCommandInput(
+        id=PROP_FORMATS_ID,
+        name="Select formats/format family",
+        htmlFileURL=PALETTE_URL,
+        minimumHeight=300,
+    )
+    propagate_tab_inputs.addBrowserCommandInput(
+        id=PROP_PARTS_ID,
+        name="Select parts/part family",
+        htmlFileURL=PALETTE_URL,
+        minimumHeight=300,
+    )
+    propagate_tab_inputs.addBrowserCommandInput(
+        id=PROP_ATTRIBUTES_ID,
         name="Select attributes/attribute family",
         htmlFileURL=PALETTE_URL,
         minimumHeight=300,
@@ -127,26 +154,48 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
     log_msg += f"Action: {message_action}\n"
     log_msg += f"Data: {message_data}"
     futil.log(log_msg, adsk.core.LogLevels.InfoLogLevel)
-    global provides_parts, provides_attributes
+    global request_parts, request_attributes, propagate_parts, propagate_attributes, propagate_formats
     if message_action == "selectionNotification":
         if html_args.browserCommandInput.id == PARTTYPES_ID:
-            provides_parts = message_data["selections"]
+            request_parts = message_data["selections"]
         elif html_args.browserCommandInput.id == ATTRIBUTETYPES_ID:
-            provides_attributes = message_data["selections"]
+            request_attributes = message_data["selections"]
+        elif html_args.browserCommandInput.id == PROP_FORMATS_ID:
+            propagate_formats = message_data["selections"]
+        elif html_args.browserCommandInput.id == PROP_ATTRIBUTES_ID:
+            propagate_attributes = message_data["selections"]
+        elif html_args.browserCommandInput.id == propagate_parts:
+            propagate_parts = message_data["selections"]
 
     if message_action == "updateDataNotification":
-        if html_args.browserCommandInput.id == PARTTYPES_ID:
+        if (
+            html_args.browserCommandInput.id == PARTTYPES_ID
+            or html_args.browserCommandInput.id == PROP_PARTS_ID
+        ):
             taxonomy_id = "parts"
-        elif html_args.browserCommandInput.id == ATTRIBUTETYPES_ID:
+        elif (
+            html_args.browserCommandInput.id == ATTRIBUTETYPES_ID
+            or html_args.browserCommandInput.id == PROP_ATTRIBUTES_ID
+        ):
             taxonomy_id = "attributes"
+        elif html_args.browserCommandInput.id == PROP_FORMATS_ID:
+            taxonomy_id = "formats"
         config.taxonomies[taxonomy_id] = message_data
         update_taxonomy_in_backend()
 
     if message_action == "renameDataNotification":
-        if html_args.browserCommandInput.id == PARTTYPES_ID:
+        if (
+            html_args.browserCommandInput.id == PARTTYPES_ID
+            or html_args.browserCommandInput.id == PROP_PARTS_ID
+        ):
             taxonomy_id = "parts"
-        elif html_args.browserCommandInput.id == ATTRIBUTETYPES_ID:
+        elif (
+            html_args.browserCommandInput.id == ATTRIBUTETYPES_ID
+            or html_args.browserCommandInput.id == PROP_ATTRIBUTES_ID
+        ):
             taxonomy_id = "attributes"
+        elif html_args.browserCommandInput.id == PROP_FORMATS_ID:
+            taxonomy_id = "formats"
         config.mappings[taxonomy_id][message_data[1]] = config.mappings[
             taxonomy_id
         ].pop(message_data[0])
@@ -154,12 +203,22 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
     if message_action == "readyNotification":
         taxonomy_id = None
         taxonomy_data_message = None
-        if html_args.browserCommandInput.id == PARTTYPES_ID:
+        if (
+            html_args.browserCommandInput.id == PARTTYPES_ID
+            or html_args.browserCommandInput.id == PROP_PARTS_ID
+        ):
             taxonomy_data_message = config.taxonomies["parts"]
             taxonomy_id = "parts"
-        elif html_args.browserCommandInput.id == ATTRIBUTETYPES_ID:
+        elif (
+            html_args.browserCommandInput.id == ATTRIBUTETYPES_ID
+            or html_args.browserCommandInput.id == PROP_ATTRIBUTES_ID
+        ):
             taxonomy_data_message = config.taxonomies["attributes"]
             taxonomy_id = "attributes"
+        elif html_args.browserCommandInput.id == PROP_FORMATS_ID:
+            taxonomy_data_message = config.taxonomies["formats"]
+            taxonomy_id = "formats"
+
         html_args.browserCommandInput.sendInfoToHTML(
             "taxonomyDataMessage", json.dumps(taxonomy_data_message)
         )
@@ -182,11 +241,17 @@ def winapi_path(dos_path, encoding=None):
 def command_execute(args: adsk.core.CommandEventArgs):
     futil.log(f"{CMD_NAME} Command Execute Event")
 
-    global provides_attributes, provides_parts
+    global request_attributes, request_parts
     app = adsk.core.Application.get()
     request_dict = {
-        "target": [f"{x}_parts" for x in provides_parts]
-        + [f"{x}_attributes" for x in provides_attributes],
+        "target": [f"{x}_parts" for x in request_parts]
+        + [f"{x}_attributes" for x in request_attributes]
+        + [f"Has_{x}_parts" for x in propagate_parts]
+        + [f"Has_{x}_formats" for x in propagate_formats]
+        + [f"Has_{x}_attributes" for x in propagate_attributes],
+        "propagate": [[f"Has_{x}_parts"] for x in propagate_parts]
+        + [[f"Has_{x}_formats"] for x in propagate_formats]
+        + [[f"Has_{x}_attributes"] for x in propagate_attributes],
         "forgeProjectId": app.activeDocument.dataFile.parentProject.id
         if app.activeDocument.dataFile is not None
         else app.data.activeProject.id,
@@ -208,8 +273,8 @@ def command_preview(args: adsk.core.CommandEventArgs):
 
 
 def command_destroy(args: adsk.core.CommandEventArgs):
-    global local_handlers, provides_attributes, provides_parts
-    provides_parts = []
-    provides_attributes = []
+    global local_handlers, request_attributes, request_parts
+    request_parts = []
+    request_attributes = []
     local_handlers = []
     futil.log(f"{CMD_NAME} Command Destroy Event")

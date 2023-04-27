@@ -266,7 +266,7 @@ def command_select(args: adsk.core.SelectionEventArgs):
             type_text_box_input.text = f'({"∩".join(filter(None,["∩".join(req_formats),"∩".join(req_parts),"∩".join(req_attributes)]))})'.replace(
                 " ∩ ()", ""
             )
-            provides_type_text_box_input.text = f'({"∩".join(filter(None,["∩".join(provides_formats),"∩".join(provides_parts),"∩".join(provides_attributes)]))})'.replace(
+            provides_type_text_box_input.text = f'({"∩".join(filter(None, ["∩".join(provides_formats),"∩".join(provides_parts), "∩".join(provides_attributes)]))})'.replace(
                 " ∩ ()", ""
             )
         except:
@@ -354,7 +354,7 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
         type_text_box_input.text = f'({"∩".join(filter(None,["∩".join(req_formats),"∩".join(req_parts),"∩".join(req_attributes)]))})'.replace(
             " ∩ ()", ""
         )
-        provides_type_text_box_input.text = f'({"∩".join(filter(None,["∩".join(provides_formats),"∩".join(provides_parts),"∩".join(provides_attributes)]))})'.replace(
+        provides_type_text_box_input.text = f'({"∩".join(filter(None, ["∩".join(provides_formats),"∩".join(provides_parts), "∩".join(provides_attributes)]))})'.replace(
             " ∩ ()", ""
         )
     if message_action == "updateDataNotification":
