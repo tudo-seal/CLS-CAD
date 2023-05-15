@@ -6,15 +6,19 @@ import adsk.core
 from .. import config
 from ..lib import fusion360utils as futil
 from .assembleresult import entry as assemble_result
+from .attributestaxonomyediting import entry as attributes_taxonomy_editing
 from .checkandsubmit import entry as check_and_submit
+from .downloadtaxonomy import entry as download_taxonomy
+from .exportproject import entry as export_project
+from .formatstaxonomyediting import entry as formats_taxonomy_editing
 from .jointtyping import entry as joint_typing
 from .partmanagement import entry as part_management
+from .partstaxonomyediting import entry as parts_taxonomy_editing
 from .parttyping import entry as part_typing
 from .requestsynthesis import entry as request_synthesis
-from .taxonomyediting import entry as taxonomy_editing
 from .togglecustomgraphics import entry as toggle_custom_graphics
-from .typecrawlinghub import entry as type_crawling_hub
 from .typecrawlingproject import entry as type_crawling_project
+from .uploadtaxonomy import entry as upload_taxonomy
 from .uuidupdatecrawlingproject import entry as uuid_update_crawling_project
 
 app = adsk.core.Application.get()
@@ -30,10 +34,14 @@ commands = [
     part_management,
     check_and_submit,
     type_crawling_project,
-    type_crawling_hub,
+    export_project,
     uuid_update_crawling_project,
     toggle_custom_graphics,
-    taxonomy_editing,
+    upload_taxonomy,
+    download_taxonomy,
+    formats_taxonomy_editing,
+    parts_taxonomy_editing,
+    attributes_taxonomy_editing,
     request_synthesis,
     assemble_result,
 ]

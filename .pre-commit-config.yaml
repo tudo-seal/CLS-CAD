@@ -24,6 +24,12 @@ repos:
       - id: pyupgrade
         args: [--py39-plus]
         exclude: ^resources/
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        args: ["--profile", "black"]
+        exclude: ^resources/
   - repo: https://github.com/PyCQA/autoflake
     rev: v1.7.6
     hooks:
@@ -38,12 +44,6 @@ repos:
             "--remove-unused-variables",
             "--expand-star-imports",
           ]
-  - repo: https://github.com/pycqa/isort
-    rev: 5.12.0
-    hooks:
-      - id: isort
-        args: ["--profile", "black"]
-        exclude: ^resources/
   - repo: https://github.com/psf/black
     rev: 22.3.0
     hooks:

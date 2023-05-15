@@ -119,7 +119,9 @@ def create_backend_taxonomy():
     for key, value in config.taxonomies.items():
         suffixed_taxonomy[key] = invert_sub_taxonomy(value)
     payload_dict = {
-        "_id": app.activeDocument.dataFile.parentProject.id,
+        "_id": app.activeDocument.dataFile.parentProject.id
+        if app.activeDocument.dataFile is not None
+        else app.data.activeProject.id,
         "taxonomies": suffixed_taxonomy,
         "mappings": config.mappings,
         "forgeProjectId": app.activeDocument.dataFile.parentProject.id
