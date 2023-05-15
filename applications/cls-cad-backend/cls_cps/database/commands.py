@@ -11,7 +11,7 @@ results: Collection = None
 def init_database():
     connection_url = (
         f"mongodb+srv://{config('MONGO_USER')}:{config('MONGO_PASS')}"
-        "@cls-cps.oe5u2ie.mongodb.net/?retryWrites=true&w=majority"
+        f"@{config('MONGO_URL')}/?retryWrites=true&w=majority"
     )
     global database, parts, taxonomies, results
     database = MongoClient(connection_url)["cls_cps"]
