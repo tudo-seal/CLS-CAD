@@ -13,7 +13,7 @@ joint = None
 CMD_ID = f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_migrate_uuids"
 CMD_NAME = "Migrate UUIDs and Fix Files"
 CMD_DESCRIPTION = "Migrate UUIDs and fix nested components."
-IS_PROMOTED = True
+IS_PROMOTED = False
 WORKSPACE_ID = "FusionSolidEnvironment"
 PANEL_ID = "CRAWL"
 COMMAND_BESIDE_ID = "ScriptsManagerCommand"
@@ -191,8 +191,9 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
     result = ui.messageBox(
         "This will take a considerable amount of time and is intended to be used when large changes to a project have "
-        "been made/a new project has been setup.\nEach file in the project will be opened. Eligible parts will be "
-        "submitted to the server, non-eligible parts will be added to an error report.\n\nDo you wish to continue?",
+        "been made/a old project has been setup or imported.\nEach file in the project will be opened. "
+        "Eligible parts will be submitted to the server, non-eligible parts will be added to an error report.\n\n"
+        "Do you wish to continue?",
         "Proceed to migrate and upload UUIDs?",
         adsk.core.MessageBoxButtonTypes.OKCancelButtonType,
     )

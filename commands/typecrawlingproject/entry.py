@@ -161,8 +161,9 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
     result = ui.messageBox(
         "This will take a considerable amount of time and is intended to be used when large changes to a project have "
-        "been made/a new project has been setup.\nEach file in the project will be opened. Eligible parts will be "
-        "submitted to the server, non-eligible parts will be added to an error report.\n\nDo you wish to continue?",
+        "been made/a new project has been setup or imported.\nEach file in the project will be opened. Eligible parts "
+        "will be submitted to the server, non-eligible parts will be added to an error report.\n\n"
+        "Do you wish to continue?",
         "Proceed to Crawl",
         adsk.core.MessageBoxButtonTypes.OKCancelButtonType,
     )
