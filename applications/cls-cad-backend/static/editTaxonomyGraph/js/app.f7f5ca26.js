@@ -1,7 +1,7 @@
 (function () {
   "use strict";
   var e = {
-      4776: function (e, t, o) {
+      2360: function (e, t, o) {
         var n = o(9242),
           a = o(1020),
           s = o(3396);
@@ -15,7 +15,7 @@
         }
         var r = o(7139);
         const c = (e) => (
-            (0, s.dD)("data-v-735d27a6"), (e = e()), (0, s.Cn)(), e
+            (0, s.dD)("data-v-2459180a"), (e = e()), (0, s.Cn)(), e
           ),
           l = { id: "container", class: "h-screen" },
           h = {
@@ -23,8 +23,8 @@
             class:
               "bg-background flex flex-row justify-between items-center h-8",
           },
-          m = { class: "h-full" },
-          g = c(() =>
+          g = { class: "h-full" },
+          m = c(() =>
             (0, s._)("div", { id: "cy", class: "bg-background" }, null, -1)
           );
         function u(e, t, o, n, a, i) {
@@ -33,7 +33,7 @@
             (0, s.iD)("div", l, [
               (0, s._)("div", h, [
                 (0, s._)("div", null, (0, r.zw)(a.infoText), 1),
-                (0, s._)("div", m, [
+                (0, s._)("div", g, [
                   (0, s._)(
                     "button",
                     {
@@ -47,7 +47,7 @@
                   ),
                 ]),
               ]),
-              g,
+              m,
             ])
           );
         }
@@ -235,7 +235,7 @@
           }
         }
         var k = w;
-        let D = {
+        let E = {
           canConnect: function (e, t) {
             return e.id() !== t.id();
           },
@@ -246,8 +246,8 @@
           noEdgeEventsInDraw: !0,
           disableBrowserGestures: !0,
         };
-        var E = JSON.parse(
-            '[{"selector":".node","style":{"label":"data(name)","text-valign":"center","color":"black","background-image":"url(\'./icons/icon-node.png\')","background-clip":"none","background-width":"50px","background-height":"50px","background-color":"transparent","background-opacity":"0","font-family":"Scada-Regular","width":"label","height":"50px","padding":"5px"}},{"selector":".AnyPart","style":{"label":"data(name)","text-valign":"center","color":"black","background-color":"transparent","background-image":"url(\'./icons/icon-root.png\')","background-clip":"none","background-width":"50px","background-height":"50px","background-opacity":"0","font-family":"Scada-Regular","width":"label","height":"50px","padding":"8px"}},{"selector":".highlightNode","style":{"label":"data(name)","text-valign":"center","color":"black","background-color":"#ef4444","font-family":"Scada-Regular","shape":"diamond","width":"50px","height":"50px"}},{"selector":".highlightNodeWithoutOptions","style":{"label":"data(name)","text-valign":"center","color":"black","background-color":"#ef4444","font-family":"Scada-Regular","shape":"diamond","width":"50px","height":"50px","taxi-turn-min-distance":"20px"}},{"selector":"edge","style":{"width":4,"target-arrow-shape":"triangle","source-arrow-shape":"diamond","line-color":"#706a6a","target-arrow-color":"#222222","curve-style":"taxi","taxi-direction":"downward","taxi-turn":"30px"}},{"selector":".eh-source","style":{"border-width":2}},{"selector":".eh-target","style":{"border-width":2}},{"selector":".eh-preview, .eh-ghost-edge","style":{"line-color":"purple"}}]'
+        var D = JSON.parse(
+            '[{"selector":".node","style":{"label":"data(name)","text-valign":"center","color":"black","background-image":"url(\'./icons/icon-node.png\')","background-clip":"none","background-width":"50px","background-height":"50px","background-color":"transparent","background-opacity":"0","font-family":"Scada-Regular","width":"label","height":"50px","padding":"5px"}},{"selector":".creatingnode","style":{"label":"data(name)","text-valign":"center","color":"black","background-image":"url(\'./icons/icon-node.png\')","background-clip":"none","background-width":"50px","background-height":"50px","background-color":"transparent","background-opacity":"0","font-family":"Scada-Regular","width":"50px","height":"50px","padding":"5px"}},{"selector":".AnyPart","style":{"label":"data(name)","text-valign":"center","color":"black","background-color":"transparent","background-image":"url(\'./icons/icon-root.png\')","background-clip":"none","background-width":"50px","background-height":"50px","background-opacity":"0","font-family":"Scada-Regular","width":"label","height":"50px","padding":"8px"}},{"selector":".highlightNode","style":{"label":"data(name)","text-valign":"center","color":"black","background-color":"#ef4444","font-family":"Scada-Regular","shape":"diamond","width":"50px","height":"50px"}},{"selector":".highlightNodeWithoutOptions","style":{"label":"data(name)","text-valign":"center","color":"black","background-color":"#ef4444","font-family":"Scada-Regular","shape":"diamond","width":"50px","height":"50px","taxi-turn-min-distance":"20px"}},{"selector":"edge","style":{"width":4,"target-arrow-shape":"triangle","source-arrow-shape":"diamond","line-color":"#706a6a","target-arrow-color":"#222222","curve-style":"taxi","taxi-direction":"downward","taxi-turn":"30px"}},{"selector":".eh-source","style":{"border-width":2}},{"selector":".eh-target","style":{"border-width":2}},{"selector":".eh-preview, .eh-ghost-edge","style":{"line-color":"purple"}}]'
           ),
           M = {
             name: "GraphContent",
@@ -295,7 +295,7 @@
                 (this.cy = p()({
                   container: document.getElementById("cy"),
                   elements: { nodes: this.cyNodes, edges: this.cyEdges },
-                  style: E,
+                  style: D,
                 })),
                   this.cy.nodes().addClass("node"),
                   this.cy.$("node[name='Format']").classes("AnyPart"),
@@ -304,7 +304,7 @@
                   this.initNodeMenu(),
                   this.initEdgeMenu(),
                   this.initCoreMenu(),
-                  (this.eh = this.cy.edgehandles(D)),
+                  (this.eh = this.cy.edgehandles(E)),
                   this.relayout(),
                   1 == Object.keys(this.taxonomyData).length &&
                     this.cy.center(this.cy.nodes()[0]),
@@ -317,7 +317,7 @@
               initNodeMenu: function () {
                 this.nodeMenu = this.cy.cxtmenu({
                   menuRadius: 75,
-                  selector: ".node",
+                  selector: "node",
                   commands: [
                     {
                       fillColor: "rgba(200, 200, 200, 0.75)",
@@ -465,7 +465,7 @@
                 });
                 this.cy
                   .$("node[name='" + this.newNodeName + "']")
-                  .addClass("node"),
+                  .addClass("creatingnode"),
                   (this.taxonomyData[this.newNodeName] = []),
                   this.renameNode(e.data().name);
               },
@@ -506,9 +506,14 @@
                           newName: this.newNodeName,
                           oldName: this.oldNodeName,
                         }))
-                      : alert(
-                          this.oldNodeName + " cannot be renamed to nothing!"
-                        )),
+                      : (this.cy
+                          .$("node[shadowName='" + this.oldNodeName + "']")
+                          .json({ data: { name: this.oldNodeName } }),
+                        document.removeEventListener(
+                          "keydown",
+                          this.renameEvent,
+                          !1
+                        ))),
                   "Escape" === t &&
                     (this.cy
                       .$("node[shadowName='" + this.oldNodeName + "']")
@@ -563,7 +568,11 @@
                         this.initNodeMenu()),
                       console.table(this.taxonomyData),
                       this.renamef360(e.oldName, e.newName),
-                      this.save()));
+                      this.save()),
+                  this.cy
+                    .$("node[name='" + e.newName + "']")
+                    .removeClass("creatingnode"),
+                  this.cy.$("node[name='" + e.newName + "']").addClass("node"));
               },
               removeNode: function (e) {
                 const t = k.getAllEdges(this.cy, e);
@@ -712,7 +721,7 @@
           S = o(89);
         const O = (0, S.Z)(M, [
           ["render", u],
-          ["__scopeId", "data-v-735d27a6"],
+          ["__scopeId", "data-v-2459180a"],
         ]);
         var $ = O,
           j = { name: "GraphWrapper", components: { GraphContent: $ } };
@@ -870,8 +879,8 @@
       n.forEach(t.bind(null, 0)), (n.push = t.bind(null, n.push.bind(n)));
     })();
   var n = o.O(void 0, [998], function () {
-    return o(4776);
+    return o(2360);
   });
   n = o.O(n);
 })();
-//# sourceMappingURL=app.68f1e511.js.map
+//# sourceMappingURL=app.f7f5ca26.js.map
