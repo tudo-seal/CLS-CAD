@@ -1,4 +1,4 @@
-#cy[data-v-b24b4c4a] {
+#cy[data-v-735d27a6] {
   width: 100%;
   height: calc(100vh - 2rem);
   left: 0;
@@ -24,9 +24,6 @@
 a {
   color: inherit;
   text-decoration: inherit;
-}
-b {
-  font-weight: bolder;
 }
 table {
   text-indent: 0;
@@ -240,6 +237,19 @@ svg {
 .text-white {
   --tw-text-opacity: 1;
   color: rgb(255 255 255 / var(--tw-text-opacity));
+}
+.transition {
+  transition-property: color, background-color, border-color,
+    text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter,
+    -webkit-backdrop-filter;
+  transition-property: color, background-color, border-color,
+    text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter,
+    backdrop-filter;
+  transition-property: color, background-color, border-color,
+    text-decoration-color, fill, stroke, opacity, box-shadow, transform, filter,
+    backdrop-filter, -webkit-backdrop-filter;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 0.15s;
 }
 @font-face {
   font-family: Scada-Regular;
