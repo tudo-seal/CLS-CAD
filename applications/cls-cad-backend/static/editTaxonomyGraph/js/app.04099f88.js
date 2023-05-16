@@ -1,7 +1,7 @@
 (function () {
   "use strict";
   var e = {
-      2360: function (e, t, o) {
+      9167: function (e, t, o) {
         var n = o(9242),
           a = o(1020),
           s = o(3396);
@@ -15,7 +15,7 @@
         }
         var r = o(7139);
         const c = (e) => (
-            (0, s.dD)("data-v-2459180a"), (e = e()), (0, s.Cn)(), e
+            (0, s.dD)("data-v-77702efa"), (e = e()), (0, s.Cn)(), e
           ),
           l = { id: "container", class: "h-screen" },
           h = {
@@ -307,8 +307,7 @@
                   (this.eh = this.cy.edgehandles(E)),
                   this.relayout(),
                   1 == Object.keys(this.taxonomyData).length &&
-                    this.cy.center(this.cy.nodes()[0]),
-                  this.cy.zoom(0.9 * this.cy.zoom());
+                    this.cy.center(this.cy.nodes()[0]);
                 let t = this;
                 this.cy.on("cxttapstart", function (e) {
                   t.position = e.renderedPosition;
@@ -713,31 +712,30 @@
                   fit: Object.keys(this.taxonomyData).length > 1,
                   padding: 0,
                 };
-                this.cy.layout({ name: "dagre", defaults: e }).run(),
-                  this.cy.zoom(0.9 * this.cy.zoom());
+                this.cy.layout({ name: "dagre", defaults: e }).run();
               },
             },
           },
           S = o(89);
         const O = (0, S.Z)(M, [
           ["render", u],
-          ["__scopeId", "data-v-2459180a"],
+          ["__scopeId", "data-v-77702efa"],
         ]);
         var $ = O,
           j = { name: "GraphWrapper", components: { GraphContent: $ } };
         const C = (0, S.Z)(j, [["render", d]]);
-        var z = C,
-          T = { name: "App", components: { GraphWrapper: z } };
-        const _ = (0, S.Z)(T, [["render", i]]);
-        var I = _,
-          P = o(9253),
-          F = o.n(P),
-          J = o(1454),
-          R = o.n(J),
+        var T = C,
+          _ = { name: "App", components: { GraphWrapper: T } };
+        const I = (0, S.Z)(_, [["render", i]]);
+        var P = I,
+          F = o(9253),
+          J = o.n(F),
+          R = o(1454),
+          z = o.n(R),
           H = o(1590),
           A = o.n(H);
         const G = (0, a.WB)(),
-          L = (0, n.ri)(I);
+          L = (0, n.ri)(P);
         L.use(G),
           (window.fusionJavaScriptHandler = {
             handle: function (e, t) {
@@ -747,8 +745,8 @@
                   console.log("TaxonomyData arrived."),
                     void 0 === L.config.globalProperties.cy &&
                       ((L.config.globalProperties.cy = p()),
-                      p().use(F()),
-                      p().use(R()),
+                      p().use(J()),
+                      p().use(z()),
                       p().use(A())),
                     0 === Object.keys(L._context.provides).length &&
                       L.provide("taxonomyDataMessage", t),
@@ -879,8 +877,8 @@
       n.forEach(t.bind(null, 0)), (n.push = t.bind(null, n.push.bind(n)));
     })();
   var n = o.O(void 0, [998], function () {
-    return o(2360);
+    return o(9167);
   });
   n = o.O(n);
 })();
-//# sourceMappingURL=app.f7f5ca26.js.map
+//# sourceMappingURL=app.04099f88.js.map

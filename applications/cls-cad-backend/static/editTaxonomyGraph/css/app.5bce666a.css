@@ -1,11 +1,4 @@
-@font-face {
-  font-family: Scada-Regular;
-  src: local("Scada-Regular"),
-    url(/static/editTaxonomyGraph/fonts/Scada-Regular.6f48d286.ttf)
-      format("truetype");
-}
-
-#cy[data-v-2459180a] {
+#cy[data-v-77702efa] {
   width: 100%;
   height: calc(100vh - 2rem);
   left: 0;
@@ -257,4 +250,10 @@ svg {
     backdrop-filter, -webkit-backdrop-filter;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 0.15s;
+}
+@font-face {
+  font-family: Scada-Regular;
+  src: local("Scada-Regular"),
+    url(/static/editTaxonomyGraph/fonts/Scada-Regular.6f48d286.ttf)
+      format("truetype");
 }
