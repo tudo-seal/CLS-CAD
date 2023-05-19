@@ -4,6 +4,7 @@ import os
 from datetime import datetime
 from pathlib import Path
 
+import uvicorn
 from bcls import (
     Constructor,
     FiniteCombinatoryLogic,
@@ -245,3 +246,8 @@ async def results_for_id(project_id: str, request_id: str, result_id: int):
 
 # Finally, mount webpage for root.
 app.mount("/", StaticFiles(directory="static/welcomePage", html=True), name="landing")
+
+
+def start():
+    """Launched with `poetry run start` at root level"""
+    uvicorn.run("main:app", reload=True)
