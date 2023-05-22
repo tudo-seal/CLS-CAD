@@ -4,10 +4,10 @@
 	"id":	"764a1210-59dc-4da6-b601-5a7b5421be07",
 	"author":	"Constantin Chaumet",
 	"description":	{
-		"":	"An Add-In that brings combinatory logic based assembly processes to Fusion 360."
+		"":	"An Add-In that brings a combinatory logic based assembly processes to Fusion 360."
 	},
 	"version":	"0.0.1",
-	"runOnStartup":	false,
+	"runOnStartup":	true,
 	"supportedOS":	"windows|mac",
 	"editEnabled":	true
 }
