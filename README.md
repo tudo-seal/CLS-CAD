@@ -3,6 +3,7 @@
 ---
 
 An add-in that allows adding types to Joint Origins and Parts in Fusion 360, and allows requesting and assembling results by means of combinatory logic.
+This add-in requires [CLS-CPS](https://github.com/Jekannadar/CLS-CPS) to be installed and running to function.
 
 # Installation
 
