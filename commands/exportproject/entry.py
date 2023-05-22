@@ -221,7 +221,8 @@ def command_execute(args: adsk.core.CommandEventArgs):
                     app.activeDocument.dataFile.parentProject.name
                     if app.activeDocument.dataFile is not None
                     else app.data.activeProject.name
-                ),
+                )
+                + ".taxonomy",
                 "w",
                 encoding="utf-8",
             ),

@@ -5,6 +5,7 @@ import adsk.core
 
 from .. import config
 from ..lib import fusion360utils as futil
+from ..lib.general_utils import load_project_taxonomy_to_config
 from .assembleresult import entry as assemble_result
 from .attributestaxonomyediting import entry as attributes_taxonomy_editing
 from .checkandsubmit import entry as check_and_submit
@@ -97,6 +98,7 @@ def start():
 
 def application_document_opened(args: adsk.core.DocumentEventArgs):
     # Restore custom graphics
+    load_project_taxonomy_to_config()
     config.custom_graphics_displaying = False
     cmd = ui.commandDefinitions.itemById(
         f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_toggle_display"

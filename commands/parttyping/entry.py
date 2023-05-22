@@ -188,7 +188,8 @@ def generate_type_text():
             continue
         req_list = [x[0] for x in typed_jos if x != joInfo]
         guarded_types.append(
-            " → ".join(req_list)
+            "("
+            + " → ".join(req_list)
             + " → ("
             + joInfo[1]
             + f' ∩ ({"∩".join(provides_parts)}) ∩ ({"∩".join(provides_attributes)}))'
@@ -202,7 +203,7 @@ def generate_type_text():
                     line-height: 100%;
                     font-family: Courier;
                 }
-                </style><pre>("""
+                </style><pre>"""
         + ") ∩ \n".join(guarded_types).replace(" ∩ ()", "")
         + "</pre>"
     )
