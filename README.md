@@ -1,9 +1,9 @@
-<kbd><img src="https://github.com/Jekannadar/CLS-CAD/raw/main/resources/vectors/clscad.svg" width="256" height="256" style="border-radius:50%"></kbd>
+<kbd><img src="https://github.com/tudo-seal/CLS-CAD/raw/main/resources/vectors/clscad.svg" width="256" height="256" style="border-radius:50%"></kbd>
 
 ---
 
 An add-in that allows adding types to Joint Origins and Parts in Fusion 360, and allows requesting and assembling results by means of combinatory logic.
-This add-in requires [CLS-CPS](https://github.com/Jekannadar/CLS-CPS) to be installed and running to function.
+This add-in requires [CLS-CPS](https://github.com/tudo-seal/CLS-CPS) to be installed and running to function.
 
 # Installation
 
