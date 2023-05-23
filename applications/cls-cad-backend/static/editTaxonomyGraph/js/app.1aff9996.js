@@ -1,7 +1,7 @@
 (function () {
   "use strict";
   var e = {
-      9167: function (e, t, o) {
+      1689: function (e, t, o) {
         var n = o(9242),
           a = o(1020),
           s = o(3396);
@@ -15,7 +15,7 @@
         }
         var r = o(7139);
         const c = (e) => (
-            (0, s.dD)("data-v-77702efa"), (e = e()), (0, s.Cn)(), e
+            (0, s.dD)("data-v-6a6b90c8"), (e = e()), (0, s.Cn)(), e
           ),
           l = { id: "container", class: "h-screen" },
           h = {
@@ -477,6 +477,9 @@
                     .$("node[name='" + this.oldNodeName + "']")
                     .json({ data: { name: "" } }),
                   (this.newNodeName = ""),
+                  this.cy
+                    .$("node[name='" + this.newNodeName + "']")
+                    .addClass("creatingnode"),
                   document.addEventListener("keydown", this.renameEvent, !1);
               },
               renameEvent: function (e) {
@@ -719,7 +722,7 @@
           S = o(89);
         const O = (0, S.Z)(M, [
           ["render", u],
-          ["__scopeId", "data-v-77702efa"],
+          ["__scopeId", "data-v-6a6b90c8"],
         ]);
         var $ = O,
           j = { name: "GraphWrapper", components: { GraphContent: $ } };
@@ -877,8 +880,8 @@
       n.forEach(t.bind(null, 0)), (n.push = t.bind(null, n.push.bind(n)));
     })();
   var n = o.O(void 0, [998], function () {
-    return o(9167);
+    return o(1689);
   });
   n = o.O(n);
 })();
-//# sourceMappingURL=app.04099f88.js.map
+//# sourceMappingURL=app.1aff9996.js.map
