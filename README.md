@@ -4,7 +4,9 @@
 
 [![Generic badge](https://img.shields.io/badge/python-fusion360-informational.svg)](https://shields.io/)
 [![Supported systems](https://img.shields.io/badge/os-windows%20|%20macOS-informational.svg)](https://shields.io/)
-[![GitHub license](/github/license/tudo-seal/CLS-CAD)](https://github.com/tudo-seal/CLS-CAD/blob/main/LICENSE)
+[![GitHub license](https://img.shields.io/github/license/tudo-seal/CLS-CAD)](https://github.com/tudo-seal/CLS-CAD/blob/main/LICENSE)
+
+<!---[![Issues](https://img.shields.io/github/issues/tudo-seal/CLS-CAD)](https://github.com/tudo-seal/CLS-CAD/issues)-->
 
 ---
 
