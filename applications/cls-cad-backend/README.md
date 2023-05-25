@@ -4,6 +4,7 @@
 
 [![Generic badge](https://img.shields.io/badge/python-3.10%20|%203.11-informational.svg)](https://shields.io/)
 [![GitHub license](https://img.shields.io/github/license/tudo-seal/CLS-CPS)](https://github.com/tudo-seal/CLS-CPS/blob/main/LICENSE)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7970609.svg)](https://doi.org/10.5281/zenodo.7970609)
 
 <!---[![Issues](https://img.shields.io/github/issues/tudo-seal/CLS-CAD)](https://github.com/tudo-seal/CLS-CAD/issues)-->
 
@@ -11,6 +12,8 @@
 
 A backend application that utilizes combinatory logic to synthesize complete cyber-physical systems, i.e. IoT devices,
 robotic systems, etc. This is the backend for [CLS-CAD](https://github.com/tudo-seal/CLS-CAD).
+
+The software version and data-set shown in the paper submitted for the ASE 2023 Tool Demonstration Track can be obtained at [Zenodo](https://doi.org/10.5281/zenodo.7970609).
 
 # Installation
 
