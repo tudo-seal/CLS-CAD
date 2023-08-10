@@ -5,7 +5,9 @@ from datetime import datetime
 from pathlib import Path
 
 import uvicorn
-from bcls import (
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from picls import (
     Constructor,
     FiniteCombinatoryLogic,
     Subtypes,
@@ -14,8 +16,7 @@ from bcls import (
     enumerate_terms_of_size,
     interpret_term,
 )
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from picls.types import Literal
 from starlette.background import BackgroundTasks
 from starlette.staticfiles import StaticFiles
 
@@ -131,33 +132,43 @@ async def request_optimization(
 async def synthesize_assembly(
     payload: SynthesisRequestInf, background_tasks: BackgroundTasks
 ):
+    query = Type.intersect([Constructor(x) for x in payload.target])
+    literals = {}
+    if payload.partCounts:
+        for partCount in payload.partCounts:
+            query = query & Literal(partCount.partNumber, partCount.partType)
+            literals[partCount.partType] = list(range(partCount.partNumber + 1))
+
+    print(f"Query: {query}")
+
     taxonomy = Subtypes(
         suffix_taxonomy_and_add_mirror(get_taxonomy_for_project(payload.forgeProjectId))
     )
+
+    repo = RepositoryBuilder.add_all_to_repository(
+        payload.forgeProjectId,
+        blacklist=payload.blacklist,
+        connect_uuid=payload.sourceUuid,
+        taxonomy=taxonomy,
+        part_counts=[(p.partType, p.partNumber) for p in payload.partCounts]
+        if payload.partCounts
+        else None,
+    )
+
     gamma = FiniteCombinatoryLogic(
-        RepositoryBuilder.add_all_to_repository(
-            payload.forgeProjectId,
-            blacklist=payload.blacklist,
-            connect_uuid=payload.sourceUuid,
-            taxonomy=taxonomy,
-            propagated_types=payload.propagate,
-        ),
+        repo,
         taxonomy,
+        literals=literals,
     )
 
-    query = Type.intersect(
-        [Constructor(x) for x in payload.target]
-        + [
-            Type.intersect([Constructor(tpe) for tpe in tpe_list])
-            for tpe_list in payload.propagate
-        ],
-    )
-
-    result = gamma.inhabit(query)
-    terms = []
     from timeit import default_timer as timer
 
     start = timer()
+
+    result = gamma.inhabit(query)
+    terms = []
+
+    print(f"Inhabitation Time: {timer() - start}")
 
     if payload.depths:
         for depth in payload.depths:
@@ -168,9 +179,10 @@ async def synthesize_assembly(
             )
     else:
         terms.extend(enumerate_terms(query, result, max_count=100))
-    print(timer() - start)
+    print(len(terms))
+    print(f"Enumerate Time: {timer() - start}")
     interpreted_terms = [postprocess(interpret_term(term)) for term in terms]
-    print(timer() - start)
+    print(f"Processing Time: {timer() - start}")
 
     if not interpreted_terms:
         return "FAIL"

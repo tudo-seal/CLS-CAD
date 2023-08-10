@@ -1,8 +1,10 @@
 import json
 from enum import Enum
-from functools import reduce
+from functools import partial, reduce
 
-from bcls import Arrow, Constructor, Omega, Subtypes, Type
+from picls import Arrow, Constructor, Subtypes, Type
+from picls.dsl import DSL
+from picls.types import Literal, Param, TVar
 
 from cls_cps.cls_python.cls_json import CLSEncoder
 from cls_cps.database.commands import get_all_parts_for_project
@@ -23,7 +25,9 @@ class Part:
                     motion=combine_motions(self.info["motion"], uuid_info["motion"]),
                 )
                 for (uuid, uuid_info), required_part in zip(
-                    self.info["requiredJointOriginsInfo"].items(), required_parts
+                    self.info["requiredJointOriginsInfo"].items(),
+                    # We need to discard the information about the current counts
+                    [part for part in required_parts if not isinstance(part, int)],
                 )
             },
         )
@@ -48,6 +52,54 @@ class Part:
 class Role(str, Enum):
     requires = "requires"
     provides = "provides"
+
+
+def add_literal_to_leaf(provides, part_counts, in_type, taxonomy):
+    for count_type, count in part_counts:
+        if taxonomy.check_subtype(provides, Constructor(count_type), dict()):
+            in_type = in_type & Literal(1, count_type)
+        else:
+            in_type = in_type & Literal(0, count_type)
+    return in_type
+
+
+def collect_and_increment_part_count(count_type: str, counted_vars: dict):
+    return sum([value for key, value in counted_vars.items() if count_type in key]) + 1
+
+
+def collect_part_count(count_type: str, counted_vars: dict):
+    return sum([value for key, value in counted_vars.items() if count_type in key])
+
+
+def create_part_info(configuration, part_data):
+    return dict(
+        part_data["meta"],
+        requiredJointOriginsInfo=fetch_required_joint_origins_info(
+            part_data, configuration
+        ),
+        provides=configuration["providesJointOrigin"],
+        motion=fetch_joint_origin_info(part_data, configuration["providesJointOrigin"])[
+            "motion"
+        ],
+    )
+
+
+def compute_new_count_for_count_type(config_types, count_type, part_type, taxonomy):
+    if taxonomy.check_subtype(config_types[-1], Constructor(count_type), dict()):
+        part_type = part_type.AsRaw(
+            partial(collect_and_increment_part_count, count_type)
+        )
+    else:
+        part_type = part_type.AsRaw(partial(collect_part_count, count_type))
+    return part_type
+
+
+def add_used_prefixes_to_part_type(
+    count_type, ordered_list_of_configuration_uuids, part_type
+):
+    for uuid in ordered_list_of_configuration_uuids:
+        part_type = part_type.Use(f"{uuid}_{count_type}", count_type)
+    return part_type
 
 
 def get_joint_origin_type(uuid: str, part: dict, role: Role, prefix=""):
@@ -111,30 +163,27 @@ def multiarrow_from_types(type_list):
     return reduce(lambda a, b: Arrow(b, a), reversed(type_list))
 
 
+def counting_multiarrow_from_uuid(uuid_list, count_type: str):
+    return reduce(
+        lambda a, b: Arrow(b, a),
+        map(lambda uuid: TVar(f"{uuid}_{count_type}"), reversed(uuid_list)),
+    )
+
+
 def multiarrow_to_self(tpe, length):
     return multiarrow_from_types([tpe] * length)
-
-
-def intersect_all_multiarrows_containing_type(tpe, length):
-    result = []
-    for x in range(0, length - 1):
-        multiarrow_type_list = [Omega()] * length
-        multiarrow_type_list[x] = tpe
-        multiarrow_type_list[-1] = tpe
-        result.append(multiarrow_from_types(multiarrow_type_list))
-    return Type.intersect(result)
 
 
 class RepositoryBuilder:
     @staticmethod
     def add_part_to_repository(
-        part: dict,
+        part_data: dict,
         repository: dict,
         *,
+        part_counts: list[str, int] = None,
         blacklist=None,
         connect_uuid=None,
         taxonomy: Subtypes = None,
-        propagated_types=[],
     ):
         """
         Adds a part to a repository to be used for synthesis. Adds necessary Constructors for the parts configurations,
@@ -146,15 +195,15 @@ class RepositoryBuilder:
         If a blacklist is provided, also adds Constructors for every encountered required type that is
         more specific than the blacklist.
 
-        :param propagated_types:
-        :param part: The JSON representation of the part to add to the repository. This uses set() as its array type.
+        :param part_counts:
+        :param part_data: The JSON representation of the part to add to the repository. This uses set() as its array type.
         :param repository: The repository dict for the part to be added to. This should be then used for synthesis.
         :param blacklist: An optional set that represent a Types.intersect([blacklist]).
         :param connect_uuid: The UUID of the joint the blacklist is based on.
         :param taxonomy: The taxonomy to check the blacklist with.
         :return:
         """
-        for configuration in part["configurations"]:
+        for configuration in part_data["configurations"]:
             # Since SetDecoder is used for creating the part dict, we can just check if the part provides the leaf type
             # or an even more specific type, which we also can not allow.
             pass
@@ -162,7 +211,7 @@ class RepositoryBuilder:
             if is_blacklisted_under_subtyping(
                 blacklist,
                 configuration["providesJointOrigin"],
-                part,
+                part_data,
                 taxonomy,
                 Role.provides,
             ):
@@ -173,74 +222,74 @@ class RepositoryBuilder:
                 *[configuration["providesJointOrigin"]],
             ]
 
-            config_types = types_from_uuids(ordered_list_of_configuration_uuids, part)
-            has_types = types_from_uuids(
-                ordered_list_of_configuration_uuids, part, prefix="Has_"
+            config_types = types_from_uuids(
+                ordered_list_of_configuration_uuids, part_data
             )
+            in_type: Param = multiarrow_from_types(config_types)
+            part_type = DSL()
 
-            config_types[-1] = Type.intersect([*[config_types[-1]], *has_types])
-            config_multiarrow = multiarrow_from_types(config_types)
-
-            if propagated_types:
-                propagated_types_intersections = [
-                    intersect_all_multiarrows_containing_type(
-                        Type.intersect([Constructor(tpe) for tpe in tpe_list]),
-                        len(config_types),
-                    )
-                    for tpe_list in propagated_types
-                ]
-
-                config_multiarrow = Type.intersect(
-                    [*[config_multiarrow], *propagated_types_intersections]
+            if len(config_types) == 1 and part_counts:
+                in_type = add_literal_to_leaf(
+                    config_types[-1], part_counts, in_type, taxonomy
                 )
+
+            if len(config_types) > 1 and part_counts:
+                for count_type, count in part_counts:
+                    part_type = add_used_prefixes_to_part_type(
+                        count_type, ordered_list_of_configuration_uuids, part_type
+                    )
+                    part_type = compute_new_count_for_count_type(
+                        config_types, count_type, part_type, taxonomy
+                    )
+                    in_type = in_type & counting_multiarrow_from_uuid(
+                        ordered_list_of_configuration_uuids,
+                        count_type,
+                    )
+
+            part_type = part_type.In(in_type)
 
             repository[
-                Part(
-                    dict(
-                        part["meta"],
-                        requiredJointOriginsInfo=fetch_required_joint_origins_info(
-                            part, configuration
-                        ),
-                        provides=configuration["providesJointOrigin"],
-                        motion=fetch_joint_origin_info(
-                            part, configuration["providesJointOrigin"]
-                        )["motion"],
-                    )
-                )
-            ] = config_multiarrow
+                Part(info=create_part_info(configuration, part_data))
+            ] = part_type
 
             for required_joint_origin_uuid in configuration["requiresJointOrigins"]:
                 # If a joint would require a blacklisted type or a subtype of it, we add that specific
                 # version to the repository as a virtual Part along with a fitting PartConfig. This results in the
                 # output JSON specifying that virtual part for the "back-side" of the synthesised connector.
                 if not is_blacklisted_under_subtyping(
-                    blacklist, required_joint_origin_uuid, part, taxonomy, Role.provides
+                    blacklist,
+                    required_joint_origin_uuid,
+                    part_data,
+                    taxonomy,
+                    Role.provides,
                 ):
                     continue
 
                 repository[
-                    create_virtual_substitute_part(part, required_joint_origin_uuid)
+                    create_virtual_substitute_part(
+                        part_data, required_joint_origin_uuid
+                    )
                 ] = get_joint_origin_type(
-                    required_joint_origin_uuid, part, Role.requires
+                    required_joint_origin_uuid, part_data, Role.requires
                 )
 
     @staticmethod
     def add_all_to_repository(
         project_id: str,
         *,
+        part_counts: list[[str, int]] = None,
         blacklist=None,
         connect_uuid=None,
         taxonomy=None,
-        propagated_types=[],
     ):
         repository = {}
-        for part in get_all_parts_for_project(project_id):
+        for part_data in get_all_parts_for_project(project_id):
             RepositoryBuilder.add_part_to_repository(
-                part,
+                part_data,
                 repository,
+                part_counts=part_counts,
                 blacklist=blacklist,
                 connect_uuid=connect_uuid,
                 taxonomy=taxonomy,
-                propagated_types=propagated_types,
             )
         return repository

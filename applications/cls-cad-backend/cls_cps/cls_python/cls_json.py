@@ -1,7 +1,7 @@
 import json
 
 import jsonpickle
-from bcls import (
+from picls import (
     Arrow,
     Constructor,
     FiniteCombinatoryLogic,
@@ -10,7 +10,7 @@ from bcls import (
     Product,
     Subtypes,
 )
-from bcls.enumeration import Tree
+from picls.enumeration import Tree
 
 
 class CLSEncoder(json.JSONEncoder):

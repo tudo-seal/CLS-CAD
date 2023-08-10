@@ -26,6 +26,11 @@ class PartConfigInf(BaseModel, frozen=True):
     providesJointOrigin: str
 
 
+class CountNumOfPartTypeInf(BaseModel, frozen=True):
+    partNumber: int
+    partType: str
+
+
 class PartInf(BaseModel, frozen=True):
     id: str = Field(..., alias="_id")
     configurations: list[PartConfigInf]
@@ -45,9 +50,9 @@ class SynthesisRequestInf(BaseModel, frozen=True):
     target: list[str]
     name: str | None = generate_id()
     tag: str | None = None
+    partCounts: list[CountNumOfPartTypeInf] | None = None
     blacklist: list | None = None
     whitelist: list | None = None
     sourceUuid: str | None = None
-    propagate: list[list] = []
     depths: list[int] | None = None
     resultsPerDepth: int = 10

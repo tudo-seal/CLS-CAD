@@ -3,7 +3,7 @@ import os
 import sys
 from pathlib import Path
 
-from bcls import FiniteCombinatoryLogic, Subtypes
+from picls import FiniteCombinatoryLogic, Subtypes
 
 from cls_cps.cls_python.cls_json import CLSDecoder
 from cls_cps.repository_builder import RepositoryBuilder

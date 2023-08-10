@@ -8,6 +8,6 @@ pandas~=1.4.4
 orjson==3.8.0
 ujson==5.5.0
 pre-commit==2.20.0
-git+https://github.com/christofsteel/bcls-python.git@main#egg=bcls
+git+https://github.com/tudo-seal/picls-python.git@main#egg=picls
 python-decouple==3.8
 pymongo[srv]==4.3.3

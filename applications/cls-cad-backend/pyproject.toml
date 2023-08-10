@@ -8,7 +8,7 @@ packages = [{include = "cls_cps"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-bcls = {git = "https://github.com/christofsteel/bcls-python.git"}
+picls = {git = "https://github.com/tudo-seal/picls-python.git"}
 fastapi = "^0.94.0"
 uvicorn = "^0.21.0"
 jsonpickle = "^3.0.1"
