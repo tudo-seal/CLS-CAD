@@ -2,8 +2,13 @@ import json
 import typing
 
 import ujson
-from orjson import orjson
 from starlette.responses import Response
+
+no_orjson = False
+try:
+    from orjson import orjson
+except ImportError:
+    no_orjson = True
 
 
 class FastResponse(Response):
@@ -11,6 +16,8 @@ class FastResponse(Response):
 
     def render(self, content: typing.Any) -> bytes:
         try:
+            if no_orjson:
+                raise TypeError
             return orjson.dumps(content, option=orjson.OPT_INDENT_2)
         except TypeError:
             try:

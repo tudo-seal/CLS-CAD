@@ -2,7 +2,9 @@ import json
 import mimetypes
 import os
 from datetime import datetime
+from functools import reduce
 from pathlib import Path
+from timeit import default_timer as timer
 
 import uvicorn
 from fastapi import FastAPI
@@ -16,7 +18,7 @@ from picls import (
     enumerate_terms_of_size,
     interpret_term,
 )
-from picls.types import Literal
+from picls.types import Literal, Omega, Product
 from starlette.background import BackgroundTasks
 from starlette.staticfiles import StaticFiles
 
@@ -29,14 +31,6 @@ from cls_cps.database.commands import (
     upsert_part,
     upsert_result,
     upsert_taxonomy,
-)
-from cls_cps.hypermapper_tools.hypermapper_compatibility import (
-    create_hypermapper_config,
-    wrapped_synthesis_optimization_function,
-)
-from cls_cps.hypermapper_tools.hypermapper_visualisation import (
-    compute_pareto_front,
-    visualize_pareto_front,
 )
 from cls_cps.repository_builder import RepositoryBuilder
 from cls_cps.responses import FastResponse
@@ -51,6 +45,15 @@ from cls_cps.util.json_operations import (
 no_hypermapper = False
 try:
     from hypermapper import optimizer
+
+    from cls_cps.hypermapper_tools.hypermapper_compatibility import (
+        create_hypermapper_config,
+        wrapped_synthesis_optimization_function,
+    )
+    from cls_cps.hypermapper_tools.hypermapper_visualisation import (
+        compute_pareto_front,
+        visualize_pareto_front,
+    )
 except ImportError:
     no_hypermapper = True
 
@@ -132,18 +135,31 @@ async def request_optimization(
 async def synthesize_assembly(
     payload: SynthesisRequestInf, background_tasks: BackgroundTasks
 ):
-    query = Type.intersect([Constructor(x) for x in payload.target])
+    take_time = timer()
     literals = {}
+    part_count_type = Omega()
     if payload.partCounts:
         for partCount in payload.partCounts:
-            query = query & Literal(partCount.partNumber, partCount.partType)
             literals[partCount.partType] = list(range(partCount.partNumber + 1))
+        part_count_type = reduce(
+            Product, [Literal(c.partNumber, c.partType) for c in payload.partCounts]
+        )
+
+    query = Type.intersect([Constructor(x, part_count_type) for x in payload.target])
+    # if payload.partCounts:
+    #     for partCount in payload.partCounts:
+    #         query = query & Literal(partCount.partNumber, partCount.partType)
+    #         literals[partCount.partType] = list(range(partCount.partNumber + 1))
+    print(f"Build query in {timer() - take_time}")
+    take_time = timer()
 
     print(f"Query: {query}")
 
     taxonomy = Subtypes(
         suffix_taxonomy_and_add_mirror(get_taxonomy_for_project(payload.forgeProjectId))
     )
+    print(f"Build taxonomy in {timer() - take_time}")
+    take_time = timer()
 
     repo = RepositoryBuilder.add_all_to_repository(
         payload.forgeProjectId,
@@ -154,21 +170,21 @@ async def synthesize_assembly(
         if payload.partCounts
         else None,
     )
+    print(f"Build repo in {timer() - take_time}")
+    take_time = timer()
 
     gamma = FiniteCombinatoryLogic(
         repo,
         taxonomy,
         literals=literals,
     )
-
-    from timeit import default_timer as timer
-
-    start = timer()
+    print(f"Build fcl in {timer() - take_time}")
+    take_time = timer()
 
     result = gamma.inhabit(query)
+    print(f"Inhabit in {timer() - take_time}")
+    take_time = timer()
     terms = []
-
-    print(f"Inhabitation Time: {timer() - start}")
 
     if payload.depths:
         for depth in payload.depths:
@@ -178,11 +194,14 @@ async def synthesize_assembly(
                 )
             )
     else:
-        terms.extend(enumerate_terms(query, result, max_count=100))
-    print(len(terms))
-    print(f"Enumerate Time: {timer() - start}")
+        terms.extend(enumerate_terms(query, result, max_count=10))
+    print(f"Enumerate in {timer() - take_time}")
+    take_time = timer()
+    # print(timer() - start)
     interpreted_terms = [postprocess(interpret_term(term)) for term in terms]
-    print(f"Processing Time: {timer() - start}")
+    print(f"Interpret in {timer() - take_time}")
+    # take_time = timer()
+    # print(timer() - start)
 
     if not interpreted_terms:
         return "FAIL"
