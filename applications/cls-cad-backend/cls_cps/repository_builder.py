@@ -6,8 +6,8 @@ from picls import Any, Arrow, Constructor, Omega, Product, Subtypes, Type
 from picls.dsl import DSL
 from picls.types import Literal, TVar
 
-from cls_cps.cls_python.cls_json import CLSEncoder
 from cls_cps.database.commands import get_all_parts_for_project
+from cls_cps.util.hrid import generate_id
 from cls_cps.util.motion import combine_motions
 
 
@@ -103,17 +103,7 @@ def fetch_joint_origin_info(part, joint_origin_uuid: str):
 def create_virtual_substitute_part(part, required_joint_origin_uuid):
     return Part(
         {
-            "name": "clsconnectmarker_"
-            + str(
-                hash(
-                    json.dumps(
-                        get_joint_origin_type(
-                            required_joint_origin_uuid, part, Role.requires
-                        ),
-                        cls=CLSEncoder,
-                    )
-                )
-            ),
+            "name": "clsconnectmarker_" + str(hash(generate_id())),
             "forgeDocumentId": "NoInsert",
             "forgeFolderId": "NoInsert",
             "forgeProjectId": "NoInsert",

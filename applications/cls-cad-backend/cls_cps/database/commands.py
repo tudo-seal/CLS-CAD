@@ -1,5 +1,13 @@
-from decouple import config
-from pymongo import MongoClient
+import configparser
+import os
+import sys
+import zipfile
+from tkinter.filedialog import askopenfilename
+from tkinter.messagebox import askyesno, showerror, showinfo
+from tkinter.simpledialog import askstring
+
+from montydb import MontyClient, set_storage
+from pymongo import MongoClient, errors
 from pymongo.collection import Collection
 
 database = None
@@ -9,12 +17,63 @@ results: Collection = None
 
 
 def init_database():
-    connection_url = (
-        f"mongodb+srv://{config('MONGO_USER')}:{config('MONGO_PASS')}"
-        f"@{config('MONGO_URL')}/?retryWrites=true&w=majority"
-    )
     global database, parts, taxonomies, results
-    database = MongoClient(connection_url)["cls_cps"]
+    if "__compiled__" in globals():
+        application_path = os.path.dirname(sys.argv[0])
+    elif __file__:
+        application_path = os.path.dirname(__file__)
+    config_path = os.path.join(application_path, "config.ini")
+    container_path = os.path.join(application_path, "container")
+    config = configparser.ConfigParser()
+    if not os.path.exists(config_path) and not os.path.exists(container_path):
+        is_remote = askyesno(
+            "Connect to remote DB?",
+            "Do you want to connect to a hosted MongoDB instance?",
+        )
+        connection_url = ""
+        if is_remote:
+            connection_url = askstring(
+                "Remote URL",
+                "Please enter the connection url (with user and password, stored locally in plain text): ",
+            )
+            try:
+                database = MongoClient(connection_url, serverSelectionTimeoutMS=2000)
+                database.server_info()
+            except errors.ServerSelectionTimeoutError as err:
+                showerror("Connection Error", "Could not connect to database. Exiting.")
+                exit(0)
+        else:
+            database = MontyClient(os.path.join(application_path, "db"))
+            if askyesno("Import", "Import an existing database?"):
+                import_data = askopenfilename()
+                if import_data:
+                    with zipfile.ZipFile(import_data, "r") as zip_ref:
+                        zip_ref.extractall(os.path.join(application_path, "db"))
+                    set_storage(os.path.join(application_path, "db"))
+                else:
+                    showinfo(
+                        "Import", "No file selected, continuing with empty database"
+                    )
+        config["db"] = {"is_remote": is_remote, "connection_url": connection_url}
+        with open(config_path, "w") as configfile:  # save
+            config.write(configfile)
+    elif os.path.exists(container_path):
+        database = MontyClient(os.path.join(application_path, "db"))
+    else:
+        config.read(config_path)
+        if config["db"]["is_remote"] and config["db"]["connection_url"] != "":
+            try:
+                database = MongoClient(
+                    config["db"]["connection_url"], serverSelectionTimeoutMS=2000
+                )
+                database.server_info()
+            except errors.ServerSelectionTimeoutError as err:
+                showerror("Connection Error", "Could not connect to database. Exiting.")
+                exit(0)
+        else:
+            database = MontyClient(os.path.join(application_path, "db"))
+
+    database = database["cls_cps"]
     parts = database["parts"]
     taxonomies = database["taxonomies"]
     results = database["results"]

@@ -3,13 +3,14 @@ import json
 import re
 from collections import defaultdict, deque
 
-import ujson
-
-no_orjson = False
+base_json = True
 try:
-    from orjson import orjson
+    import orjson
+    import ujson
+
+    base_json = False
 except ImportError:
-    no_orjson = True
+    pass
 
 from cls_cps.repository_builder import Part
 from cls_cps.util.hrid import generate_id
@@ -149,9 +150,9 @@ def suffix_taxonomy_and_add_mirror(taxonomy: dict):
 
 
 def fast_json_to_string(content: dict):
+    if base_json:
+        return json.dumps(content, ensure_ascii=False).encode("utf-8")
     try:
-        if no_orjson:
-            raise TypeError
         return orjson.dumps(content)
     except TypeError:
         try:

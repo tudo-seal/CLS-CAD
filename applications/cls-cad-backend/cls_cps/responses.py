@@ -1,23 +1,25 @@
 import json
 import typing
 
-import ujson
 from starlette.responses import Response
 
-no_orjson = False
+base_json = True
 try:
-    from orjson import orjson
+    import orjson
+    import ujson
+
+    base_json = False
 except ImportError:
-    no_orjson = True
+    pass
 
 
 class FastResponse(Response):
     media_type = "application/json"
 
     def render(self, content: typing.Any) -> bytes:
+        if base_json:
+            return json.dumps(content, indent=2, ensure_ascii=False).encode("utf-8")
         try:
-            if no_orjson:
-                raise TypeError
             return orjson.dumps(content, option=orjson.OPT_INDENT_2)
         except TypeError:
             try:

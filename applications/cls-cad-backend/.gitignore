@@ -191,3 +191,5 @@ migrations/
 Repositories
 Results
 Taxonomies
+*.ini
+db/
