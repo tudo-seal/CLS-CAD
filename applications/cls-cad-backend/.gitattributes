@@ -20,3 +20,7 @@
 *.pyc    binary export-ignore
 *.pyo    binary export-ignore
 *.pyd    binary
+
+# Linguist
+# ============
+cls_cps/static/** linguist-vendored
