@@ -1319,7 +1319,7 @@ develop = false
 [package.source]
 type = "git"
 url = "https://github.com/tudo-seal/picls-python.git"
-reference = "HEAD"
+reference = "main"
 resolved_reference = "99a04d8652e8278ab96d20d3bbfedbf81000c2cd"
 
 [[package]]
@@ -2596,4 +2596,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10,<3.12"
-content-hash = "b38e854598095fa7c2f59f21b52e98ca637d38552adfa33719d63aa901369939"
+content-hash = "ee9206f71752b566d16703d40634e4b5bfd2ee9d76451f423c5412ccf2ede259"
