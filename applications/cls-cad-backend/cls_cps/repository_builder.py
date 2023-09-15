@@ -240,9 +240,15 @@ class RepositoryBuilder:
                         f"{ordered_list_of_configuration_uuids[i]}", to_use
                     )
                 in_type = annotated_config_types[-1]
+            else:
+                for i, to_use in enumerate(config_types[:-1]):
+                    part_type.Use(
+                        f"{ordered_list_of_configuration_uuids[i]}",
+                        Type.intersect(to_use),
+                    )
+                in_type = Type.intersect(config_types[-1])
 
             part_type = part_type.In(in_type)
-            # print(in_type)
 
             repository[
                 Part(

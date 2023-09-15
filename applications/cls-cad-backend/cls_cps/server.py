@@ -195,7 +195,7 @@ async def synthesize_assembly(
                 )
             )
     else:
-        terms.extend(enumerate_terms(query, result, max_count=10))
+        terms.extend(enumerate_terms(query, result, max_count=100))
     print(f"Enumerate in {timer() - take_time}")
     take_time = timer()
     # print(timer() - start)
