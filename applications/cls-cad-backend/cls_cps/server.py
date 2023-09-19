@@ -1,5 +1,6 @@
 import mimetypes
 import os
+from collections import defaultdict
 from datetime import datetime
 from functools import reduce
 from timeit import default_timer as timer
@@ -217,6 +218,7 @@ async def synthesize_assembly(
             "timestamp": datetime.today().strftime("%Y-%m-%d %H:%M:%S"),
             "count": len(interpreted_terms),
             "interpretedTerms": interpreted_terms,
+            "payload": payload.model_dump(),
         },
     )
     return str(request_id)
@@ -235,6 +237,25 @@ async def list_result_ids():
 @app.get("/results/{project_id}", response_class=FastResponse)
 async def list_result_ids(project_id: str):
     return [dict(x, id=x["_id"]) for x in get_all_result_ids_for_project(project_id)]
+
+
+@app.get("/results/{project_id}/{request_id}/maxcounts", response_class=FastResponse)
+async def maximum_counts_for_id(
+    project_id: str,
+    request_id: str,
+):
+    if request_id not in cache:
+        cache[request_id] = get_result_for_id(request_id)["interpretedTerms"]
+    results = cache[request_id]
+    part_counts = defaultdict(int)
+    for result in results:
+        for document_id, data in result["quantities"].items():
+            part_counts[document_id] = (
+                data["count"]
+                if data["count"] > part_counts[document_id]
+                else part_counts[document_id]
+            )
+    return FastResponse(part_counts)
 
 
 @app.get("/results/{project_id}/{request_id}", response_class=FastResponse)
