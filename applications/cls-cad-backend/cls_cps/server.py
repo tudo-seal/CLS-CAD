@@ -283,7 +283,7 @@ async def results_for_id(
             ]
         )
     else:
-        return results
+        return FastResponse(results)
 
 
 @app.get("/results/{project_id}/{request_id}/{result_id}", response_class=FastResponse)
