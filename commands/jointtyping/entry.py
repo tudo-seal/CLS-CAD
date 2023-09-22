@@ -9,6 +9,7 @@ from ... import config
 from ...lib import fusion360utils as futil
 from ...lib.general_utils import (
     generate_id,
+    invert_map,
     load_project_taxonomy_to_config,
     update_taxonomy_in_backend,
 )
@@ -269,9 +270,6 @@ def command_select(args: adsk.core.SelectionEventArgs):
             provides_type_text_box_input.text = f'({"∩".join(filter(None, ["∩".join(provides_formats),"∩".join(provides_parts), "∩".join(provides_attributes)]))})'.replace(
                 " ∩ ()", ""
             )
-            provides_type_text_box_input.text = (
-                selected_joint_origin.attributes.itemByName("CLS-INFO", "UUID").value
-            )
         except:
             pass
         selected_joint_origins.append(selected_joint_origin)
@@ -387,6 +385,8 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
         config.mappings[taxonomy_id][message_data[1]] = config.mappings[
             taxonomy_id
         ].pop(message_data[0])
+        config.inverted_mappings = invert_map(config.mappings)
+        update_taxonomy_in_backend()
 
     if message_action == "readyNotification":
         taxonomy_id = None

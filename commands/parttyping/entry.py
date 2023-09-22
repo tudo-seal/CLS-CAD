@@ -5,6 +5,7 @@ import adsk.core
 from ...lib import fusion360utils as futil
 from ...lib.general_utils import (
     config,
+    invert_map,
     json,
     load_project_taxonomy_to_config,
     os,
@@ -244,6 +245,8 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
         config.mappings[taxonomy_id][message_data[1]] = config.mappings[
             taxonomy_id
         ].pop(message_data[0])
+        config.inverted_mappings = invert_map(config.mappings)
+        update_taxonomy_in_backend()
 
     if message_action == "readyNotification":
         taxonomy_id = None

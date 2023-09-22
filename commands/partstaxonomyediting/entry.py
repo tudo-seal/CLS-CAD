@@ -7,6 +7,7 @@ import adsk.core
 from ... import config
 from ...lib import fusion360utils as futil
 from ...lib.general_utils import (
+    invert_map,
     load_project_taxonomy_to_config,
     update_taxonomy_in_backend,
 )
@@ -106,7 +107,6 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
 
 def palette_closed(args: adsk.core.UserInterfaceGeneralEventArgs):
-
     futil.log(f"{CMD_NAME}: Palette was closed.")
 
 
@@ -144,6 +144,16 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
         taxonomy_id = "parts"
         config.taxonomies[taxonomy_id] = message_data
         update_taxonomy_in_backend()
+
+    if message_action == "renameDataNotification":
+        taxonomy_id = "parts"
+        print("Updating mapping")
+        config.mappings[taxonomy_id][message_data[1]] = config.mappings[
+            taxonomy_id
+        ].pop(message_data[0])
+        config.inverted_mappings = invert_map(config.mappings)
+        update_taxonomy_in_backend()
+
     # Return value.
     now = datetime.now()
     current_time = now.strftime("%H:%M:%S")
