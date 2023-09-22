@@ -98,6 +98,8 @@ def start():
 
 def application_document_opened(args: adsk.core.DocumentEventArgs):
     # Restore custom graphics
+    if assemble_result.NO_GRAPHICS:
+        return
     load_project_taxonomy_to_config()
     config.custom_graphics_displaying = False
     cmd = ui.commandDefinitions.itemById(

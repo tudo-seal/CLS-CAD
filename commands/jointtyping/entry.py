@@ -269,6 +269,9 @@ def command_select(args: adsk.core.SelectionEventArgs):
             provides_type_text_box_input.text = f'({"∩".join(filter(None, ["∩".join(provides_formats),"∩".join(provides_parts), "∩".join(provides_attributes)]))})'.replace(
                 " ∩ ()", ""
             )
+            provides_type_text_box_input.text = (
+                selected_joint_origin.attributes.itemByName("CLS-INFO", "UUID").value
+            )
         except:
             pass
         selected_joint_origins.append(selected_joint_origin)

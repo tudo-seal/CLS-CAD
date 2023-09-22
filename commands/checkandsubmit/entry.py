@@ -12,7 +12,7 @@ ui = app.userInterface
 joint = None
 
 CMD_ID = f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_cns"
-CMD_NAME = "Súbmit"
+CMD_NAME = "Submit"
 CMD_Description = "Check and Submit part to repository."
 IS_PROMOTED = True
 WORKSPACE_ID = "FusionSolidEnvironment"

@@ -27,7 +27,11 @@ WORKSPACE_ID = "FusionSolidEnvironment"
 PANEL_ID = "SYNTH_ASSEMBLY"
 COMMAND_BESIDE_ID = "ScriptsManagerCommand"
 ICON_FOLDER = os.path.join(os.path.dirname(__file__), "resources", "")
-USE_NO_HISTORY = True
+DISPLAY_TIME = True
+NO_GRAPHICS = False
+remaining_assemblies = 0
+design: adsk.fusion.Design = adsk.fusion.Design.cast(None)
+bucket_primed = False
 
 local_handlers = []
 progress_dialog: adsk.core.ProgressDialog = None
@@ -142,6 +146,8 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
 
 def center_in_window():
+    if NO_GRAPHICS:
+        return
     global progress_dialog
     app = adsk.core.Application.get()
     ui = app.userInterface
@@ -193,7 +199,7 @@ def create_offset_joint_origin_in_occurence(
 
 
 def create_ground_joint(ground_joint):
-    design = adsk.fusion.Design.cast(app.activeProduct)
+    global design
     root = design.rootComponent
     joints = root.joints
     joint_input = joints.createInput(
@@ -228,11 +234,6 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
     message_data: dict = json.loads(html_args.data)
     message_action = html_args.action
 
-    log_msg = f"Event received from {html_args.firingEvent.sender.name}\n"
-    log_msg += f"Action: {message_action}\n"
-    log_msg += f"Data: {message_data}"
-    futil.log(log_msg, adsk.core.LogLevels.InfoLogLevel)
-
     # Read message sent from palette javascript and react appropriately.
     if message_action == "assembleMessage":
         palettes = ui.palettes
@@ -248,6 +249,33 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
             return
 
         create_assembly_document(message_data, name)
+
+    if message_action == "assembleAllMessage":
+        palettes = ui.palettes
+        palette = palettes.itemById(PALETTE_ID)
+        palette.isVisible = False
+
+        result = ui.messageBox(
+            "This will take a considerable amount of time depending on the number of results."
+            "\n"
+            "\n"
+            "Do you wish to continue?",
+            "Export",
+            adsk.core.MessageBoxButtonTypes.OKCancelButtonType,
+        )
+        if result:
+            return
+        (name, cancelled) = ui.inputBox(
+            "Please pick a name to describe the result.",
+            "Synthesized Result Name",
+            generate_id(),
+        )
+        if cancelled:
+            return
+
+        create_assembly_documents(
+            message_data["results"], message_data["partcounts"], name
+        )
 
     if message_action == "readyNotification":
         # ADSK was injected, so now we send the payload
@@ -267,65 +295,171 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
     html_args.returnData = f"OK - {current_time}"
 
 
-def create_assembly_document(data, name):
-    global progress_dialog
+def buckets_saved_handler(args: adsk.core.DataEventArgs):
+    global bucket_primed
+    if "Parts Template" in args.file.name and args.file.versionNumber == 2:
+        bucket_primed = False
+
+
+def create_assembly_documents(data, maxcounts, name):
+    global progress_dialog, NO_GRAPHICS, design, bucket_primed
+    bucket_primed = True
+    NO_GRAPHICS = True
     progress_dialog = ui.createProgressDialog()
     progress_dialog.show(
         "Assembly Progress", "Preparing project for synthesized assemblies...", 0, 1
     )
-    request_folder = create_results_folder(progress_dialog)
+    request_folder = create_results_folder(progress_dialog, name)
+    progress_dialog.message = "Creating parts template for all assemblies..."
+    doc = app.documents.add(adsk.core.DocumentTypes.FusionDesignDocumentType)
+    design = adsk.fusion.Design.cast(
+        doc.products.itemByProductType("DesignProductType")
+    )
+    bucket_name = f"Parts Template"
+    doc.saveAs(
+        bucket_name,
+        request_folder,
+        "Automatically synthesized assembly base.",
+        "Synthesized",
+    )
+    futil.add_handler(
+        app.dataFileComplete, buckets_saved_handler, local_handlers=local_handlers
+    )
+    ui.commandDefinitions.itemById(
+        "VisibilityOverrideCommand"
+    ).controlDefinition.listItems.item(9).isSelected = False
+    for forge_document_id, count in maxcounts.items():
+        insert_part_into_bucket_from_quantity_information(forge_document_id, count)
+    design.designType = DesignTypes.DirectDesignType
+    progress_dialog.hide()
+    doc.save("Part Template initialized.")
+    while bucket_primed:
+        adsk.doEvents()
+    progress_dialog.show(
+        "Assembly Progress",
+        "Creating assemblies...",
+        0,
+        len(data),
+    )
+    progress_dialog.progressValue = 0
+    bucket_datafile = doc.dataFile
+    for i in range(len(data)):
+        assembly_datafile = wrapped_forge_call(
+            partial(bucket_datafile.copy, bucket_datafile.parentFolder)
+        )
+        assembly_datafile.name = f"Assembly {i}"
+        # while not assembly_datafile.isComplete:
+        #    adsk.doEvents()
+        doc = app.documents.open(assembly_datafile)
+        progress_dialog.progressValue = i + 1
+        design = adsk.fusion.Design.cast(
+            doc.products.itemByProductType("DesignProductType")
+        )
+        link_occurrences = create_links(data[i]["links"])
+        move_part_to_links_from_instructions(data[i]["instructions"], link_occurrences)
+        progress_dialog.maximumValue = data[i]["count"]
+        create_joints_from_instructions(data[i]["instructions"])
+        # Order is switched, internal F360 occurrence list gets very confused else
+        remove_tagged_occurrences("Meta", "forgeDocumentId")
+        for _, link_occurrence in link_occurrences.items():
+            link_occurrence.isLightBulbOn = True
+        doc.save("Finished assembly")
+        doc.close(False)
+        progress_dialog.hide()
+        progress_dialog.show(
+            "Assembly Progress",
+            "Creating assemblies...",
+            0,
+            len(data),
+        )
+        progress_dialog.progressValue = i + 1
+    NO_GRAPHICS = False
+    progress_dialog.hide()
+
+
+def create_assembly_document(data, name):
+    global progress_dialog, design
+    total_time = timer()
+    progress_dialog = ui.createProgressDialog()
+    progress_dialog.show(
+        "Assembly Progress", "Preparing project for synthesized assemblies...", 0, 1
+    )
+    request_folder = create_results_folder(progress_dialog, "Synthesized Assemblies")
     progress_dialog.message = "Creating new assembly document..."
     doc = app.documents.add(adsk.core.DocumentTypes.FusionDesignDocumentType)
-    design = adsk.fusion.Design.cast(app.activeProduct)
+    design = doc.products.itemByProductType("DesignProductType")
     doc.saveAs(
         name, request_folder, "Automatically synthesized assembly.", "Synthesized"
     )
     ui.commandDefinitions.itemById(
         "VisibilityOverrideCommand"
     ).controlDefinition.listItems.item(9).isSelected = False
-
     for forge_document_id, infos in data["quantities"].items():
-        do_events_for_duration(0.05)
-        insert_part_into_bucket_from_quantity_information(forge_document_id, infos)
-
-    if USE_NO_HISTORY:
-        design.designType = DesignTypes.DirectDesignType
-
+        if not NO_GRAPHICS:
+            do_events_for_duration(0.05)
+        insert_part_into_bucket_from_quantity_information(
+            forge_document_id, infos["count"]
+        )
+    design.designType = DesignTypes.DirectDesignType
     link_occurrences = create_links(data["links"])
     move_part_to_links_from_instructions(data["instructions"], link_occurrences)
-
     remove_tagged_occurrences("Meta", "forgeDocumentId")
-    break_all_links(data)
-
+    progress_dialog.maximumValue = data["count"]
     create_joints_from_instructions(data["instructions"])
-
     progress_dialog.hide()
+    total_time = timer() - total_time
+    if DISPLAY_TIME:
+        ui.messageBox(
+            f"""
+            Total time elapsed: {total_time}
+        """,
+            "Time Statistics",
+        )
 
 
-def insert_part_into_bucket_from_quantity_information(forge_document_id, infos):
+def insert_part_into_bucket_from_quantity_information(forge_document_id, count):
     global progress_dialog
     root = adsk.fusion.Design.cast(app.activeProduct).rootComponent
     document = app.data.findFileById(forge_document_id)
     progress_dialog.progressValue = 0
-    progress_dialog.maximumValue = infos["count"]
+    progress_dialog.maximumValue = count
     progress_dialog.message = f"Inserting all instances of {document.name}..."
-    inserted_occurrence = root.occurrences.addByInsert(
+
+    parts_container = root.occurrences.addNewComponent(adsk.core.Matrix3D.create())
+    parts_container.isLightBulbOn = not NO_GRAPHICS
+    inserted_occurrence = parts_container.component.occurrences.addByInsert(
         document,
         adsk.core.Matrix3D.create(),
         True,
     )
+    parts_container.component.name = f"{inserted_occurrence.name}s Quantity:{count}"
+    parts_container.attributes.add("Meta", "forgeDocumentId", forge_document_id)
     progress_dialog.progressValue = 1
 
-    parts_container = root.occurrences.addNewComponent(adsk.core.Matrix3D.create())
-    parts_container.component.name = (
-        f"{inserted_occurrence.name}s Quantity:{infos['count']}"
+    if count > 1:
+        create_copies_of_part_in_container(count, inserted_occurrence, parts_container)
+    metadata_occurrence = root.occurrences.addExistingComponent(
+        inserted_occurrence.component, adsk.core.Matrix3D.create()
     )
-    parts_container.attributes.add("Meta", "forgeDocumentId", forge_document_id)
-    inserted_occurrence.moveToComponent(parts_container)
-    if infos["count"] > 1:
-        create_copies_of_part_in_container(
-            infos["count"], inserted_occurrence, parts_container
-        )
+
+    # Add back in the type information in assembly context
+    metadata_occurrence.breakLink()
+    parts_container_contents = parts_container.childOccurrences
+    for i in range(metadata_occurrence.component.jointOrigins.count):
+        attribute_uuid = metadata_occurrence.component.jointOrigins.item(
+            i
+        ).attributes.itemByName("CLS-INFO", "UUID")
+        if attribute_uuid is None:
+            continue
+        uuid = attribute_uuid.value
+
+        for k in range(count):
+            parts_container_contents.item(k).component.jointOrigins.item(
+                i
+            ).createForAssemblyContext(parts_container_contents.item(k)).attributes.add(
+                "CLS-INFO", "UUID", uuid
+            )
+    metadata_occurrence.deleteMe()
 
 
 def create_copies_of_part_in_container(count, inserted_occurrence, parts_container):
@@ -356,10 +490,12 @@ def create_copies_of_part_in_container(count, inserted_occurrence, parts_contain
 
 
 def create_links(count):
+    app.activeDocument.dataFile
     root = adsk.fusion.Design.cast(app.activeProduct).rootComponent
     link_occurrences = {}
     for i in range(count):
         link = root.occurrences.addNewComponent(adsk.core.Matrix3D.create())
+        link.isLightBulbOn = not NO_GRAPHICS
         link.component.name = f"link_{i}"
         link_occurrences[f"link{i}"] = link
     return link_occurrences
@@ -368,7 +504,7 @@ def create_links(count):
 def move_part_to_links_from_instructions(
     instructions, link_occurrences, group: str = "Meta", tag: str = "forgeDocumentId"
 ):
-    design = adsk.fusion.Design.cast(app.activeProduct)
+    global design
     for joint_info in instructions:
         link, move, count = (
             joint_info["link"],
@@ -385,18 +521,19 @@ def move_part_to_links_from_instructions(
             )
             move_to.component.name = f"{re.sub(' v[0-9]+:*[0-9]*', '', bucket.childOccurrences.item(0).name)}s - Quantity:{count}"
         for i in range(count):
+            bucket.childOccurrences
             bucket.childOccurrences.item(0).moveToComponent(move_to)
 
 
 def remove_tagged_occurrences(group: str, tag: str):
-    design = adsk.fusion.Design.cast(app.activeProduct)
+    global design
     for bucket_occurrence in [x.parent for x in design.findAttributes(group, tag)]:
         bucket_occurrence.deleteMe()
 
 
 def create_joints_from_instructions(instructions):
     global progress_dialog
-    design = adsk.fusion.Design.cast(app.activeProduct)
+    global design
     progress_dialog.message = "Creating all Joints..."
     progress_dialog.progressValue = 0
     for joint_info in instructions:
@@ -416,29 +553,15 @@ def create_joints_from_instructions(instructions):
             x.parent for x in attributes if x.value == source
         ]
         for i in range(count):
-            adsk.doEvents()
+            if not NO_GRAPHICS:
+                adsk.doEvents()
             if target == "origin":
                 create_ground_joint(sources[i])
-
             else:
                 create_joint_from_typed_joint_origins(targets[i], sources[i], motion)
             progress_dialog.progressValue += 1
 
         center_in_window()
-
-
-def break_all_links(data):
-    global progress_dialog
-    design = adsk.fusion.Design.cast(app.activeProduct)
-    progress_dialog.message = "Breaking all Links..."
-    progress_dialog.progressValue = 0
-    progress_dialog.maximumValue = data["count"]
-    for part in design.rootComponent.allOccurrences:
-        if part.isReferencedComponent:
-            part.breakLink()
-            part.component.name = re.sub(" v[0-9]+", "", part.component.name)
-            adsk.doEvents()
-            progress_dialog.progressValue += 1
 
 
 def create_result_class_folder(progress_dialog, name="User Picked Name"):
@@ -458,19 +581,19 @@ def create_result_class_folder(progress_dialog, name="User Picked Name"):
     return request_folder
 
 
-def create_results_folder(progress_dialog):
+def create_results_folder(progress_dialog, folder_name: str):
     root_folder_children = (
         app.activeDocument.dataFile.parentProject.rootFolder.dataFolders
         if app.activeDocument.dataFile is not None
         else app.data.activeProject.rootFolder.dataFolders
     )
     results_folder = wrapped_forge_call(
-        partial(root_folder_children.itemByName, "Synthesized Assemblies"),
+        partial(root_folder_children.itemByName, folder_name),
         progress_dialog,
     )
     if not results_folder:
         results_folder = wrapped_forge_call(
-            partial(root_folder_children.add, "Synthesized Assemblies"),
+            partial(root_folder_children.add, folder_name),
             progress_dialog,
         )
     return results_folder
@@ -482,7 +605,7 @@ def create_joint_from_typed_joint_origins(
     motion,
     link: adsk.fusion.Occurrence = None,
 ):
-    design = adsk.fusion.Design.cast(app.activeProduct)
+    global design
     root = design.rootComponent
     target_joint_origin.attributes.add("CLS-INFO", "UUID", generate_id())
     source_joint_origin.attributes.add("CLS-INFO", "UUID", generate_id())
