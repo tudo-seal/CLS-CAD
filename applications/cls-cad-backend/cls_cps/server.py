@@ -2,7 +2,6 @@ import mimetypes
 import os
 from collections import defaultdict
 from datetime import datetime
-from functools import reduce
 from timeit import default_timer as timer
 
 from fastapi import FastAPI
@@ -16,7 +15,7 @@ from picls import (
     enumerate_terms_of_size,
     interpret_term,
 )
-from picls.types import Literal, Omega, Product
+from picls.types import Literal, Omega
 from starlette.background import BackgroundTasks
 from starlette.staticfiles import StaticFiles
 
@@ -30,7 +29,7 @@ from cls_cps.database.commands import (
     upsert_result,
     upsert_taxonomy,
 )
-from cls_cps.repository_builder import RepositoryBuilder
+from cls_cps.repository_builder import RepositoryBuilder, wrapped_counted_types
 from cls_cps.responses import FastResponse
 from cls_cps.schemas import PartInf, SynthesisRequestInf, TaxonomyInf
 from cls_cps.util.hrid import generate_id
@@ -143,8 +142,8 @@ async def synthesize_assembly(
     if payload.partCounts:
         for partCount in payload.partCounts:
             literals[partCount.partType] = list(range(partCount.partNumber + 1))
-        part_count_type = reduce(
-            Product, [Literal(c.partNumber, c.partType) for c in payload.partCounts]
+        part_count_type = wrapped_counted_types(
+            [Literal(c.partNumber, c.partType) for c in payload.partCounts]
         )
 
     query = Type.intersect([Constructor(x, part_count_type) for x in payload.target])

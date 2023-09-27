@@ -1,8 +1,9 @@
 import json
+from collections import OrderedDict, defaultdict
 from enum import Enum
 from functools import partial, reduce
 
-from picls import Any, Arrow, Constructor, Omega, Product, Subtypes, Type
+from picls import Any, Arrow, Constructor, Omega, Subtypes, Type
 from picls.dsl import DSL
 from picls.types import Literal, TVar
 
@@ -54,16 +55,16 @@ class Role(str, Enum):
 
 
 def generate_leaf(provides: list[Constructor], part_counts, taxonomy) -> Type:
-    arguments = reduce(
-        Product,
-        (
-            Literal(1, count_type)
-            if taxonomy.check_subtype(provides, Constructor(count_type), dict())
-            else Literal(0, count_type)
-            for count_type, _ in part_counts
-        ),
+    arguments = [
+        Literal(1, count_type)
+        if taxonomy.check_subtype(provides, Constructor(count_type), dict())
+        else Literal(0, count_type)
+        for count_type, _ in part_counts
+    ]
+
+    return Type.intersect(
+        [Constructor(typ.name, wrapped_counted_types(arguments)) for typ in provides]
     )
-    return Type.intersect([Constructor(typ.name, arguments) for typ in provides])
 
 
 def collect_and_increment_part_count(count_type: str, counted_vars: dict[str, Any]):
@@ -114,15 +115,27 @@ def create_virtual_substitute_part(part, required_joint_origin_uuid):
     )
 
 
-def type_product(types: list[Type]) -> Type:
-    return reduce(Product, types)
+def wrapped_counted_types(types: list[Type]) -> Type:
+    return Type.intersect(
+        [Constructor(f"counts_{i}", type) for i, type in enumerate(types)]
+    )
 
 
-def types_from_uuids(uuids: list, part: dict, prefix="") -> list[list[Constructor]]:
-    return [
-        *[get_joint_origin_type(x, part, Role.requires, prefix) for x in uuids[:-1]],
-        *[get_joint_origin_type(uuids[-1], part, Role.provides, prefix)],
-    ]
+def types_from_uuids(
+    uuids: list, part: dict, prefix=""
+) -> OrderedDict[str, list[Constructor]]:
+    return OrderedDict(
+        zip(
+            uuids,
+            [
+                *[
+                    get_joint_origin_type(x, part, Role.requires, prefix)
+                    for x in uuids[:-1]
+                ],
+                *[get_joint_origin_type(uuids[-1], part, Role.provides, prefix)],
+            ],
+        )
+    )
 
 
 def multiarrow_from_types(type_list):
@@ -183,39 +196,37 @@ class RepositoryBuilder:
             ):
                 continue
 
-            ordered_list_of_configuration_uuids = [
-                *configuration["requiresJointOrigins"],
-                *[configuration["providesJointOrigin"]],
-            ]
-
-            config_types: list[list[Constructor]] = types_from_uuids(
-                ordered_list_of_configuration_uuids, part
+            types_by_uuid: dict[str, list[Constructor]] = types_from_uuids(
+                [
+                    *configuration["requiresJointOrigins"],
+                    *[configuration["providesJointOrigin"]],
+                ],
+                part,
             )
-            part_type = DSL()
-            in_type: Type = Omega()
 
-            if len(config_types) == 1 and part_counts:
-                in_type = generate_leaf(config_types[-1], part_counts, taxonomy)
-            elif len(config_types) > 1 and part_counts:
-                unannotated_target = Type.intersect(config_types[-1])
+            part_type = DSL()
+            provides_type: Type = Omega()
+
+            if len(types_by_uuid) == 1 and part_counts:
+                provides_type = generate_leaf(
+                    next(reversed(types_by_uuid.values())),
+                    part_counts,
+                    taxonomy,
+                )
+            elif len(types_by_uuid) > 1 and part_counts:
+                provides_type = Type.intersect(next(reversed(types_by_uuid.values())))
 
                 # We collect the count variables for each position, so that we can
                 # annotate the constructor afterwards.
-                types: dict[int, list[Type]] = {}
+                counted_types: defaultdict[str, list[Type]] = defaultdict(list)
 
                 for count_type, _ in part_counts:
-                    for i, uuid in enumerate(ordered_list_of_configuration_uuids):
+                    for uuid, joint_type in types_by_uuid.items():
                         part_type = part_type.Use(f"{uuid}_{count_type}", count_type)
-
-                        # Luckily the order of ordered_list_of_configuration_uuids and
-                        # config_types is the same
-                        try:
-                            types[i].append(TVar(f"{uuid}_{count_type}"))
-                        except KeyError:
-                            types[i] = [TVar(f"{uuid}_{count_type}")]
+                        counted_types[uuid].append(TVar(f"{uuid}_{count_type}"))
 
                     if taxonomy.check_subtype(
-                        unannotated_target, Constructor(count_type), dict()
+                        provides_type, Constructor(count_type), dict()
                     ):
                         part_type = part_type.AsRaw(
                             partial(collect_and_increment_part_count, count_type)
@@ -225,30 +236,38 @@ class RepositoryBuilder:
                             partial(collect_part_count, count_type)
                         )
 
-                # Build the atomic subtypes and annotate each position with the
-                # corresponding counts
-                annotated_config_types = [
-                    Type.intersect(
-                        [Constructor(t.name, type_product(types[i])) for t in pos]
+                # Add the counts to the types of the joints origins
+                types_with_count_by_uuid = OrderedDict(
+                    zip(
+                        types_by_uuid.keys(),
+                        [
+                            Type.intersect(
+                                [
+                                    Constructor(
+                                        t.name,
+                                        wrapped_counted_types(counted_types[uuid]),
+                                    )
+                                    for t in joint_types
+                                ]
+                            )
+                            for uuid, joint_types in types_by_uuid.items()
+                        ],
                     )
-                    for i, pos in enumerate(config_types)
-                ]
+                )
 
                 # Instead of a -> b -> c -> d, we now take Use(a).Use(b).Use(c).In(d)
-                for i, to_use in enumerate(annotated_config_types[:-1]):
-                    part_type = part_type.Use(
-                        f"{ordered_list_of_configuration_uuids[i]}", to_use
-                    )
-                in_type = annotated_config_types[-1]
+                for uuid, joint_types in list(types_with_count_by_uuid.items())[:-1]:
+                    part_type = part_type.Use(f"{uuid}", joint_types)
+                provides_type = next(reversed(types_with_count_by_uuid.values()))
             else:
-                for i, to_use in enumerate(config_types[:-1]):
+                for uuid, joint_types in list(types_by_uuid.items())[:-1]:
                     part_type.Use(
-                        f"{ordered_list_of_configuration_uuids[i]}",
-                        Type.intersect(to_use),
+                        f"{uuid}",
+                        Type.intersect(joint_types),
                     )
-                in_type = Type.intersect(config_types[-1])
+                provides_type = Type.intersect(next(reversed(types_by_uuid.values())))
 
-            part_type = part_type.In(in_type)
+            part_type = part_type.In(provides_type)
 
             repository[
                 Part(
