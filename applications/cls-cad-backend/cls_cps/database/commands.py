@@ -106,7 +106,9 @@ def get_all_projects_in_results():
 
 def get_all_result_ids_for_project(forge_project_id: str):
     global results
-    return results.find({"forgeProjectId": forge_project_id}, {"interpretedTerms": 0})
+    return results.find(
+        {"forgeProjectId": forge_project_id}, {"interpretedTerms": 0}
+    ).sort("timestamp", -1)
 
 
 def get_result_for_id(result_id: str):

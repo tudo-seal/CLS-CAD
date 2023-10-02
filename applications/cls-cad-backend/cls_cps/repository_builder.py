@@ -1,5 +1,6 @@
 import json
 from collections import OrderedDict, defaultdict
+from collections.abc import Mapping
 from enum import Enum
 from functools import partial, reduce
 
@@ -57,7 +58,9 @@ class Role(str, Enum):
 def generate_leaf(provides: list[Constructor], part_counts, taxonomy) -> Type:
     arguments = [
         Literal(1, count_type)
-        if taxonomy.check_subtype(provides, Constructor(count_type), dict())
+        if taxonomy.check_subtype(
+            Type.intersect(provides), Constructor(count_type), dict()
+        )
         else Literal(0, count_type)
         for count_type, _ in part_counts
     ]
@@ -67,12 +70,31 @@ def generate_leaf(provides: list[Constructor], part_counts, taxonomy) -> Type:
     )
 
 
-def collect_and_increment_part_count(count_type: str, counted_vars: dict[str, Any]):
-    return sum([v for k, v in counted_vars.items() if k.endswith(count_type)]) + 1
+def collect_and_increment_part_count(
+    counted_vars: dict[str, Any], count_type: str, multiplicities: Mapping[str, int]
+):
+    return (
+        sum(
+            [
+                v * multiplicities.get(k.partition("_")[0], 1)
+                for k, v in counted_vars.items()
+                if k.endswith(count_type)
+            ]
+        )
+        + 1
+    )
 
 
-def collect_part_count(count_type: str, counted_vars: dict):
-    return sum([v for k, v in counted_vars.items() if k.endswith(count_type)])
+def collect_part_count(
+    counted_vars: dict, count_type: str, multiplicities: Mapping[str, int]
+):
+    return sum(
+        [
+            v * multiplicities.get(k.partition("_")[0], 1)
+            for k, v in counted_vars.items()
+            if k.endswith(count_type)
+        ]
+    )
 
 
 def get_joint_origin_type(
@@ -219,21 +241,31 @@ class RepositoryBuilder:
                 # We collect the count variables for each position, so that we can
                 # annotate the constructor afterwards.
                 counted_types: defaultdict[str, list[Type]] = defaultdict(list)
+                multiplicities: dict[str, int] = {}
 
                 for count_type, _ in part_counts:
                     for uuid, joint_type in types_by_uuid.items():
                         part_type = part_type.Use(f"{uuid}_{count_type}", count_type)
                         counted_types[uuid].append(TVar(f"{uuid}_{count_type}"))
+                        multiplicities[uuid] = part["jointOrigins"][uuid]["count"]
 
                     if taxonomy.check_subtype(
                         provides_type, Constructor(count_type), dict()
                     ):
                         part_type = part_type.AsRaw(
-                            partial(collect_and_increment_part_count, count_type)
+                            partial(
+                                collect_and_increment_part_count,
+                                count_type=count_type,
+                                multiplicities=multiplicities,
+                            )
                         )
                     else:
                         part_type = part_type.AsRaw(
-                            partial(collect_part_count, count_type)
+                            partial(
+                                collect_part_count,
+                                count_type=count_type,
+                                multiplicities=multiplicities,
+                            )
                         )
 
                 # Add the counts to the types of the joints origins
