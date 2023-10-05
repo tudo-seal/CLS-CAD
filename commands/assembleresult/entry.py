@@ -1,6 +1,7 @@
 import json
 import os
 import re
+from collections import defaultdict
 from datetime import datetime
 from functools import partial
 from timeit import default_timer as timer
@@ -32,6 +33,7 @@ NO_GRAPHICS = False
 remaining_assemblies = 0
 design: adsk.fusion.Design = adsk.fusion.Design.cast(None)
 bucket_primed = False
+bucket_attributes = defaultdict(list)
 
 local_handlers = []
 progress_dialog: adsk.core.ProgressDialog = None
@@ -297,13 +299,17 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
 
 def buckets_saved_handler(args: adsk.core.DataEventArgs):
     global bucket_primed
-    if "Parts Template" in args.file.name and args.file.versionNumber == 2:
+    if (
+        ("Parts Template" in args.file.name)
+        or ("Synthesized Assembly" in args.file.name)
+    ) and (args.file.versionNumber == 2):
         bucket_primed = False
 
 
 def create_assembly_documents(data, maxcounts, name):
-    global progress_dialog, NO_GRAPHICS, design, bucket_primed
+    global progress_dialog, NO_GRAPHICS, design, bucket_primed, bucket_attributes
     bucket_primed = True
+    bucket_attributes = defaultdict(list)
     NO_GRAPHICS = True
     progress_dialog = ui.createProgressDialog()
     progress_dialog.show(
@@ -332,6 +338,7 @@ def create_assembly_documents(data, maxcounts, name):
         insert_part_into_bucket_from_quantity_information(forge_document_id, count)
     design.designType = DesignTypes.DirectDesignType
     progress_dialog.hide()
+    bucket_primed = True
     doc.save("Part Template initialized.")
     while bucket_primed:
         adsk.doEvents()
@@ -347,7 +354,7 @@ def create_assembly_documents(data, maxcounts, name):
         assembly_datafile = wrapped_forge_call(
             partial(bucket_datafile.copy, bucket_datafile.parentFolder)
         )
-        assembly_datafile.name = f"Assembly {i}"
+        assembly_datafile.name = f"Synthesized Assembly {i}"
         # while not assembly_datafile.isComplete:
         #    adsk.doEvents()
         doc = app.documents.open(assembly_datafile)
@@ -358,12 +365,13 @@ def create_assembly_documents(data, maxcounts, name):
         link_occurrences = create_links(data[i]["links"])
         move_part_to_links_from_instructions(data[i]["instructions"], link_occurrences)
         progress_dialog.maximumValue = data[i]["count"]
+        remove_tagged_occurrences("BUCKET", "DOCUMENT")
         create_joints_from_instructions(data[i]["instructions"])
-        # Order is switched, internal F360 occurrence list gets very confused else
-        remove_tagged_occurrences("Meta", "forgeDocumentId")
         for _, link_occurrence in link_occurrences.items():
             link_occurrence.isLightBulbOn = True
         doc.save("Finished assembly")
+        while bucket_primed:
+            adsk.doEvents()
         doc.close(False)
         progress_dialog.hide()
         progress_dialog.show(
@@ -378,7 +386,8 @@ def create_assembly_documents(data, maxcounts, name):
 
 
 def create_assembly_document(data, name):
-    global progress_dialog, design
+    global progress_dialog, design, bucket_attributes
+    bucket_attributes = defaultdict(list)
     total_time = timer()
     progress_dialog = ui.createProgressDialog()
     progress_dialog.show(
@@ -403,7 +412,7 @@ def create_assembly_document(data, name):
     design.designType = DesignTypes.DirectDesignType
     link_occurrences = create_links(data["links"])
     move_part_to_links_from_instructions(data["instructions"], link_occurrences)
-    remove_tagged_occurrences("Meta", "forgeDocumentId")
+    remove_tagged_occurrences("BUCKET", "DOCUMENT")
     progress_dialog.maximumValue = data["count"]
     create_joints_from_instructions(data["instructions"])
     progress_dialog.hide()
@@ -418,7 +427,7 @@ def create_assembly_document(data, name):
 
 
 def insert_part_into_bucket_from_quantity_information(forge_document_id, count):
-    global progress_dialog
+    global progress_dialog, bucket_attributes
     root = adsk.fusion.Design.cast(app.activeProduct).rootComponent
     document = app.data.findFileById(forge_document_id)
     progress_dialog.progressValue = 0
@@ -433,33 +442,24 @@ def insert_part_into_bucket_from_quantity_information(forge_document_id, count):
         True,
     )
     parts_container.component.name = f"{inserted_occurrence.name}s Quantity:{count}"
-    parts_container.attributes.add("Meta", "forgeDocumentId", forge_document_id)
+    parts_container.attributes.add("BUCKET", "DOCUMENT", forge_document_id)
     progress_dialog.progressValue = 1
 
-    if count > 1:
-        create_copies_of_part_in_container(count, inserted_occurrence, parts_container)
     metadata_occurrence = root.occurrences.addExistingComponent(
         inserted_occurrence.component, adsk.core.Matrix3D.create()
     )
-
-    # Add back in the type information in assembly context
     metadata_occurrence.breakLink()
-    parts_container_contents = parts_container.childOccurrences
-    for i in range(metadata_occurrence.component.jointOrigins.count):
-        attribute_uuid = metadata_occurrence.component.jointOrigins.item(
-            i
-        ).attributes.itemByName("CLS-INFO", "UUID")
-        if attribute_uuid is None:
+    for jo in metadata_occurrence.component.jointOrigins:
+        if jo.attributes.itemByName("CLS-INFO", "UUID") is None:
+            bucket_attributes[forge_document_id].append("Not typed")
             continue
-        uuid = attribute_uuid.value
-
-        for k in range(count):
-            parts_container_contents.item(k).component.jointOrigins.item(
-                i
-            ).createForAssemblyContext(parts_container_contents.item(k)).attributes.add(
-                "CLS-INFO", "UUID", uuid
-            )
+        bucket_attributes[forge_document_id].append(
+            jo.attributes.itemByName("CLS-INFO", "UUID").value
+        )
     metadata_occurrence.deleteMe()
+
+    if count > 1:
+        create_copies_of_part_in_container(count, inserted_occurrence, parts_container)
 
 
 def create_copies_of_part_in_container(count, inserted_occurrence, parts_container):
@@ -502,9 +502,12 @@ def create_links(count):
 
 
 def move_part_to_links_from_instructions(
-    instructions, link_occurrences, group: str = "Meta", tag: str = "forgeDocumentId"
+    instructions,
+    link_occurrences,
+    group: str = "BUCKET",
+    tag: str = "DOCUMENT",
 ):
-    global design
+    global design, bucket_attributes
     for joint_info in instructions:
         link, move, count = (
             joint_info["link"],
@@ -514,15 +517,22 @@ def move_part_to_links_from_instructions(
         bucket: adsk.fusion.Occurrence = [
             x.parent for x in design.findAttributes(group, tag) if x.value == move
         ][0]
+        bucket_id = bucket.attributes.itemByName(group, tag).value
         move_to = link_occurrences[link]
         if count > 1:
             move_to = link_occurrences[link].component.occurrences.addNewComponent(
                 adsk.core.Matrix3D.create()
             )
             move_to.component.name = f"{re.sub(' v[0-9]+:*[0-9]*', '', bucket.childOccurrences.item(0).name)}s - Quantity:{count}"
+
+        # Add back in the type information in assembly context
+
         for i in range(count):
-            bucket.childOccurrences
-            bucket.childOccurrences.item(0).moveToComponent(move_to)
+            link_occurrence = bucket.childOccurrences.item(0).moveToComponent(move_to)
+            for k, jo in enumerate(link_occurrence.component.jointOrigins):
+                jo.createForAssemblyContext(link_occurrence).attributes.add(
+                    "CLS-INFO", "UUID", bucket_attributes[bucket_id][k]
+                )
 
 
 def remove_tagged_occurrences(group: str, tag: str):

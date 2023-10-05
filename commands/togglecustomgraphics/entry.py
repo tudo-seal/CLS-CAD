@@ -6,6 +6,7 @@ import adsk.core
 
 from ... import config
 from ...lib import fusion360utils as futil
+from ..assembleresult import entry as assemble_result
 
 app = adsk.core.Application.get()
 ui = app.userInterface
@@ -73,6 +74,8 @@ def command_execute_preview(args: adsk.core.CommandEventHandler):
 
 def command_execute(args: adsk.core.CommandEventArgs):
     futil.log(f"{CMD_NAME} Command Execute Event")
+    if assemble_result.NO_GRAPHICS:
+        return
 
     global isDisplaying
     app = adsk.core.Application.get()
