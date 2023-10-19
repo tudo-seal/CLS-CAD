@@ -1,0 +1,50 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v3.2.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v2.7.1
+    hooks:
+      - id: prettier
+        files: \.(js|ts|jsx|tsx|css|less|html|json|markdown|md|yaml|yml)$
+        exclude: .*min\.js
+        args: ["--end-of-line", "lf"]
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.1.0
+    hooks:
+      - id: pyupgrade
+        args: [--py310-plus]
+        exclude: ^static/
+  - repo: https://github.com/PyCQA/autoflake
+    rev: v1.7.6
+    hooks:
+      - id: autoflake
+        exclude: ^static/
+        args:
+          [
+            "--in-place",
+            "--ignore-init-module-imports",
+            "--remove-all-unused-imports",
+            "--remove-rhs-for-unused-variables",
+            "--remove-unused-variables",
+            "--expand-star-imports",
+          ]
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        args: ["--profile", "black"]
+        exclude: ^static/
+  - repo: https://github.com/psf/black
+    rev: 22.3.0
+    hooks:
+      - id: black
+        exclude: ^static/
