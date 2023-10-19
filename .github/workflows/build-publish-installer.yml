@@ -1,0 +1,31 @@
+name: Build and Publish Installer
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  build-and-upload-msi:
+    runs-on: windows-latest
+    name: Build and Upload MSI
+    defaults:
+      run:
+        working-directory: applications/cls-cad-fusion-plugin
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v2
+      - name: Build AIP
+        uses: caphyon/advinst-github-action@main
+        with:
+          advinst-version: "21.1"
+          advinst-enable-automation: "true"
+          aip-path: ${{ github.workspace }}\applications\cls-cad-fusion-plugin\cls-cad-fusion-plugin.aip
+          aip-build-name: DefaultBuild
+          aip-package-name: cls-cad-fusion-plugin.msi
+          aip-output-dir: ${{ github.workspace }}\applications\cls-cad-fusion-plugin\setup
+          aip-commands: |
+            SetVersion 1.0.2
+      - name: Publish setup artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: Fusion Plugin Installer
+          path: ${{ github.workspace }}\applications\cls-cad-fusion-plugin\setup\cls-cad-fusion-plugin.msi

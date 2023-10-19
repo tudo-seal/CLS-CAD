@@ -1,0 +1,69 @@
+name: Generate Latest Release
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  changes:
+    name: Get Changed Content
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      plugin: ${{ steps.filter.outputs.plugin}}
+      backend: ${{ steps.filter.outputs.backend }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            plugin:
+              - 'applications/cls-cad-fusion-plugin/**'
+            backend:
+              - 'applications/cls-cad-fusion-backend/**'
+
+  build-msi:
+    name: Build Installer Package
+    needs: changes
+    if: ${{ needs.changes.outputs.plugin == 'true' }}
+    uses: tudo-seal/CLS-CAD/.github/workflows/build-publish-installer.yml@main
+    secrets: inherit
+
+  build-container:
+    name: Build Docker Container
+    needs: changes
+    if: ${{ needs.changes.outputs.backend == 'true' }}
+    uses: tudo-seal/CLS-CAD/.github/workflows/build-publish-container.yml@main
+    permissions:
+      contents: read
+      packages: write
+    secrets: inherit
+
+  pre-release:
+    permissions: write-all
+    name: Update Latest Release
+    needs: [build-msi, build-container, changes]
+    if: ${{ always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') && needs.changes.outputs.plugin == 'true' }}
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - uses: actions/download-artifact@master
+        with:
+          name: Fusion Plugin Installer
+          path: cls-cad-fusion-plugin.msi
+
+      - uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "latest"
+          prerelease: false
+          title: "Installer"
+          files: |
+            cls-cad-fusion-plugin.msi

@@ -1,0 +1,371 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<DOCUMENT Type="Advanced Installer" CreateVersion="21.1" version="21.1" Modules="simple" RootPath="." Language="en_GB" Id="{5F139307-93A6-4B32-902C-EC4090E5F00F}">
+  <COMPONENT cid="caphyon.advinst.msicomp.ProjectOptionsComponent">
+    <ROW Name="HiddenItems" Value="AppXProductDetailsComponent;AppXDependenciesComponent;AppXAppDetailsComponent;AppXVisualAssetsComponent;AppXCapabilitiesComponent;AppXAppDeclarationsComponent;AppXUriRulesComponent;FixupComponent;MsiXDiffComponent;MsixManifestEditorComponent"/>
+  </COMPONENT>
+  <COMPONENT cid="caphyon.advinst.msicomp.MsiPropsComponent">
+    <ROW Property="AI_BITMAP_DISPLAY_MODE" Value="0"/>
+    <ROW Property="ALLUSERS" Value="1" MultiBuildValue="DefaultBuild:"/>
+    <ROW Property="ARPCOMMENTS" Value="This installer database contains the logic and data required to install [|ProductName]." ValueLocId="*"/>
+    <ROW Property="ARPNOMODIFY" MultiBuildValue="DefaultBuild:1"/>
+    <ROW Property="ARPNOREPAIR" Value="1"/>
+    <ROW Property="ARPPRODUCTICON" Value="clscad.exe" Type="8"/>
+    <ROW Property="Manufacturer" Value="SEAL Research Group, Chair 14, TU Dortmund"/>
+    <ROW Property="ProductCode" Value="2057:{21400D91-5186-4EC2-B270-63E69EFBCABF} " Type="16"/>
+    <ROW Property="ProductLanguage" Value="1033"/>
+    <ROW Property="ProductName" Value="CLS-CAD Fusion 360 Plugin"/>
+    <ROW Property="ProductVersion" Value="1.0.0" Options="32"/>
+    <ROW Property="SecureCustomProperties" Value="OLDPRODUCTS;AI_NEWERPRODUCTFOUND"/>
+    <ROW Property="UpgradeCode" Value="{CE5F98BF-31E6-40F4-BABE-9FF4558F332C}"/>
+    <ROW Property="WindowsType9X" MultiBuildValue="DefaultBuild:Windows 9x/ME" ValueLocId="-"/>
+    <ROW Property="WindowsType9XDisplay" MultiBuildValue="DefaultBuild:Windows 9x/ME" ValueLocId="-"/>
+    <ROW Property="WindowsTypeNT40" MultiBuildValue="DefaultBuild:Windows NT 4.0" ValueLocId="-"/>
+    <ROW Property="WindowsTypeNT40Display" MultiBuildValue="DefaultBuild:Windows NT 4.0" ValueLocId="-"/>
+    <ROW Property="WindowsTypeNT50" MultiBuildValue="DefaultBuild:Windows 2000" ValueLocId="-"/>
+    <ROW Property="WindowsTypeNT50Display" MultiBuildValue="DefaultBuild:Windows 2000" ValueLocId="-"/>
+    <ROW Property="WindowsTypeNT5X" MultiBuildValue="DefaultBuild:Windows XP/2003" ValueLocId="-"/>
+    <ROW Property="WindowsTypeNT5XDisplay" MultiBuildValue="DefaultBuild:Windows XP/2003" ValueLocId="-"/>
+  </COMPONENT>
+  <COMPONENT cid="caphyon.advinst.msicomp.MsiDirsComponent">
+    <ROW Directory="APPDIR" Directory_Parent="TARGETDIR" DefaultDir="APPDIR:." IsPseudoRoot="1"/>
+    <ROW Directory="Revolute_Dir" Directory_Parent="resources_6_Dir" DefaultDir="Revolute"/>
+    <ROW Directory="Rigid_Dir" Directory_Parent="resources_6_Dir" DefaultDir="Rigid"/>
+    <ROW Directory="TARGETDIR" DefaultDir="SourceDir"/>
+    <ROW Directory="assembleresult_Dir" Directory_Parent="commands_Dir" DefaultDir="ASSEMB~1|assembleresult"/>
+    <ROW Directory="attributestaxonomyediting_Dir" Directory_Parent="commands_Dir" DefaultDir="ATTRIB~1|attributestaxonomyediting"/>
+    <ROW Directory="checkandsubmit_Dir" Directory_Parent="commands_Dir" DefaultDir="CHECKA~1|checkandsubmit"/>
+    <ROW Directory="cls_python_compat_Dir" Directory_Parent="lib_Dir" DefaultDir="CLS_PY~1|cls_python_compat"/>
+    <ROW Directory="commands_Dir" Directory_Parent="APPDIR" DefaultDir="commands"/>
+    <ROW Directory="disabledresources_Dir" Directory_Parent="togglecustomgraphics_Dir" DefaultDir="DISABL~1|disabled-resources"/>
+    <ROW Directory="downloadtaxonomy_Dir" Directory_Parent="commands_Dir" DefaultDir="DOWNLO~1|downloadtaxonomy"/>
+    <ROW Directory="exportproject_Dir" Directory_Parent="commands_Dir" DefaultDir="EXPORT~1|exportproject"/>
+    <ROW Directory="formatstaxonomyediting_Dir" Directory_Parent="commands_Dir" DefaultDir="FORMAT~1|formatstaxonomyediting"/>
+    <ROW Directory="fusion360utils_Dir" Directory_Parent="lib_Dir" DefaultDir="FUSION~1|fusion360utils"/>
+    <ROW Directory="general_utils_Dir" Directory_Parent="lib_Dir" DefaultDir="GENERA~1|general_utils"/>
+    <ROW Directory="jointtyping_Dir" Directory_Parent="commands_Dir" DefaultDir="JOINTT~1|jointtyping"/>
+    <ROW Directory="lib_Dir" Directory_Parent="APPDIR" DefaultDir="lib"/>
+    <ROW Directory="partmanagement_Dir" Directory_Parent="commands_Dir" DefaultDir="PARTMA~1|partmanagement"/>
+    <ROW Directory="partstaxonomyediting_Dir" Directory_Parent="commands_Dir" DefaultDir="PARTST~1|partstaxonomyediting"/>
+    <ROW Directory="parttyping_Dir" Directory_Parent="commands_Dir" DefaultDir="PARTTY~1|parttyping"/>
+    <ROW Directory="requestsynthesis_Dir" Directory_Parent="commands_Dir" DefaultDir="REQUES~1|requestsynthesis"/>
+    <ROW Directory="resources_10_Dir" Directory_Parent="requestsynthesis_Dir" DefaultDir="RESOUR~1|resources"/>
+    <ROW Directory="resources_11_Dir" Directory_Parent="togglecustomgraphics_Dir" DefaultDir="RESOUR~1|resources"/>
+    <ROW Directory="resources_12_Dir" Directory_Parent="typecrawlingproject_Dir" DefaultDir="RESOUR~1|resources"/>
+    <ROW Directory="resources_13_Dir" Directory_Parent="uploadtaxonomy_Dir" DefaultDir="RESOUR~1|resources"/>
+    <ROW Directory="resources_14_Dir" Directory_Parent="uuidupdatecrawlingproject_Dir" DefaultDir="RESOUR~1|resources"/>
+    <ROW Directory="resources_1_Dir" Directory_Parent="attributestaxonomyediting_Dir" DefaultDir="RESOUR~1|resources"/>
+    <ROW Directory="resources_2_Dir" Directory_Parent="checkandsubmit_Dir" DefaultDir="RESOUR~1|resources"/>
+    <ROW Directory="resources_3_Dir" Directory_Parent="downloadtaxonomy_Dir" DefaultDir="RESOUR~1|resources"/>
+    <ROW Directory="resources_4_Dir" Directory_Parent="exportproject_Dir" DefaultDir="RESOUR~1|resources"/>
+    <ROW Directory="resources_5_Dir" Directory_Parent="formatstaxonomyediting_Dir" DefaultDir="RESOUR~1|resources"/>
+    <ROW Directory="resources_6_Dir" Directory_Parent="jointtyping_Dir" DefaultDir="RESOUR~1|resources"/>
+    <ROW Directory="resources_7_Dir" Directory_Parent="partmanagement_Dir" DefaultDir="RESOUR~1|resources"/>
+    <ROW Directory="resources_8_Dir" Directory_Parent="partstaxonomyediting_Dir" DefaultDir="RESOUR~1|resources"/>
+    <ROW Directory="resources_9_Dir" Directory_Parent="parttyping_Dir" DefaultDir="RESOUR~1|resources"/>
+    <ROW Directory="resources_Dir" Directory_Parent="assembleresult_Dir" DefaultDir="RESOUR~1|resources"/>
+    <ROW Directory="taxonomyediting_Dir" Directory_Parent="commands_Dir" DefaultDir="TAXONO~1|taxonomyediting"/>
+    <ROW Directory="togglecustomgraphics_Dir" Directory_Parent="commands_Dir" DefaultDir="TOGGLE~1|togglecustomgraphics"/>
+    <ROW Directory="typecrawlinghub_Dir" Directory_Parent="commands_Dir" DefaultDir="TYPECR~1|typecrawlinghub"/>
+    <ROW Directory="typecrawlingproject_Dir" Directory_Parent="commands_Dir" DefaultDir="TYPECR~2|typecrawlingproject"/>
+    <ROW Directory="uploadtaxonomy_Dir" Directory_Parent="commands_Dir" DefaultDir="UPLOAD~1|uploadtaxonomy"/>
+    <ROW Directory="uuidupdatecrawlingproject_Dir" Directory_Parent="commands_Dir" DefaultDir="UUIDUP~1|uuidupdatecrawlingproject"/>
+  </COMPONENT>
+  <COMPONENT cid="caphyon.advinst.msicomp.MsiCompsComponent">
+    <ROW Component="APPDIR" ComponentId="{EA5A093B-CB04-40BB-A34A-61FA88919423}" Directory_="APPDIR" Attributes="0"/>
+    <ROW Component="CLSCAD.manifest" ComponentId="{251C1DC5-4F28-4B77-8DA0-054A4FFA261E}" Directory_="APPDIR" Attributes="0" KeyPath="CLSCAD.manifest" Type="0"/>
+    <ROW Component="ProductInformation" ComponentId="{F5D78133-596F-4415-8B97-FFFD55EB6ABF}" Directory_="APPDIR" Attributes="4" KeyPath="Version"/>
+    <ROW Component="__init__.py" ComponentId="{AEBE5976-AC09-47CC-892C-690A6981D7F0}" Directory_="commands_Dir" Attributes="0" KeyPath="__init__.py_15" Type="0"/>
+    <ROW Component="__init__.py_1" ComponentId="{A71F7A7F-68B5-45C3-A5A1-E1A830887955}" Directory_="lib_Dir" Attributes="0" KeyPath="__init__.py_19" Type="0"/>
+    <ROW Component="cls_json.py" ComponentId="{18F8F80E-7B29-4C74-A946-2FCE6E89ED1B}" Directory_="cls_python_compat_Dir" Attributes="0" KeyPath="cls_json.py" Type="0"/>
+    <ROW Component="entry.py" ComponentId="{3389272C-6E5B-4BD9-B9BE-F5E05379EB7C}" Directory_="assembleresult_Dir" Attributes="0" KeyPath="entry.py" Type="0"/>
+    <ROW Component="entry.py_1" ComponentId="{9CF32E19-ADF1-46C2-8971-4AA6993509C8}" Directory_="attributestaxonomyediting_Dir" Attributes="0" KeyPath="entry.py_1" Type="0"/>
+    <ROW Component="entry.py_10" ComponentId="{82A8FCE9-8F84-4251-896E-2AD1F815EC22}" Directory_="requestsynthesis_Dir" Attributes="0" KeyPath="entry.py_10" Type="0"/>
+    <ROW Component="entry.py_11" ComponentId="{EF2D79C4-D047-4636-BCA7-6F04B405EA15}" Directory_="togglecustomgraphics_Dir" Attributes="0" KeyPath="entry.py_11" Type="0"/>
+    <ROW Component="entry.py_12" ComponentId="{11D1141D-CF74-4526-9A4C-DE57539A7701}" Directory_="typecrawlingproject_Dir" Attributes="0" KeyPath="entry.py_12" Type="0"/>
+    <ROW Component="entry.py_13" ComponentId="{B63C2596-0464-4571-9C24-F30778A4F3F2}" Directory_="uploadtaxonomy_Dir" Attributes="0" KeyPath="entry.py_13" Type="0"/>
+    <ROW Component="entry.py_14" ComponentId="{8C72F455-A5F9-4C5B-96DD-14A15E6AE7D2}" Directory_="uuidupdatecrawlingproject_Dir" Attributes="0" KeyPath="entry.py_14" Type="0"/>
+    <ROW Component="entry.py_2" ComponentId="{8699403E-6743-4BE3-8F3E-FBE4571728D1}" Directory_="checkandsubmit_Dir" Attributes="0" KeyPath="entry.py_2" Type="0"/>
+    <ROW Component="entry.py_3" ComponentId="{092E01DC-45CA-4F96-A4A2-7280304BD4CE}" Directory_="downloadtaxonomy_Dir" Attributes="0" KeyPath="entry.py_3" Type="0"/>
+    <ROW Component="entry.py_4" ComponentId="{38FD571D-C87F-4BC2-BD87-029612A5E995}" Directory_="exportproject_Dir" Attributes="0" KeyPath="entry.py_4" Type="0"/>
+    <ROW Component="entry.py_5" ComponentId="{8ACDCFB0-6951-4971-B365-64950E8CFE82}" Directory_="formatstaxonomyediting_Dir" Attributes="0" KeyPath="entry.py_5" Type="0"/>
+    <ROW Component="entry.py_6" ComponentId="{34CB346F-2FCD-4850-B170-5AEE4EB3BC8D}" Directory_="jointtyping_Dir" Attributes="0" KeyPath="entry.py_6" Type="0"/>
+    <ROW Component="entry.py_7" ComponentId="{E6EFE1BE-7A15-489F-B668-FC81D3402D76}" Directory_="partmanagement_Dir" Attributes="0" KeyPath="entry.py_7" Type="0"/>
+    <ROW Component="entry.py_8" ComponentId="{4371B854-3217-44A3-B265-61E7144A2E39}" Directory_="partstaxonomyediting_Dir" Attributes="0" KeyPath="entry.py_8" Type="0"/>
+    <ROW Component="entry.py_9" ComponentId="{A70AAC82-A45D-476B-A7B9-770973669862}" Directory_="parttyping_Dir" Attributes="0" KeyPath="entry.py_9" Type="0"/>
+    <ROW Component="event_utils.py" ComponentId="{23305C13-3EEB-4EA0-97C5-DA865270D903}" Directory_="fusion360utils_Dir" Attributes="0" KeyPath="event_utils.py" Type="0"/>
+    <ROW Component="hrid.py" ComponentId="{2CD84852-7152-4340-97A3-CB8254FEDF7D}" Directory_="general_utils_Dir" Attributes="0" KeyPath="hrid.py" Type="0"/>
+    <ROW Component="x16.png" ComponentId="{BF7F0539-07FD-4AC5-9BD0-2EF9BE1DE4DF}" Directory_="resources_Dir" Attributes="0" KeyPath="x16.png" Type="0"/>
+    <ROW Component="x16.png_1" ComponentId="{9FB72EA1-D2B3-446C-980A-B7537654F3C9}" Directory_="resources_1_Dir" Attributes="0" KeyPath="x16.png_1" Type="0"/>
+    <ROW Component="x16.png_10" ComponentId="{CB083E98-6397-496F-A0DF-A1F00A52CC86}" Directory_="resources_10_Dir" Attributes="0" KeyPath="x16.png_10" Type="0"/>
+    <ROW Component="x16.png_11" ComponentId="{5BCE3DB8-B3C9-4F0C-BFB3-32E26C57F219}" Directory_="disabledresources_Dir" Attributes="0" KeyPath="x16.png_11" Type="0"/>
+    <ROW Component="x16.png_12" ComponentId="{97E8D768-8DD1-4363-979C-1C5DB20AB234}" Directory_="resources_11_Dir" Attributes="0" KeyPath="x16.png_12" Type="0"/>
+    <ROW Component="x16.png_13" ComponentId="{23A30902-72D3-476C-8601-84C936FCFF84}" Directory_="resources_12_Dir" Attributes="0" KeyPath="x16.png_13" Type="0"/>
+    <ROW Component="x16.png_14" ComponentId="{E63672FC-758D-45A1-AE2F-918CE1530AF7}" Directory_="resources_13_Dir" Attributes="0" KeyPath="x16.png_14" Type="0"/>
+    <ROW Component="x16.png_15" ComponentId="{1CCB2876-EFF1-40D2-B3C6-C23E3193BDDF}" Directory_="resources_14_Dir" Attributes="0" KeyPath="x16.png_15" Type="0"/>
+    <ROW Component="x16.png_2" ComponentId="{81E943D5-7E36-489B-8AF3-4C3B9E46E5C9}" Directory_="resources_2_Dir" Attributes="0" KeyPath="x16.png_2" Type="0"/>
+    <ROW Component="x16.png_3" ComponentId="{1471450F-8065-45B8-A953-8A22611ADA27}" Directory_="resources_3_Dir" Attributes="0" KeyPath="x16.png_3" Type="0"/>
+    <ROW Component="x16.png_4" ComponentId="{BE883E97-851F-4879-AE16-8201E6B04E83}" Directory_="resources_4_Dir" Attributes="0" KeyPath="x16.png_4" Type="0"/>
+    <ROW Component="x16.png_5" ComponentId="{252BCCA9-8569-4E6C-A371-B70928800E5F}" Directory_="resources_5_Dir" Attributes="0" KeyPath="x16.png_5" Type="0"/>
+    <ROW Component="x16.png_6" ComponentId="{71BE302F-7E91-40E0-8B95-8BE4A983EDB5}" Directory_="resources_6_Dir" Attributes="0" KeyPath="x16.png_6" Type="0"/>
+    <ROW Component="x16.png_7" ComponentId="{1A6C45FD-E6DD-43FF-BB26-7B2F92BD1F9A}" Directory_="resources_7_Dir" Attributes="0" KeyPath="x16.png_7" Type="0"/>
+    <ROW Component="x16.png_8" ComponentId="{2F468028-F936-4EC8-8DA2-D9EABC192E45}" Directory_="resources_8_Dir" Attributes="0" KeyPath="x16.png_8" Type="0"/>
+    <ROW Component="x16.png_9" ComponentId="{102569ED-88FE-4474-9940-05EEB64A83AF}" Directory_="resources_9_Dir" Attributes="0" KeyPath="x16.png_9" Type="0"/>
+    <ROW Component="x16disabled.png" ComponentId="{7F9D153F-F620-4890-85B3-E91D01CB1F52}" Directory_="Revolute_Dir" Attributes="0" KeyPath="x16disabled.png" Type="0"/>
+    <ROW Component="x16disabled.png_1" ComponentId="{484624C8-ACCD-4847-AD42-E503EF688CEB}" Directory_="Rigid_Dir" Attributes="0" KeyPath="x16disabled.png_1" Type="0"/>
+  </COMPONENT>
+  <COMPONENT cid="caphyon.advinst.msicomp.MsiFeatsComponent">
+    <ROW Feature="MainFeature" Title="MainFeature" Description="Description" Display="1" Level="1" Directory_="APPDIR" Attributes="0"/>
+    <ATTRIBUTE name="CurrentFeature" value="MainFeature"/>
+  </COMPONENT>
+  <COMPONENT cid="caphyon.advinst.msicomp.MsiFilesComponent">
+    <ROW File="entry.py" Component_="entry.py" FileName="entry.py" Attributes="0" SourcePath="commands\assembleresult\entry.py" SelfReg="false"/>
+    <ROW File="x16.png" Component_="x16.png" FileName="16x16.png" Attributes="0" SourcePath="commands\assembleresult\resources\16x16.png" SelfReg="false"/>
+    <ROW File="x32.png" Component_="x16.png" FileName="32x32.png" Attributes="0" SourcePath="commands\assembleresult\resources\32x32.png" SelfReg="false"/>
+    <ROW File="x64.png" Component_="x16.png" FileName="64x64.png" Attributes="0" SourcePath="commands\assembleresult\resources\64x64.png" SelfReg="false"/>
+    <ROW File="__init__.py" Component_="entry.py" FileName="__init__.py" Attributes="0" SourcePath="commands\assembleresult\__init__.py" SelfReg="false"/>
+    <ROW File="entry.py_1" Component_="entry.py_1" FileName="entry.py" Attributes="0" SourcePath="commands\attributestaxonomyediting\entry.py" SelfReg="false"/>
+    <ROW File="x16.png_1" Component_="x16.png_1" FileName="16x16.png" Attributes="0" SourcePath="commands\attributestaxonomyediting\resources\16x16.png" SelfReg="false"/>
+    <ROW File="x32.png_1" Component_="x16.png_1" FileName="32x32.png" Attributes="0" SourcePath="commands\attributestaxonomyediting\resources\32x32.png" SelfReg="false"/>
+    <ROW File="x64.png_1" Component_="x16.png_1" FileName="64x64.png" Attributes="0" SourcePath="commands\attributestaxonomyediting\resources\64x64.png" SelfReg="false"/>
+    <ROW File="__init__.py_1" Component_="entry.py_1" FileName="__init__.py" Attributes="0" SourcePath="commands\attributestaxonomyediting\__init__.py" SelfReg="false"/>
+    <ROW File="entry.py_2" Component_="entry.py_2" FileName="entry.py" Attributes="0" SourcePath="commands\checkandsubmit\entry.py" SelfReg="false"/>
+    <ROW File="x16.png_2" Component_="x16.png_2" FileName="16x16.png" Attributes="0" SourcePath="commands\checkandsubmit\resources\16x16.png" SelfReg="false"/>
+    <ROW File="x32.png_2" Component_="x16.png_2" FileName="32x32.png" Attributes="0" SourcePath="commands\checkandsubmit\resources\32x32.png" SelfReg="false"/>
+    <ROW File="x64.png_2" Component_="x16.png_2" FileName="64x64.png" Attributes="0" SourcePath="commands\checkandsubmit\resources\64x64.png" SelfReg="false"/>
+    <ROW File="__init__.py_2" Component_="entry.py_2" FileName="__init__.py" Attributes="0" SourcePath="commands\checkandsubmit\__init__.py" SelfReg="false"/>
+    <ROW File="entry.py_3" Component_="entry.py_3" FileName="entry.py" Attributes="0" SourcePath="commands\downloadtaxonomy\entry.py" SelfReg="false"/>
+    <ROW File="x16.png_3" Component_="x16.png_3" FileName="16x16.png" Attributes="0" SourcePath="commands\downloadtaxonomy\resources\16x16.png" SelfReg="false"/>
+    <ROW File="x32.png_3" Component_="x16.png_3" FileName="32x32.png" Attributes="0" SourcePath="commands\downloadtaxonomy\resources\32x32.png" SelfReg="false"/>
+    <ROW File="x64.png_3" Component_="x16.png_3" FileName="64x64.png" Attributes="0" SourcePath="commands\downloadtaxonomy\resources\64x64.png" SelfReg="false"/>
+    <ROW File="__init__.py_3" Component_="entry.py_3" FileName="__init__.py" Attributes="0" SourcePath="commands\downloadtaxonomy\__init__.py" SelfReg="false"/>
+    <ROW File="entry.py_4" Component_="entry.py_4" FileName="entry.py" Attributes="0" SourcePath="commands\exportproject\entry.py" SelfReg="false"/>
+    <ROW File="x16.png_4" Component_="x16.png_4" FileName="16x16.png" Attributes="0" SourcePath="commands\exportproject\resources\16x16.png" SelfReg="false"/>
+    <ROW File="x32.png_4" Component_="x16.png_4" FileName="32x32.png" Attributes="0" SourcePath="commands\exportproject\resources\32x32.png" SelfReg="false"/>
+    <ROW File="x64.png_4" Component_="x16.png_4" FileName="64x64.png" Attributes="0" SourcePath="commands\exportproject\resources\64x64.png" SelfReg="false"/>
+    <ROW File="__init__.py_4" Component_="entry.py_4" FileName="__init__.py" Attributes="0" SourcePath="commands\exportproject\__init__.py" SelfReg="false"/>
+    <ROW File="entry.py_5" Component_="entry.py_5" FileName="entry.py" Attributes="0" SourcePath="commands\formatstaxonomyediting\entry.py" SelfReg="false"/>
+    <ROW File="x16.png_5" Component_="x16.png_5" FileName="16x16.png" Attributes="0" SourcePath="commands\formatstaxonomyediting\resources\16x16.png" SelfReg="false"/>
+    <ROW File="x32.png_5" Component_="x16.png_5" FileName="32x32.png" Attributes="0" SourcePath="commands\formatstaxonomyediting\resources\32x32.png" SelfReg="false"/>
+    <ROW File="x64.png_5" Component_="x16.png_5" FileName="64x64.png" Attributes="0" SourcePath="commands\formatstaxonomyediting\resources\64x64.png" SelfReg="false"/>
+    <ROW File="__init__.py_5" Component_="entry.py_5" FileName="__init__.py" Attributes="0" SourcePath="commands\formatstaxonomyediting\__init__.py" SelfReg="false"/>
+    <ROW File="entry.py_6" Component_="entry.py_6" FileName="entry.py" Attributes="0" SourcePath="commands\jointtyping\entry.py" SelfReg="false"/>
+    <ROW File="x16.png_6" Component_="x16.png_6" FileName="16x16.png" Attributes="0" SourcePath="commands\jointtyping\resources\16x16.png" SelfReg="false"/>
+    <ROW File="x32.png_6" Component_="x16.png_6" FileName="32x32.png" Attributes="0" SourcePath="commands\jointtyping\resources\32x32.png" SelfReg="false"/>
+    <ROW File="x64.png_6" Component_="x16.png_6" FileName="64x64.png" Attributes="0" SourcePath="commands\jointtyping\resources\64x64.png" SelfReg="false"/>
+    <ROW File="x16disabled.png" Component_="x16disabled.png" FileName="16X16-~1.PNG|16x16-disabled.png" Attributes="0" SourcePath="commands\jointtyping\resources\Revolute\16x16-disabled.png" SelfReg="false"/>
+    <ROW File="x16normal.png" Component_="x16disabled.png" FileName="16X16-~2.PNG|16x16-normal.png" Attributes="0" SourcePath="commands\jointtyping\resources\Revolute\16x16-normal.png" SelfReg="false"/>
+    <ROW File="x32.png_7" Component_="x16disabled.png" FileName="32x32.png" Attributes="0" SourcePath="commands\jointtyping\resources\Revolute\32x32.png" SelfReg="false"/>
+    <ROW File="x16disabled.png_1" Component_="x16disabled.png_1" FileName="16X16-~1.PNG|16x16-disabled.png" Attributes="0" SourcePath="commands\jointtyping\resources\Rigid\16x16-disabled.png" SelfReg="false"/>
+    <ROW File="x16normal.png_1" Component_="x16disabled.png_1" FileName="16X16-~2.PNG|16x16-normal.png" Attributes="0" SourcePath="commands\jointtyping\resources\Rigid\16x16-normal.png" SelfReg="false"/>
+    <ROW File="x32.png_8" Component_="x16disabled.png_1" FileName="32x32.png" Attributes="0" SourcePath="commands\jointtyping\resources\Rigid\32x32.png" SelfReg="false"/>
+    <ROW File="__init__.py_6" Component_="entry.py_6" FileName="__init__.py" Attributes="0" SourcePath="commands\jointtyping\__init__.py" SelfReg="false"/>
+    <ROW File="entry.py_7" Component_="entry.py_7" FileName="entry.py" Attributes="0" SourcePath="commands\partmanagement\entry.py" SelfReg="false"/>
+    <ROW File="x16.png_7" Component_="x16.png_7" FileName="16x16.png" Attributes="0" SourcePath="commands\partmanagement\resources\16x16.png" SelfReg="false"/>
+    <ROW File="x32.png_9" Component_="x16.png_7" FileName="32x32.png" Attributes="0" SourcePath="commands\partmanagement\resources\32x32.png" SelfReg="false"/>
+    <ROW File="x64.png_7" Component_="x16.png_7" FileName="64x64.png" Attributes="0" SourcePath="commands\partmanagement\resources\64x64.png" SelfReg="false"/>
+    <ROW File="__init__.py_7" Component_="entry.py_7" FileName="__init__.py" Attributes="0" SourcePath="commands\partmanagement\__init__.py" SelfReg="false"/>
+    <ROW File="entry.py_8" Component_="entry.py_8" FileName="entry.py" Attributes="0" SourcePath="commands\partstaxonomyediting\entry.py" SelfReg="false"/>
+    <ROW File="x16.png_8" Component_="x16.png_8" FileName="16x16.png" Attributes="0" SourcePath="commands\partstaxonomyediting\resources\16x16.png" SelfReg="false"/>
+    <ROW File="x32.png_10" Component_="x16.png_8" FileName="32x32.png" Attributes="0" SourcePath="commands\partstaxonomyediting\resources\32x32.png" SelfReg="false"/>
+    <ROW File="x64.png_8" Component_="x16.png_8" FileName="64x64.png" Attributes="0" SourcePath="commands\partstaxonomyediting\resources\64x64.png" SelfReg="false"/>
+    <ROW File="__init__.py_8" Component_="entry.py_8" FileName="__init__.py" Attributes="0" SourcePath="commands\partstaxonomyediting\__init__.py" SelfReg="false"/>
+    <ROW File="entry.py_9" Component_="entry.py_9" FileName="entry.py" Attributes="0" SourcePath="commands\parttyping\entry.py" SelfReg="false"/>
+    <ROW File="x16.png_9" Component_="x16.png_9" FileName="16x16.png" Attributes="0" SourcePath="commands\parttyping\resources\16x16.png" SelfReg="false"/>
+    <ROW File="x32.png_11" Component_="x16.png_9" FileName="32x32.png" Attributes="0" SourcePath="commands\parttyping\resources\32x32.png" SelfReg="false"/>
+    <ROW File="x64.png_9" Component_="x16.png_9" FileName="64x64.png" Attributes="0" SourcePath="commands\parttyping\resources\64x64.png" SelfReg="false"/>
+    <ROW File="__init__.py_9" Component_="entry.py_9" FileName="__init__.py" Attributes="0" SourcePath="commands\parttyping\__init__.py" SelfReg="false"/>
+    <ROW File="entry.py_10" Component_="entry.py_10" FileName="entry.py" Attributes="0" SourcePath="commands\requestsynthesis\entry.py" SelfReg="false"/>
+    <ROW File="x16.png_10" Component_="x16.png_10" FileName="16x16.png" Attributes="0" SourcePath="commands\requestsynthesis\resources\16x16.png" SelfReg="false"/>
+    <ROW File="x32.png_12" Component_="x16.png_10" FileName="32x32.png" Attributes="0" SourcePath="commands\requestsynthesis\resources\32x32.png" SelfReg="false"/>
+    <ROW File="x64.png_10" Component_="x16.png_10" FileName="64x64.png" Attributes="0" SourcePath="commands\requestsynthesis\resources\64x64.png" SelfReg="false"/>
+    <ROW File="__init__.py_10" Component_="entry.py_10" FileName="__init__.py" Attributes="0" SourcePath="commands\requestsynthesis\__init__.py" SelfReg="false"/>
+    <ROW File="x16.png_11" Component_="x16.png_11" FileName="16x16.png" Attributes="0" SourcePath="commands\togglecustomgraphics\disabled-resources\16x16.png" SelfReg="false"/>
+    <ROW File="x32.png_13" Component_="x16.png_11" FileName="32x32.png" Attributes="0" SourcePath="commands\togglecustomgraphics\disabled-resources\32x32.png" SelfReg="false"/>
+    <ROW File="x64.png_11" Component_="x16.png_11" FileName="64x64.png" Attributes="0" SourcePath="commands\togglecustomgraphics\disabled-resources\64x64.png" SelfReg="false"/>
+    <ROW File="lambda.png" Component_="x16.png_11" FileName="lambda.png" Attributes="0" SourcePath="commands\togglecustomgraphics\disabled-resources\lambda.png" SelfReg="false"/>
+    <ROW File="entry.py_11" Component_="entry.py_11" FileName="entry.py" Attributes="0" SourcePath="commands\togglecustomgraphics\entry.py" SelfReg="false"/>
+    <ROW File="x16.png_12" Component_="x16.png_12" FileName="16x16.png" Attributes="0" SourcePath="commands\togglecustomgraphics\resources\16x16.png" SelfReg="false"/>
+    <ROW File="x32.png_14" Component_="x16.png_12" FileName="32x32.png" Attributes="0" SourcePath="commands\togglecustomgraphics\resources\32x32.png" SelfReg="false"/>
+    <ROW File="x64.png_12" Component_="x16.png_12" FileName="64x64.png" Attributes="0" SourcePath="commands\togglecustomgraphics\resources\64x64.png" SelfReg="false"/>
+    <ROW File="__init__.py_11" Component_="entry.py_11" FileName="__init__.py" Attributes="0" SourcePath="commands\togglecustomgraphics\__init__.py" SelfReg="false"/>
+    <ROW File="entry.py_12" Component_="entry.py_12" FileName="entry.py" Attributes="0" SourcePath="commands\typecrawlingproject\entry.py" SelfReg="false"/>
+    <ROW File="x16.png_13" Component_="x16.png_13" FileName="16x16.png" Attributes="0" SourcePath="commands\typecrawlingproject\resources\16x16.png" SelfReg="false"/>
+    <ROW File="x32.png_15" Component_="x16.png_13" FileName="32x32.png" Attributes="0" SourcePath="commands\typecrawlingproject\resources\32x32.png" SelfReg="false"/>
+    <ROW File="x64.png_13" Component_="x16.png_13" FileName="64x64.png" Attributes="0" SourcePath="commands\typecrawlingproject\resources\64x64.png" SelfReg="false"/>
+    <ROW File="__init__.py_12" Component_="entry.py_12" FileName="__init__.py" Attributes="0" SourcePath="commands\typecrawlingproject\__init__.py" SelfReg="false"/>
+    <ROW File="entry.py_13" Component_="entry.py_13" FileName="entry.py" Attributes="0" SourcePath="commands\uploadtaxonomy\entry.py" SelfReg="false"/>
+    <ROW File="x16.png_14" Component_="x16.png_14" FileName="16x16.png" Attributes="0" SourcePath="commands\uploadtaxonomy\resources\16x16.png" SelfReg="false"/>
+    <ROW File="x32.png_16" Component_="x16.png_14" FileName="32x32.png" Attributes="0" SourcePath="commands\uploadtaxonomy\resources\32x32.png" SelfReg="false"/>
+    <ROW File="x64.png_14" Component_="x16.png_14" FileName="64x64.png" Attributes="0" SourcePath="commands\uploadtaxonomy\resources\64x64.png" SelfReg="false"/>
+    <ROW File="__init__.py_13" Component_="entry.py_13" FileName="__init__.py" Attributes="0" SourcePath="commands\uploadtaxonomy\__init__.py" SelfReg="false"/>
+    <ROW File="entry.py_14" Component_="entry.py_14" FileName="entry.py" Attributes="0" SourcePath="commands\uuidupdatecrawlingproject\entry.py" SelfReg="false"/>
+    <ROW File="x16.png_15" Component_="x16.png_15" FileName="16x16.png" Attributes="0" SourcePath="commands\uuidupdatecrawlingproject\resources\16x16.png" SelfReg="false"/>
+    <ROW File="x32.png_17" Component_="x16.png_15" FileName="32x32.png" Attributes="0" SourcePath="commands\uuidupdatecrawlingproject\resources\32x32.png" SelfReg="false"/>
+    <ROW File="x64.png_15" Component_="x16.png_15" FileName="64x64.png" Attributes="0" SourcePath="commands\uuidupdatecrawlingproject\resources\64x64.png" SelfReg="false"/>
+    <ROW File="__init__.py_14" Component_="entry.py_14" FileName="__init__.py" Attributes="0" SourcePath="commands\uuidupdatecrawlingproject\__init__.py" SelfReg="false"/>
+    <ROW File="__init__.py_15" Component_="__init__.py" FileName="__init__.py" Attributes="0" SourcePath="commands\__init__.py" SelfReg="false"/>
+    <ROW File="cls_json.py" Component_="cls_json.py" FileName="cls_json.py" Attributes="0" SourcePath="lib\cls_python_compat\cls_json.py" SelfReg="false"/>
+    <ROW File="types.py" Component_="cls_json.py" FileName="types.py" Attributes="0" SourcePath="lib\cls_python_compat\types.py" SelfReg="false"/>
+    <ROW File="__init__.py_16" Component_="cls_json.py" FileName="__init__.py" Attributes="0" SourcePath="lib\cls_python_compat\__init__.py" SelfReg="false"/>
+    <ROW File="event_utils.py" Component_="event_utils.py" FileName="EVENT_~1.PY|event_utils.py" Attributes="0" SourcePath="lib\fusion360utils\event_utils.py" SelfReg="false"/>
+    <ROW File="general_utils.py" Component_="event_utils.py" FileName="GENERA~1.PY|general_utils.py" Attributes="0" SourcePath="lib\fusion360utils\general_utils.py" SelfReg="false"/>
+    <ROW File="__init__.py_17" Component_="event_utils.py" FileName="__init__.py" Attributes="0" SourcePath="lib\fusion360utils\__init__.py" SelfReg="false"/>
+    <ROW File="hrid.py" Component_="hrid.py" FileName="hrid.py" Attributes="0" SourcePath="lib\general_utils\hrid.py" SelfReg="false"/>
+    <ROW File="util.py" Component_="hrid.py" FileName="util.py" Attributes="0" SourcePath="lib\general_utils\util.py" SelfReg="false"/>
+    <ROW File="__init__.py_18" Component_="hrid.py" FileName="__init__.py" Attributes="0" SourcePath="lib\general_utils\__init__.py" SelfReg="false"/>
+    <ROW File="__init__.py_19" Component_="__init__.py_1" FileName="__init__.py" Attributes="0" SourcePath="lib\__init__.py" SelfReg="false"/>
+    <ROW File="CLSCAD.manifest" Component_="CLSCAD.manifest" FileName="CLS-CA~1.MAN|CLS-CAD.manifest" Attributes="0" SourcePath="CLS-CAD.manifest" SelfReg="false"/>
+    <ROW File="CLSCAD.py" Component_="CLSCAD.manifest" FileName="CLS-CAD.py" Attributes="0" SourcePath="CLS-CAD.py" SelfReg="false"/>
+    <ROW File="config.py" Component_="CLSCAD.manifest" FileName="config.py" Attributes="0" SourcePath="config.py" SelfReg="false"/>
+    <ROW File="LICENSE" Component_="CLSCAD.manifest" FileName="LICENSE" Attributes="0" SourcePath="LICENSE" SelfReg="false"/>
+  </COMPONENT>
+  <COMPONENT cid="caphyon.advinst.msicomp.BootstrOptComponent">
+    <ROW BootstrOptKey="GlobalOptions" DownloadFolder="[AppDataFolder][|Manufacturer]\[|ProductName]\prerequisites" Options="2"/>
+  </COMPONENT>
+  <COMPONENT cid="caphyon.advinst.msicomp.BuildComponent">
+    <ROW BuildKey="DefaultBuild" BuildName="DefaultBuild" BuildOrder="1" BuildType="0" Languages="en_GB" InstallationType="4" UseLargeSchema="true"/>
+  </COMPONENT>
+  <COMPONENT cid="caphyon.advinst.msicomp.DictionaryComponent">
+    <ROW Path="&lt;AI_DICTS&gt;ui.ail"/>
+    <ROW Path="&lt;AI_DICTS&gt;ui_en_GB.ail"/>
+    <ROW Path="&lt;AI_DICTS&gt;ui_en.ail"/>
+  </COMPONENT>
+  <COMPONENT cid="caphyon.advinst.msicomp.FragmentComponent">
+    <ROW Fragment="CommonUI.aip" Path="&lt;AI_FRAGS&gt;CommonUI.aip"/>
+    <ROW Fragment="MaintenanceTypeDlg.aip" Path="&lt;AI_THEMES&gt;classic\fragments\MaintenanceTypeDlg.aip"/>
+    <ROW Fragment="MaintenanceWelcomeDlg.aip" Path="&lt;AI_THEMES&gt;classic\fragments\MaintenanceWelcomeDlg.aip"/>
+    <ROW Fragment="SequenceDialogs.aip" Path="&lt;AI_THEMES&gt;classic\fragments\SequenceDialogs.aip"/>
+    <ROW Fragment="Sequences.aip" Path="&lt;AI_FRAGS&gt;Sequences.aip"/>
+    <ROW Fragment="StaticUIStrings.aip" Path="&lt;AI_FRAGS&gt;StaticUIStrings.aip"/>
+    <ROW Fragment="Themes.aip" Path="&lt;AI_FRAGS&gt;Themes.aip"/>
+    <ROW Fragment="UI.aip" Path="&lt;AI_THEMES&gt;classic\fragments\UI.aip"/>
+    <ROW Fragment="Validation.aip" Path="&lt;AI_FRAGS&gt;Validation.aip"/>
+    <ROW Fragment="VerifyRemoveDlg.aip" Path="&lt;AI_THEMES&gt;classic\fragments\VerifyRemoveDlg.aip"/>
+    <ROW Fragment="VerifyRepairDlg.aip" Path="&lt;AI_THEMES&gt;classic\fragments\VerifyRepairDlg.aip"/>
+    <ROW Fragment="WelcomeDlg.aip" Path="&lt;AI_THEMES&gt;classic\fragments\WelcomeDlg.aip"/>
+  </COMPONENT>
+  <COMPONENT cid="caphyon.advinst.msicomp.MsiBinaryComponent">
+    <ROW Name="aicustact.dll" SourcePath="&lt;AI_CUSTACTS&gt;aicustact.dll"/>
+  </COMPONENT>
+  <COMPONENT cid="caphyon.advinst.msicomp.MsiControlEventComponent">
+    <ROW Dialog_="WelcomeDlg" Control_="Next" Event="NewDialog" Argument="VerifyReadyDlg" Condition="AI_INSTALL" Ordering="1"/>
+    <ROW Dialog_="MaintenanceWelcomeDlg" Control_="Next" Event="NewDialog" Argument="MaintenanceTypeDlg" Condition="AI_MAINT" Ordering="99"/>
+    <ROW Dialog_="VerifyReadyDlg" Control_="Install" Event="EndDialog" Argument="Return" Condition="AI_MAINT" Ordering="198"/>
+    <ROW Dialog_="VerifyReadyDlg" Control_="Back" Event="NewDialog" Argument="CustomizeDlg" Condition="AI_MAINT" Ordering="202"/>
+    <ROW Dialog_="VerifyReadyDlg" Control_="Install" Event="EndDialog" Argument="Return" Condition="AI_INSTALL" Ordering="197"/>
+    <ROW Dialog_="VerifyReadyDlg" Control_="Back" Event="NewDialog" Argument="WelcomeDlg" Condition="AI_INSTALL" Ordering="201"/>
+    <ROW Dialog_="CustomizeDlg" Control_="Next" Event="NewDialog" Argument="VerifyReadyDlg" Condition="AI_MAINT" Ordering="101"/>
+    <ROW Dialog_="CustomizeDlg" Control_="Back" Event="NewDialog" Argument="MaintenanceTypeDlg" Condition="AI_MAINT" Ordering="1"/>
+    <ROW Dialog_="MaintenanceTypeDlg" Control_="ChangeButton" Event="NewDialog" Argument="CustomizeDlg" Condition="AI_MAINT" Ordering="501"/>
+    <ROW Dialog_="MaintenanceTypeDlg" Control_="Back" Event="NewDialog" Argument="MaintenanceWelcomeDlg" Condition="AI_MAINT" Ordering="1"/>
+    <ROW Dialog_="MaintenanceTypeDlg" Control_="RemoveButton" Event="NewDialog" Argument="VerifyRemoveDlg" Condition="AI_MAINT AND InstallMode=&quot;Remove&quot;" Ordering="601"/>
+    <ROW Dialog_="VerifyRemoveDlg" Control_="Back" Event="NewDialog" Argument="MaintenanceTypeDlg" Condition="AI_MAINT AND InstallMode=&quot;Remove&quot;" Ordering="1"/>
+    <ROW Dialog_="MaintenanceTypeDlg" Control_="RepairButton" Event="NewDialog" Argument="VerifyRepairDlg" Condition="AI_MAINT AND InstallMode=&quot;Repair&quot;" Ordering="601"/>
+    <ROW Dialog_="VerifyRepairDlg" Control_="Back" Event="NewDialog" Argument="MaintenanceTypeDlg" Condition="AI_MAINT AND InstallMode=&quot;Repair&quot;" Ordering="1"/>
+    <ROW Dialog_="VerifyRepairDlg" Control_="Repair" Event="EndDialog" Argument="Return" Condition="AI_MAINT AND InstallMode=&quot;Repair&quot;" Ordering="399" Options="1"/>
+    <ROW Dialog_="VerifyRemoveDlg" Control_="Remove" Event="EndDialog" Argument="Return" Condition="AI_MAINT AND InstallMode=&quot;Remove&quot;" Ordering="299" Options="1"/>
+    <ROW Dialog_="PatchWelcomeDlg" Control_="Next" Event="NewDialog" Argument="VerifyReadyDlg" Condition="AI_PATCH" Ordering="201"/>
+    <ROW Dialog_="ResumeDlg" Control_="Install" Event="EndDialog" Argument="Return" Condition="AI_RESUME" Ordering="299"/>
+    <ROW Dialog_="VerifyReadyDlg" Control_="Install" Event="EndDialog" Argument="Return" Condition="AI_PATCH" Ordering="199"/>
+    <ROW Dialog_="VerifyReadyDlg" Control_="Back" Event="NewDialog" Argument="PatchWelcomeDlg" Condition="AI_PATCH" Ordering="203"/>
+  </COMPONENT>
+  <COMPONENT cid="caphyon.advinst.msicomp.MsiCreateFolderComponent">
+    <ROW Directory_="APPDIR" Component_="APPDIR" ManualDelete="true"/>
+  </COMPONENT>
+  <COMPONENT cid="caphyon.advinst.msicomp.MsiCustActComponent">
+    <ROW Action="AI_DOWNGRADE" Type="19" Target="4010"/>
+    <ROW Action="AI_DpiContentScale" Type="1" Source="aicustact.dll" Target="DpiContentScale"/>
+    <ROW Action="AI_EnableDebugLog" Type="321" Source="aicustact.dll" Target="EnableDebugLog"/>
+    <ROW Action="AI_InstallModeCheck" Type="1" Source="aicustact.dll" Target="UpdateInstallMode" WithoutSeq="true"/>
+    <ROW Action="AI_PREPARE_UPGRADE" Type="65" Source="aicustact.dll" Target="PrepareUpgrade"/>
+    <ROW Action="AI_PRESERVE_INSTALL_TYPE" Type="65" Source="aicustact.dll" Target="PreserveInstallType"/>
+    <ROW Action="AI_RESTORE_LOCATION" Type="65" Source="aicustact.dll" Target="RestoreLocation"/>
+    <ROW Action="AI_ResolveKnownFolders" Type="1" Source="aicustact.dll" Target="AI_ResolveKnownFolders"/>
+    <ROW Action="AI_SHOW_LOG" Type="65" Source="aicustact.dll" Target="LaunchLogFile" WithoutSeq="true"/>
+    <ROW Action="AI_STORE_LOCATION" Type="51" Source="ARPINSTALLLOCATION" Target="[APPDIR]"/>
+    <ROW Action="SET_APPDIR" Type="307" Source="APPDIR" Target="[ProgramFilesFolder][Manufacturer]\[ProductName]" MultiBuildTarget="DefaultBuild:[AppDataFolder]\Autodesk\Autodesk Fusion 360\API\AddIns\CLS-CAD"/>
+    <ROW Action="SET_SHORTCUTDIR" Type="307" Source="SHORTCUTDIR" Target="[ProgramMenuFolder][ProductName]"/>
+    <ROW Action="SET_TARGETDIR_TO_APPDIR" Type="51" Source="TARGETDIR" Target="[APPDIR]"/>
+  </COMPONENT>
+  <COMPONENT cid="caphyon.advinst.msicomp.MsiFeatCompsComponent">
+    <ROW Feature_="MainFeature" Component_="APPDIR"/>
+    <ROW Feature_="MainFeature" Component_="ProductInformation"/>
+    <ROW Feature_="MainFeature" Component_="entry.py"/>
+    <ROW Feature_="MainFeature" Component_="x16.png"/>
+    <ROW Feature_="MainFeature" Component_="entry.py_1"/>
+    <ROW Feature_="MainFeature" Component_="x16.png_1"/>
+    <ROW Feature_="MainFeature" Component_="entry.py_2"/>
+    <ROW Feature_="MainFeature" Component_="x16.png_2"/>
+    <ROW Feature_="MainFeature" Component_="entry.py_3"/>
+    <ROW Feature_="MainFeature" Component_="x16.png_3"/>
+    <ROW Feature_="MainFeature" Component_="entry.py_4"/>
+    <ROW Feature_="MainFeature" Component_="x16.png_4"/>
+    <ROW Feature_="MainFeature" Component_="entry.py_5"/>
+    <ROW Feature_="MainFeature" Component_="x16.png_5"/>
+    <ROW Feature_="MainFeature" Component_="entry.py_6"/>
+    <ROW Feature_="MainFeature" Component_="x16.png_6"/>
+    <ROW Feature_="MainFeature" Component_="x16disabled.png"/>
+    <ROW Feature_="MainFeature" Component_="x16disabled.png_1"/>
+    <ROW Feature_="MainFeature" Component_="entry.py_7"/>
+    <ROW Feature_="MainFeature" Component_="x16.png_7"/>
+    <ROW Feature_="MainFeature" Component_="entry.py_8"/>
+    <ROW Feature_="MainFeature" Component_="x16.png_8"/>
+    <ROW Feature_="MainFeature" Component_="entry.py_9"/>
+    <ROW Feature_="MainFeature" Component_="x16.png_9"/>
+    <ROW Feature_="MainFeature" Component_="entry.py_10"/>
+    <ROW Feature_="MainFeature" Component_="x16.png_10"/>
+    <ROW Feature_="MainFeature" Component_="x16.png_11"/>
+    <ROW Feature_="MainFeature" Component_="entry.py_11"/>
+    <ROW Feature_="MainFeature" Component_="x16.png_12"/>
+    <ROW Feature_="MainFeature" Component_="entry.py_12"/>
+    <ROW Feature_="MainFeature" Component_="x16.png_13"/>
+    <ROW Feature_="MainFeature" Component_="entry.py_13"/>
+    <ROW Feature_="MainFeature" Component_="x16.png_14"/>
+    <ROW Feature_="MainFeature" Component_="entry.py_14"/>
+    <ROW Feature_="MainFeature" Component_="x16.png_15"/>
+    <ROW Feature_="MainFeature" Component_="__init__.py"/>
+    <ROW Feature_="MainFeature" Component_="cls_json.py"/>
+    <ROW Feature_="MainFeature" Component_="event_utils.py"/>
+    <ROW Feature_="MainFeature" Component_="hrid.py"/>
+    <ROW Feature_="MainFeature" Component_="__init__.py_1"/>
+    <ROW Feature_="MainFeature" Component_="CLSCAD.manifest"/>
+  </COMPONENT>
+  <COMPONENT cid="caphyon.advinst.msicomp.MsiIconsComponent">
+    <ROW Name="clscad.exe" SourcePath="resources\ico\clscad.ico" Index="0"/>
+  </COMPONENT>
+  <COMPONENT cid="caphyon.advinst.msicomp.MsiInstExSeqComponent">
+    <ROW Action="AI_DOWNGRADE" Condition="AI_NEWERPRODUCTFOUND AND (UILevel &lt;&gt; 5)" Sequence="210"/>
+    <ROW Action="AI_RESTORE_LOCATION" Condition="APPDIR=&quot;&quot;" Sequence="749"/>
+    <ROW Action="AI_STORE_LOCATION" Condition="(Not Installed) OR REINSTALL" Sequence="1501"/>
+    <ROW Action="AI_PREPARE_UPGRADE" Condition="AI_UPGRADE=&quot;No&quot; AND (Not Installed)" Sequence="1399"/>
+    <ROW Action="AI_ResolveKnownFolders" Sequence="52"/>
+    <ROW Action="AI_EnableDebugLog" Sequence="51"/>
+  </COMPONENT>
+  <COMPONENT cid="caphyon.advinst.msicomp.MsiInstallUISequenceComponent">
+    <ROW Action="AI_PRESERVE_INSTALL_TYPE" Sequence="199"/>
+    <ROW Action="AI_RESTORE_LOCATION" Condition="APPDIR=&quot;&quot;" Sequence="749"/>
+    <ROW Action="AI_ResolveKnownFolders" Sequence="53"/>
+    <ROW Action="AI_DpiContentScale" Sequence="52"/>
+    <ROW Action="AI_EnableDebugLog" Sequence="51"/>
+  </COMPONENT>
+  <COMPONENT cid="caphyon.advinst.msicomp.MsiLaunchConditionsComponent">
+    <ROW Condition="((VersionNT &lt;&gt; 501) AND (VersionNT &lt;&gt; 502))" Description="[ProductName] cannot be installed on [WindowsTypeNT5XDisplay]." DescriptionLocId="AI.LaunchCondition.NoNT5X" IsPredefined="true" Builds="DefaultBuild"/>
+    <ROW Condition="(VersionNT &lt;&gt; 400)" Description="[ProductName] can not be installed on [WindowsTypeNT40Display]." DescriptionLocId="AI.LaunchCondition.NoNT40" IsPredefined="true" Builds="DefaultBuild"/>
+    <ROW Condition="(VersionNT &lt;&gt; 500)" Description="[ProductName] can not be installed on [WindowsTypeNT50Display]." DescriptionLocId="AI.LaunchCondition.NoNT50" IsPredefined="true" Builds="DefaultBuild"/>
+    <ROW Condition="VersionNT" Description="[ProductName] can not be installed on [WindowsType9XDisplay]." DescriptionLocId="AI.LaunchCondition.No9X" IsPredefined="true" Builds="DefaultBuild"/>
+  </COMPONENT>
+  <COMPONENT cid="caphyon.advinst.msicomp.MsiRegsComponent">
+    <ROW Registry="Manufacturer" Root="-1" Key="Software\[Manufacturer]" Name="\"/>
+    <ROW Registry="Path" Root="-1" Key="Software\[Manufacturer]\[ProductName]" Name="Path" Value="[APPDIR]" Component_="ProductInformation"/>
+    <ROW Registry="ProductName" Root="-1" Key="Software\[Manufacturer]\[ProductName]" Name="\"/>
+    <ROW Registry="Software" Root="-1" Key="Software" Name="\"/>
+    <ROW Registry="Version" Root="-1" Key="Software\[Manufacturer]\[ProductName]" Name="Version" Value="[ProductVersion]" Component_="ProductInformation"/>
+  </COMPONENT>
+  <COMPONENT cid="caphyon.advinst.msicomp.MsiThemeComponent">
+    <ATTRIBUTE name="UsedTheme" value="classic"/>
+  </COMPONENT>
+  <COMPONENT cid="caphyon.advinst.msicomp.MsiUpgradeComponent">
+    <ROW UpgradeCode="[|UpgradeCode]" VersionMin="0.0.1" VersionMax="[|ProductVersion]" Attributes="257" ActionProperty="OLDPRODUCTS"/>
+    <ROW UpgradeCode="[|UpgradeCode]" VersionMin="[|ProductVersion]" Attributes="2" ActionProperty="AI_NEWERPRODUCTFOUND"/>
+  </COMPONENT>
+</DOCUMENT>

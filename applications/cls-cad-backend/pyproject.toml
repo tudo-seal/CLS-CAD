@@ -1,10 +1,10 @@
 [tool.poetry]
-name = "cls-cps"
+name = "cls-cad-backend"
 version = "0.1.0"
 description = "A backend for synthesizing cyber-physical systems."
 authors = ["Constantin Chaumet <constantin.chaumet@tu-dortmund.de>"]
 readme = "README.md"
-packages = [{include = "cls_cps"}]
+packages = [{include = "cls_cad_backend"}]
 
 [tool.poetry.dependencies]
 python = "^3.10,<3.12"

@@ -23,4 +23,4 @@
 
 # Linguist
 # ============
-cls_cps/static/** linguist-vendored
+cls_cad_backend/static/** linguist-vendored
