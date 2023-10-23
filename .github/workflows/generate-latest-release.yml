@@ -26,7 +26,7 @@ jobs:
             plugin:
               - 'applications/cls-cad-fusion-plugin/**'
             backend:
-              - 'applications/cls-cad-fusion-backend/**'
+              - 'applications/cls-cad-backend/**'
 
   build-msi:
     name: Build Installer Package
