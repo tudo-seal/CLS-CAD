@@ -4,7 +4,6 @@
 
 [![Generic badge](https://img.shields.io/badge/python-3.10%20|%203.11-informational.svg)](https://shields.io/)
 [![GitHub license](https://img.shields.io/github/license/tudo-seal/CLS-CAD-BACKEND)](https://github.com/tudo-seal/CLS-CAD-BACKEND/blob/main/LICENSE)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7970609.svg)](https://doi.org/10.5281/zenodo.7970609)
 
 <!---[![Issues](https://img.shields.io/github/issues/tudo-seal/CLS-CAD)](https://github.com/tudo-seal/CLS-CAD/issues)-->
 

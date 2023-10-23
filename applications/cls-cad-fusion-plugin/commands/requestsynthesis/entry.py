@@ -34,7 +34,41 @@ ROOT_FOLDER = os.path.join(os.path.dirname(__file__), "..", "..")
 
 local_handlers = []
 request_parts, request_attributes = [], []
-propagate_parts, propagate_attributes, propagate_formats = [], [], []
+counted_parts, counted_attributes, counted_formats = [], [], []
+counted_types = {}
+selected_text = adsk.core.StringValueCommandInput.cast(None)
+_rowNumber = 0
+
+
+def add_row_to_table(table_input):
+    global _rowNumber, counted_parts, counted_formats, counted_attributes, counted_types, selected_text
+    cmd_inputs = adsk.core.CommandInputs.cast(table_input.commandInputs)
+
+    text_input = cmd_inputs.addStringValueInput(
+        f"text{_rowNumber}",
+        "",
+        " ∩ ".join(
+            [x for x in [*counted_parts, *counted_attributes, *counted_formats]]
+        ),
+    )
+    text_input.isReadOnly = True
+    spinner_input = cmd_inputs.addIntegerSpinnerCommandInput(
+        f"typeamount{_rowNumber}", "Amount", 0, 100, 1, 1
+    )
+
+    row = table_input.rowCount
+    table_input.addCommandInput(text_input, row, 1)
+    table_input.addCommandInput(spinner_input, row, 2)
+
+    counted_types[row] = (
+        [f"{x}_parts" for x in counted_parts]
+        + [f"{x}_formats" for x in counted_formats]
+        + [f"{x}_attributes" for x in counted_attributes],
+        spinner_input,
+    )
+    selected_text.value = ""
+    counted_parts, counted_attributes, counted_formats = [], [], []
+    _rowNumber = _rowNumber + 1
 
 
 def start():
@@ -69,7 +103,7 @@ parts_type_selection_browser_input = adsk.core.BrowserCommandInput.cast(None)
 
 
 def command_created(args: adsk.core.CommandCreatedEventArgs):
-    global type_text_box_input, parts_type_selection_browser_input, request_parts, request_attributes, propagate_parts, propagate_attributes, propagate_formats
+    global type_text_box_input, parts_type_selection_browser_input, request_parts, request_attributes, counted_parts, counted_attributes, counted_formats, selected_text
 
     futil.log(f"{CMD_NAME} Command Created Event")
 
@@ -80,6 +114,9 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     )
     futil.add_handler(
         args.command.executePreview, command_preview, local_handlers=local_handlers
+    )
+    futil.add_handler(
+        args.command.inputChanged, input_changed, local_handlers=local_handlers
     )
     futil.add_handler(
         args.command.destroy, command_destroy, local_handlers=local_handlers
@@ -93,15 +130,15 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
 
     request_attributes = []
     request_parts = []
-    propagate_parts, propagate_attributes, propagate_formats = [], [], []
+    counted_parts, counted_attributes, counted_formats = [], [], []
     inputs = args.command.commandInputs
     args.command.setDialogMinimumSize(1200, 800)
     args.command.setDialogInitialSize(1200, 800)
 
     request_tab = inputs.addTabCommandInput("requestTab", "Select Requested Type")
-    propagate_tab = inputs.addTabCommandInput("propagateTab", "Select Propagated Types")
+    counted_tab = inputs.addTabCommandInput("countedTab", "Select counted Types")
     request_tab_inputs = request_tab.children
-    propagate_tab_inputs = propagate_tab.children
+    counted_tab_inputs = counted_tab.children
 
     parts_type_selection_browser_input = request_tab_inputs.addBrowserCommandInput(
         id=PARTTYPES_ID,
@@ -115,24 +152,55 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
         htmlFileURL=PALETTE_URL,
         minimumHeight=300,
     )
-    propagate_tab_inputs.addBrowserCommandInput(
+    counted_tab_inputs.addBrowserCommandInput(
         id=PROP_FORMATS_ID,
         name="Select formats/format family",
         htmlFileURL=PALETTE_URL,
         minimumHeight=300,
     )
-    propagate_tab_inputs.addBrowserCommandInput(
+    counted_tab_inputs.addBrowserCommandInput(
         id=PROP_PARTS_ID,
         name="Select parts/part family",
         htmlFileURL=PALETTE_URL,
         minimumHeight=300,
     )
-    propagate_tab_inputs.addBrowserCommandInput(
+    counted_tab_inputs.addBrowserCommandInput(
         id=PROP_ATTRIBUTES_ID,
         name="Select attributes/attribute family",
         htmlFileURL=PALETTE_URL,
         minimumHeight=300,
     )
+    selected_text = counted_tab_inputs.addStringValueInput(
+        f"selected_constraints_request",
+        "",
+        "",
+    )
+    selected_text.isReadOnly = True
+
+    table_input = counted_tab_inputs.addTableCommandInput(
+        "amount_table", "Constraints", 2, "4:1"
+    )
+    add_button_input = counted_tab_inputs.addBoolValueInput(
+        "table_add", "Add", False, "", True
+    )
+    table_input.addToolbarCommandInput(add_button_input)
+    delete_button_input = counted_tab_inputs.addBoolValueInput(
+        "table_delete", "Delete", False, "", True
+    )
+    table_input.addToolbarCommandInput(delete_button_input)
+
+
+def input_changed(args: adsk.core.InputChangedEventArgs):
+    global counted_types
+    table_input: adsk.core.TableCommandInput = args.inputs.itemById("amount_table")
+    if args.input.id == "table_add":
+        add_row_to_table(table_input)
+    elif args.input.id == "table_delete":
+        if table_input.selectedRow == -1:
+            ui.messageBox("Select one row to delete.")
+        else:
+            counted_types.pop(table_input.selectedRow)
+            table_input.deleteRow(table_input.selectedRow)
 
 
 def command_execute_preview(args: adsk.core.CommandEventHandler):
@@ -154,18 +222,18 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
     log_msg += f"Action: {message_action}\n"
     log_msg += f"Data: {message_data}"
     futil.log(log_msg, adsk.core.LogLevels.InfoLogLevel)
-    global request_parts, request_attributes, propagate_parts, propagate_attributes, propagate_formats
+    global request_parts, request_attributes, counted_parts, counted_attributes, counted_formats, selected_text
     if message_action == "selectionNotification":
         if html_args.browserCommandInput.id == PARTTYPES_ID:
             request_parts = message_data["selections"]
         elif html_args.browserCommandInput.id == ATTRIBUTETYPES_ID:
             request_attributes = message_data["selections"]
         elif html_args.browserCommandInput.id == PROP_FORMATS_ID:
-            propagate_formats = message_data["selections"]
+            counted_formats = message_data["selections"]
         elif html_args.browserCommandInput.id == PROP_ATTRIBUTES_ID:
-            propagate_attributes = message_data["selections"]
-        elif html_args.browserCommandInput.id == propagate_parts:
-            propagate_parts = message_data["selections"]
+            counted_attributes = message_data["selections"]
+        elif html_args.browserCommandInput.id == PROP_PARTS_ID:
+            counted_parts = message_data["selections"]
 
     if message_action == "updateDataNotification":
         if (
@@ -224,6 +292,9 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
         )
         html_args.browserCommandInput.sendInfoToHTML("taxonomyIDMessage", taxonomy_id)
 
+    selected_text.value = " ∩ ".join(
+        [x for x in [*counted_parts, *counted_attributes, *counted_formats]]
+    )
     now = datetime.now()
     current_time = now.strftime("%H:%M:%S")
     html_args.returnData = f"OK - {current_time}"
@@ -246,12 +317,17 @@ def command_execute(args: adsk.core.CommandEventArgs):
     request_dict = {
         "target": [f"{x}_parts" for x in request_parts]
         + [f"{x}_attributes" for x in request_attributes]
-        + [f"Has_{x}_parts" for x in propagate_parts]
-        + [f"Has_{x}_formats" for x in propagate_formats]
-        + [f"Has_{x}_attributes" for x in propagate_attributes],
-        "propagate": [[f"Has_{x}_parts"] for x in propagate_parts]
-        + [[f"Has_{x}_formats"] for x in propagate_formats]
-        + [[f"Has_{x}_attributes"] for x in propagate_attributes],
+        + [f"Has_{x}_parts" for x in counted_parts]
+        + [f"Has_{x}_formats" for x in counted_formats]
+        + [f"Has_{x}_attributes" for x in counted_attributes],
+        "partCounts": [
+            {
+                "partNumber": counted_type[1].value,
+                "partCountName": "-".join(counted_type[0]),
+                "partType": counted_type[0],
+            }
+            for _, counted_type in counted_types.items()
+        ],
         "forgeProjectId": app.activeDocument.dataFile.parentProject.id
         if app.activeDocument.dataFile is not None
         else app.data.activeProject.id,
@@ -261,6 +337,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
         indent=4,
     ).encode("utf-8")
     print("Send request")
+    print(request_dict)
     req = urllib.request.Request("http://127.0.0.1:8000/request/assembly")
     req.add_header("Content-Type", "application/json; charset=utf-8")
     req.add_header("Content-Length", len(payload))

@@ -2,8 +2,8 @@
 
 ---
 
-[![Generic badge](https://img.shields.io/badge/python-fusion360-informational.svg)](https://shields.io/)
-[![Supported systems](https://img.shields.io/badge/os-windows%20|%20macOS-informational.svg)](https://shields.io/)
+[![Generic badge](https://img.shields.io/badge/python-fusion360%20|3.10%20|%203.11-informational.svg)](https://shields.io/)
+[![Supported systems](https://img.shields.io/badge/os-windows-informational.svg)](https://shields.io/)
 [![GitHub license](https://img.shields.io/github/license/tudo-seal/CLS-CAD)](https://github.com/tudo-seal/CLS-CAD/blob/main/LICENSE)
 
 <!---[![Issues](https://img.shields.io/github/issues/tudo-seal/CLS-CAD)](https://github.com/tudo-seal/CLS-CAD/issues)-->
@@ -20,7 +20,7 @@ This requires [docker](https://docs.docker.com/desktop/install/windows-install/)
 
 After installing and starting docker, run:
 
-- `docker run -d ghcr.io/tudo-seal/cls-cad-backend:latest -p 8000:80 --name cls-cad-backend --pull=always`
+- `docker run -d -p 8000:80 --name cls-cad-backend --pull=always ghcr.io/tudo-seal/cls-cad-backend:latest`
 
 # Basic Usage
 

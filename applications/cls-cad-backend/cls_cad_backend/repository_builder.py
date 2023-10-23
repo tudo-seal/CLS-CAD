@@ -56,12 +56,14 @@ class Role(str, Enum):
 
 def generate_leaf(provides: list[Constructor], part_counts, taxonomy) -> Type:
     arguments = [
-        Literal(1, count_type)
+        Literal(1, count_name)
         if taxonomy.check_subtype(
-            Type.intersect(provides), Constructor(count_type), dict()
+            Type.intersect(provides),
+            Type.intersect([Constructor(type_name) for type_name in count_types]),
+            dict(),
         )
-        else Literal(0, count_type)
-        for count_type, _ in part_counts
+        else Literal(0, count_name)
+        for count_types, _, count_name in part_counts
     ]
 
     return Type.intersect(
@@ -70,14 +72,14 @@ def generate_leaf(provides: list[Constructor], part_counts, taxonomy) -> Type:
 
 
 def collect_and_increment_part_count(
-    counted_vars: dict[str, Any], count_type: str, multiplicities: Mapping[str, int]
+    counted_vars: dict[str, Any], count_name: str, multiplicities: Mapping[str, int]
 ):
     return (
         sum(
             [
                 v * multiplicities.get(k.partition("_")[0], 1)
                 for k, v in counted_vars.items()
-                if k.endswith(count_type)
+                if k.endswith(count_name)
             ]
         )
         + 1
@@ -85,13 +87,13 @@ def collect_and_increment_part_count(
 
 
 def collect_part_count(
-    counted_vars: dict, count_type: str, multiplicities: Mapping[str, int]
+    counted_vars: dict, count_name: str, multiplicities: Mapping[str, int]
 ):
     return sum(
         [
             v * multiplicities.get(k.partition("_")[0], 1)
             for k, v in counted_vars.items()
-            if k.endswith(count_type)
+            if k.endswith(count_name)
         ]
     )
 
@@ -242,19 +244,23 @@ class RepositoryBuilder:
                 counted_types: defaultdict[str, list[Type]] = defaultdict(list)
                 multiplicities: dict[str, int] = {}
 
-                for count_type, _ in part_counts:
+                for count_types, _, count_name in part_counts:
                     for uuid, joint_type in types_by_uuid.items():
-                        part_type = part_type.Use(f"{uuid}_{count_type}", count_type)
-                        counted_types[uuid].append(TVar(f"{uuid}_{count_type}"))
+                        part_type = part_type.Use(f"{uuid}_{count_name}", count_name)
+                        counted_types[uuid].append(TVar(f"{uuid}_{count_name}"))
                         multiplicities[uuid] = part["jointOrigins"][uuid]["count"]
 
                     if taxonomy.check_subtype(
-                        provides_type, Constructor(count_type), dict()
+                        provides_type,
+                        Type.intersect(
+                            [Constructor(type_name) for type_name in count_types]
+                        ),
+                        dict(),
                     ):
                         part_type = part_type.AsRaw(
                             partial(
                                 collect_and_increment_part_count,
-                                count_type=count_type,
+                                count_name=count_name,
                                 multiplicities=multiplicities,
                             )
                         )
@@ -262,7 +268,7 @@ class RepositoryBuilder:
                         part_type = part_type.AsRaw(
                             partial(
                                 collect_part_count,
-                                count_type=count_type,
+                                count_name=count_name,
                                 multiplicities=multiplicities,
                             )
                         )

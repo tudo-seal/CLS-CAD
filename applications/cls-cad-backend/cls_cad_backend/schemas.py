@@ -27,7 +27,8 @@ class PartConfigInf(BaseModel, frozen=True):
 
 class CountNumOfPartTypeInf(BaseModel, frozen=True):
     partNumber: int
-    partType: str
+    partCountName: str
+    partType: list[str]
 
 
 class PartInf(BaseModel, frozen=True):

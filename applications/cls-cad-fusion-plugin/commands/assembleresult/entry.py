@@ -617,8 +617,8 @@ def create_joint_from_typed_joint_origins(
 ):
     global design
     root = design.rootComponent
-    target_joint_origin.attributes.add("CLS-INFO", "UUID", generate_id())
-    source_joint_origin.attributes.add("CLS-INFO", "UUID", generate_id())
+    target_joint_origin.attributes.itemByName("CLS-INFO", "UUID").deleteMe()
+    source_joint_origin.attributes.itemByName("CLS-INFO", "UUID").deleteMe()
     joints = root.joints if not link else link.component.joints
     joint_input = joints.createInput(target_joint_origin, source_joint_origin)
     joint_input.isFlipped = True

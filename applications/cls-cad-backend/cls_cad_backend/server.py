@@ -140,9 +140,9 @@ async def synthesize_assembly(
     part_count_type = Omega()
     if payload.partCounts:
         for partCount in payload.partCounts:
-            literals[partCount.partType] = list(range(partCount.partNumber + 1))
+            literals[partCount.partCountName] = list(range(partCount.partNumber + 1))
         part_count_type = wrapped_counted_types(
-            [Literal(c.partNumber, c.partType) for c in payload.partCounts]
+            [Literal(c.partNumber, c.partCountName) for c in payload.partCounts]
         )
 
     query = Type.intersect([Constructor(x, part_count_type) for x in payload.target])
@@ -166,7 +166,9 @@ async def synthesize_assembly(
         blacklist=payload.blacklist,
         connect_uuid=payload.sourceUuid,
         taxonomy=taxonomy,
-        part_counts=[(p.partType, p.partNumber) for p in payload.partCounts]
+        part_counts=[
+            (p.partType, p.partNumber, p.partCountName) for p in payload.partCounts
+        ]
         if payload.partCounts
         else None,
     )
