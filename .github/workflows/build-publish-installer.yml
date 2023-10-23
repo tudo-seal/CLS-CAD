@@ -12,7 +12,7 @@ jobs:
         working-directory: applications/cls-cad-fusion-plugin
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Build AIP
         uses: caphyon/advinst-github-action@main
         with:
