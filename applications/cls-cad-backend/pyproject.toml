@@ -15,6 +15,13 @@ pydantic = "^2"
 pymongo = {extras = ["srv"], version = "3.13.0"}
 montydb = {extras = ["bson"], version = "^2"}
 
+[tool.poetry.group.docker]
+optional = true
+
+[tool.poetry.group.docker.dependencies]
+montydb = {extras = ["lmdb"], version = "^2"}
+lmdb = "^1"
+
 [tool.poetry.group.cpython]
 optional = true
 

@@ -1,5 +1,6 @@
 import configparser
 import os
+import platform
 import sys
 import zipfile
 from tkinter.filedialog import askopenfilename
@@ -14,6 +15,7 @@ database = None
 parts: Collection = None
 taxonomies: Collection = None
 results: Collection = None
+storage_engine = "flatfile" if any(platform.win32_ver()) else "lightning"
 
 
 def init_database():
@@ -49,7 +51,12 @@ def init_database():
                 if import_data:
                     with zipfile.ZipFile(import_data, "r") as zip_ref:
                         zip_ref.extractall(os.path.join(application_path, "db"))
-                    set_storage(os.path.join(application_path, "db"))
+                    set_storage(
+                        os.path.join(application_path, "db"),
+                        storage=storage_engine,
+                        use_bson=True,
+                        map_size="1073741824",
+                    )
                 else:
                     showinfo(
                         "Import", "No file selected, continuing with empty database"
@@ -58,6 +65,12 @@ def init_database():
         with open(config_path, "w") as configfile:  # save
             config.write(configfile)
     elif os.path.exists(container_path):
+        set_storage(
+            os.path.join(application_path, "db"),
+            storage=storage_engine,
+            use_bson=True,
+            map_size="1073741824",
+        )
         database = MontyClient(os.path.join(application_path, "db"))
     else:
         config.read(config_path)
@@ -71,6 +84,12 @@ def init_database():
                 showerror("Connection Error", "Could not connect to database. Exiting.")
                 exit(0)
         else:
+            set_storage(
+                os.path.join(application_path, "db"),
+                storage=storage_engine,
+                use_bson=True,
+                map_size="1073741824",
+            )
             database = MontyClient(os.path.join(application_path, "db"))
 
     database = database["cls_cad_backend"]
