@@ -1,0 +1,26 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: CLS-CAD
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Constantin
+    family-names: Chaumet
+    email: constantin.chaumet@tu-dortmund.de
+    affiliation: TU Dortmund University
+    orcid: 'https://orcid.org/0000-0002-8359-8030'
+repository-code: 'https://github.com/tudo-seal/CLS-CAD'
+abstract: >-
+  A plugin for Fusion 360 that allows leveraging combinatory
+  logic synthesis to automatically generate assemblies from
+  modular components.
+keywords:
+  - Combinatory Logic Synthesis
+  - Design Space Exploration
+  - Autodesk Fusion 360
+  - Computer Aided Design
+license: Apache-2.0
