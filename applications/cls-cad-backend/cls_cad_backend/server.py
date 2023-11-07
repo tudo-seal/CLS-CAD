@@ -150,16 +150,10 @@ async def synthesize_assembly(
     #     for partCount in payload.partCounts:
     #         query = query & Literal(partCount.partNumber, partCount.partType)
     #         literals[partCount.partType] = list(range(partCount.partNumber + 1))
-    print(f"Build query in {timer() - take_time}")
-    take_time = timer()
-
-    print(f"Query: {query}")
 
     taxonomy = Subtypes(
         suffix_taxonomy_and_add_mirror(get_taxonomy_for_project(payload.forgeProjectId))
     )
-    print(f"Build taxonomy in {timer() - take_time}")
-    take_time = timer()
 
     repo = RepositoryBuilder.add_all_to_repository(
         payload.forgeProjectId,
@@ -172,20 +166,14 @@ async def synthesize_assembly(
         if payload.partCounts
         else None,
     )
-    print(f"Build repo in {timer() - take_time}")
-    take_time = timer()
 
     gamma = FiniteCombinatoryLogic(
         repo,
         taxonomy,
         literals=literals,
     )
-    print(f"Build fcl in {timer() - take_time}")
-    take_time = timer()
 
     result = gamma.inhabit(query)
-    print(f"Inhabit in {timer() - take_time}")
-    take_time = timer()
     terms = []
 
     if payload.depths:
@@ -196,14 +184,9 @@ async def synthesize_assembly(
                 )
             )
     else:
-        terms.extend(enumerate_terms(query, result, max_count=100))
-    print(f"Enumerate in {timer() - take_time}")
-    take_time = timer()
+        terms.extend(enumerate_terms(query, result, max_count=300))
     # print(timer() - start)
     interpreted_terms = [postprocess(interpret_term(term)) for term in terms]
-    print(f"Interpret in {timer() - take_time}")
-    # take_time = timer()
-    # print(timer() - start)
 
     if not interpreted_terms:
         return "FAIL"
@@ -221,6 +204,7 @@ async def synthesize_assembly(
             "payload": payload.model_dump(),
         },
     )
+    print(f"Took: {timer() - take_time}")
     return str(request_id)
 
 
