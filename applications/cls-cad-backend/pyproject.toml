@@ -35,7 +35,7 @@ optional = true
 [tool.poetry.group.hypermapper.dependencies]
 hypermapper = "^2"
 plotly = "^5"
-pandas = "^1"
+pandas = "^2"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3"
