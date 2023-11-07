@@ -54,10 +54,13 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+
       - uses: actions/download-artifact@master
         with:
           name: Fusion Plugin Installer
           path: cls-cad-fusion-plugin.msi
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
 
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:
@@ -67,3 +70,4 @@ jobs:
           title: "Installer"
           files: |
             cls-cad-fusion-plugin.msi
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'

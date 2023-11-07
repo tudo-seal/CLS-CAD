@@ -24,8 +24,9 @@ jobs:
           aip-output-dir: ${{ github.workspace }}\applications\cls-cad-fusion-plugin\setup
           aip-commands: |
             SetVersion 1.0.2
-      - name: Publish setup artifact
+      - name: Upload setup artifact
         uses: actions/upload-artifact@v3
         with:
           name: Fusion Plugin Installer
           path: ${{ github.workspace }}\applications\cls-cad-fusion-plugin\setup\cls-cad-fusion-plugin.msi
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'

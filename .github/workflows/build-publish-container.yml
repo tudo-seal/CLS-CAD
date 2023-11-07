@@ -4,6 +4,10 @@ on:
   workflow_call:
   workflow_dispatch:
 
+env:
+  TEST_TAG: ghcr.io/tudo-seal/cls-cad-backend:test
+  LATEST_TAG: ghcr.io/tudo-seal/cls-cad-backend:latest
+
 jobs:
   build-and-push-image:
     runs-on: ubuntu-latest
@@ -30,6 +34,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Build and export to Docker
+        uses: docker/build-push-action@v5
+        with:
+          context: applications/cls-cad-backend
+          platforms: linux/amd64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          load: true
+          tags: ${{ env.TEST_TAG }}
+
+      - name: Test
+        run: |
+          docker run --rm ${{ env.TEST_TAG }}
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -38,5 +56,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           push: true
-          tags: ghcr.io/tudo-seal/cls-cad-backend:latest
+          tags: ${{ env.LATEST_TAG }}
           provenance: false
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
