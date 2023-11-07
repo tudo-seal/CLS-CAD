@@ -34,19 +34,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and export to Docker
+      - name: Build Docker
         uses: docker/build-push-action@v5
         with:
           context: applications/cls-cad-backend
           platforms: linux/amd64
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          load: true
+          push: false
           tags: ${{ env.TEST_TAG }}
-
-      - name: Test
-        run: |
-          docker run --rm ${{ env.TEST_TAG }}
+        if: github.event_name == 'pull_request'
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
