@@ -12,7 +12,7 @@ picls = {git = "https://github.com/tudo-seal/picls-python.git", branch = "main"}
 fastapi = "^0"
 uvicorn = "^0"
 pydantic = "^2"
-pymongo = {extras = ["srv"], version = "3.13.0"}
+pymongo = {extras = ["srv"], version = "4.6.0"}
 montydb = {extras = ["bson"], version = "^2"}
 
 [tool.poetry.group.docker]
