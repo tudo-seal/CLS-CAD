@@ -184,7 +184,7 @@ async def synthesize_assembly(
                 )
             )
     else:
-        terms.extend(enumerate_terms(query, result, max_count=300))
+        terms.extend(enumerate_terms(query, result, max_count=100))
     # print(timer() - start)
     interpreted_terms = [postprocess(interpret_term(term)) for term in terms]
 

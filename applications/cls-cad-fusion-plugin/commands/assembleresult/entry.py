@@ -398,7 +398,6 @@ def create_assembly_document(data, name):
     global progress_dialog, design, bucket_attributes, NO_GRAPHICS
     bucket_attributes = defaultdict(list)
     total_time = timer()
-    NO_GRAPHICS = True
     progress_dialog = ui.createProgressDialog()
     progress_dialog.show(
         "Assembly Progress", "Preparing project for synthesized assemblies...", 0, 1
@@ -426,7 +425,6 @@ def create_assembly_document(data, name):
     progress_dialog.maximumValue = data["count"]
     create_joints_from_instructions(data["instructions"])
     progress_dialog.hide()
-    NO_GRAPHICS = False
     total_time = timer() - total_time
     if DISPLAY_TIME:
         ui.messageBox(
