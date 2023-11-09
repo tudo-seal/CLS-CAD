@@ -6,10 +6,12 @@ from collections.abc import Hashable
 
 __all__ = ["generate_id"]
 
-system_random = random.SystemRandom()
+system_random: random.Random | random.SystemRandom = random.SystemRandom()
 
 
-def generate_id(separator="-", seed: Hashable = None, word_count=6) -> str:
+def generate_id(
+    separator: str = "-", seed: Hashable = None, word_count: int = 6
+) -> str:
     """
     Generate a human readable ID
     :param separator: The string to use to separate words
@@ -29,11 +31,11 @@ def generate_id(separator="-", seed: Hashable = None, word_count=6) -> str:
     for _ in range(3, word_count):
         parts[random_obj.choice(list(parts.keys()))] += 1
 
-    parts = itertools.chain.from_iterable(
+    populated_parts = itertools.chain.from_iterable(
         random_obj.sample(part, count) for part, count in parts.items()
     )
 
-    return separator.join(parts)
+    return separator.join(populated_parts)
 
 
 nouns = (

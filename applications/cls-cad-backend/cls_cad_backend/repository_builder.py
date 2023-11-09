@@ -32,16 +32,16 @@ class Part:
             },
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.__call__()
 
-    def __str__(self):
+    def __str__(self) -> str:
         return ""
 
     def __hash__(self):
         return hash(json.dumps(self.info))
 
-    def __init__(self, info):
+    def __init__(self, info) -> None:
         # Create combinator type here based on some JSON payload in future
         self.info = info
 
@@ -99,7 +99,7 @@ def collect_part_count(
 
 
 def get_joint_origin_type(
-    uuid: str, part: dict, role: Role, prefix=""
+    uuid: str, part: dict, role: Role, prefix: str = ""
 ) -> list[Constructor]:
     return [Constructor(f"{prefix}{tpe}") for tpe in part["jointOrigins"][uuid][role]]
 
@@ -145,7 +145,7 @@ def wrapped_counted_types(types: list[Type]) -> Type:
 
 
 def types_from_uuids(
-    uuids: list, part: dict, prefix=""
+    uuids: list, part: dict, prefix: str = ""
 ) -> OrderedDict[str, list[Constructor]]:
     return OrderedDict(
         zip(
@@ -172,7 +172,7 @@ def counting_multiarrow_from_uuid(uuid_list, count_type: str):
     )
 
 
-def multiarrow_to_self(tpe, length):
+def multiarrow_to_self(tpe, length: int):
     return multiarrow_from_types([tpe] * length)
 
 
@@ -182,11 +182,11 @@ class RepositoryBuilder:
         part: dict,
         repository: dict,
         *,
-        part_counts: list[str, int] = None,
+        part_counts: list[tuple[str, int, str]] | None = None,
         blacklist=None,
         connect_uuid=None,
         taxonomy: Subtypes = None,
-    ):
+    ) -> None:
         """
         Adds a part to a repository to be used for synthesis. Adds necessary Constructors for the parts configurations,
         unless the configuration provides a blacklisted type. The blacklist is intended to be used for synthesising
@@ -340,12 +340,12 @@ class RepositoryBuilder:
     def add_all_to_repository(
         project_id: str,
         *,
-        part_counts: list[[str, int]] = None,
+        part_counts: list[tuple[str, int, str]] | None = None,
         blacklist=None,
         connect_uuid=None,
         taxonomy=None,
     ):
-        repository = {}
+        repository: dict = {}
         for part in get_all_parts_for_project(project_id):
             RepositoryBuilder.add_part_to_repository(
                 part,

@@ -28,16 +28,23 @@ jobs:
             backend:
               - 'applications/cls-cad-backend/**'
 
-  build-msi:
-    name: Build Installer Package
+  run-tests:
+    name: Tests
     needs: changes
+    if: ${{ needs.changes.outputs.backend == 'true' }}
+    uses: tudo-seal/CLS-CAD/.github/workflows/run-tests.yml@main
+    secrets: inherit
+
+  build-msi:
+    name: Installer
+    needs: [changes, run-tests]
     if: ${{ needs.changes.outputs.plugin == 'true' }}
     uses: tudo-seal/CLS-CAD/.github/workflows/build-publish-installer.yml@main
     secrets: inherit
 
   build-container:
-    name: Build Docker Container
-    needs: changes
+    name: Container
+    needs: [changes, run-tests]
     if: ${{ needs.changes.outputs.backend == 'true' }}
     uses: tudo-seal/CLS-CAD/.github/workflows/build-publish-container.yml@main
     permissions:
@@ -48,7 +55,7 @@ jobs:
   pre-release:
     permissions: write-all
     name: Update Latest Release
-    needs: [build-msi, build-container, changes]
+    needs: [run-tests, build-msi, build-container, changes]
     if: ${{ always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') && needs.changes.outputs.plugin == 'true' }}
     runs-on: "ubuntu-latest"
     steps:

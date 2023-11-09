@@ -85,16 +85,17 @@ cache = {}
 @app.post("/submit/part")
 async def save_part(
     payload: PartInf,
-):
-    upsert_part(payload.dict(by_alias=True))
+) -> str:
+    upsert_part(payload.model_dump(by_alias=True))
     return "OK"
 
 
 @app.post("/submit/taxonomy")
 async def save_taxonomy(
     payload: TaxonomyInf,
-):
-    upsert_taxonomy(payload.dict(by_alias=True))
+) -> str:
+    upsert_taxonomy(payload.model_dump(by_alias=True))
+    return "OK"
 
 
 # @app.post("/request/assembly/optimization")
@@ -205,7 +206,13 @@ async def synthesize_assembly(
         },
     )
     print(f"Took: {timer() - take_time}")
-    return str(request_id)
+    return {
+        "_id": request_id,
+        "forgeProjectId": payload.forgeProjectId,
+        "name": payload.name,
+        "timestamp": datetime.today().strftime("%Y-%m-%d %H:%M:%S"),
+        "count": len(interpreted_terms),
+    }
 
 
 @app.get("/data/taxonomy/{project_id}", response_class=FastResponse)
@@ -219,7 +226,7 @@ async def list_result_ids():
 
 
 @app.get("/results/{project_id}", response_class=FastResponse)
-async def list_result_ids(project_id: str):
+async def list_project_ids(project_id: str):
     return [dict(x, id=x["_id"]) for x in get_all_result_ids_for_project(project_id)]
 
 
@@ -231,7 +238,7 @@ async def maximum_counts_for_id(
     if request_id not in cache:
         cache[request_id] = get_result_for_id(request_id)["interpretedTerms"]
     results = cache[request_id]
-    part_counts = defaultdict(int)
+    part_counts: defaultdict[int] = defaultdict(int)
     for result in results:
         for document_id, data in result["quantities"].items():
             part_counts[document_id] = (
@@ -271,7 +278,7 @@ async def results_for_id(
 
 
 @app.get("/results/{project_id}/{request_id}/{result_id}", response_class=FastResponse)
-async def results_for_id(project_id: str, request_id: str, result_id: int):
+async def results_for_result_id(project_id: str, request_id: str, result_id: int):
     if request_id not in cache:
         cache[request_id] = get_result_for_id(request_id)["interpretedTerms"]
     results = cache[request_id]

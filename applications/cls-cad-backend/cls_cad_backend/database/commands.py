@@ -11,14 +11,14 @@ from montydb import MontyClient, set_storage
 from pymongo import MongoClient, errors
 from pymongo.collection import Collection
 
-database = None
-parts: Collection = None
-taxonomies: Collection = None
-results: Collection = None
+database: MontyClient | MongoClient
+parts: Collection
+taxonomies: Collection
+results: Collection
 storage_engine = "flatfile" if any(platform.win32_ver()) else "lightning"
 
 
-def init_database():
+def init_database() -> None:
     global database, parts, taxonomies, results
     if "__compiled__" in globals():
         application_path = os.path.dirname(sys.argv[0])
@@ -32,7 +32,7 @@ def init_database():
             "Connect to remote DB?",
             "Do you want to connect to a hosted MongoDB instance?",
         )
-        connection_url = ""
+        connection_url: str | None = ""
         if is_remote:
             connection_url = askstring(
                 "Remote URL",
@@ -98,17 +98,33 @@ def init_database():
     results = database["results"]
 
 
-def upsert_part(part: dict):
+def switch_to_test_database() -> None:
+    global database, parts, taxonomies, results
+    application_path = os.path.dirname(__file__)
+    set_storage(
+        os.path.join(application_path, "test_db"),
+        storage=storage_engine,
+        use_bson=True,
+        map_size="1073741824",
+    )
+    database = MontyClient(os.path.join(application_path, "test_db"))
+    database = database["cls_cad_backend"]
+    parts = database["parts"]
+    taxonomies = database["taxonomies"]
+    results = database["results"]
+
+
+def upsert_part(part: dict) -> None:
     global parts
     parts.replace_one({"_id": part["_id"]}, part, upsert=True)
 
 
-def upsert_taxonomy(taxonomy: dict):
+def upsert_taxonomy(taxonomy: dict) -> None:
     global taxonomies
     taxonomies.replace_one({"_id": taxonomy["_id"]}, taxonomy, upsert=True)
 
 
-def upsert_result(result: dict):
+def upsert_result(result: dict) -> None:
     global results
     results.replace_one({"_id": result["_id"]}, result, upsert=True)
 

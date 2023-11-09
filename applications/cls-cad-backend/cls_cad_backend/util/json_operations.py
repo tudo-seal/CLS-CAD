@@ -16,7 +16,7 @@ from cls_cad_backend.repository_builder import Part
 from cls_cad_backend.util.hrid import generate_id
 
 
-def postprocess(data: dict):
+def postprocess(data: dict | Part):
     data = data() if isinstance(data, Part) else data
     name = re.sub("v[0-9]+$", "", data["name"])
     data = {"connections": {"origin": data}, "name": "origin", "count": 1}
@@ -54,8 +54,8 @@ def resolve_multiplicity(data: dict):
     return data
 
 
-def compute_insertions_and_totals(data: dict):
-    part_counts = defaultdict(lambda: {"count": 0, "name": "", "cost": 0})
+def compute_insertions_and_totals(data: dict) -> tuple:
+    part_counts: defaultdict = defaultdict(lambda: {"count": 0, "name": "", "cost": 0})
     total_count, total_cost = 0, 0
     to_traverse = deque(data["connections"])
     while to_traverse:
