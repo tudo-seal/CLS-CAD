@@ -31,7 +31,6 @@ jobs:
         if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: poetry install --with docker --no-interaction
       - name: Install dependencies
-        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
         run: touch cls_cad_backend/database/container
       - name: Test with pytest
         run: poetry run pytest --cov=. --cov-report=xml

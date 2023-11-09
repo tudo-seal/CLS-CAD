@@ -6,6 +6,7 @@
 [![Supported systems](https://img.shields.io/badge/os-windows-informational.svg)](https://shields.io/)
 [![GitHub license](https://img.shields.io/github/license/tudo-seal/CLS-CAD)](https://github.com/tudo-seal/CLS-CAD/blob/main/LICENSE)
 ![Generate Latest Release](https://github.com/tudo-seal/CLS-CAD/actions/workflows/generate-latest-release.yml/badge.svg)
+[![CodeCov](https://codecov.io/gh/tudo-seal/CLS-CAD/graph/badge.svg)](https://codecov.io/gh/tudo-seal/CLS-CAD)
 
 <!---[![Issues](https://img.shields.io/github/issues/tudo-seal/CLS-CAD)](https://github.com/tudo-seal/CLS-CAD/issues)-->
 
@@ -31,7 +32,7 @@ Create an [Autodesk account](https://www.autodesk.com/education/edu-software). A
 Launch Fusion 360, Sign in, and then close Fusion 360.
 
 - Install the add-in using the [latest installer](https://github.com/tudo-seal/CLS-CAD/releases/download/latest/cls-cad-fusion-plugin.msi).
-- Run the backend (as detailed in the Installation section)
+- Run the backend (using docker, as detailed in the Installation section)
 - Download the [modular components for synthesizing robotic arms](https://doi.org/10.5281/zenodo.10051244) dataset.
 - Launch Fusion 360 and create a new empty project. Open that project.
 - Upload all .f3d files from the [modular components for synthesizing robotic arms](https://doi.org/10.5281/zenodo.10051244) to that project.

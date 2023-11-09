@@ -1,5 +1,7 @@
 # CLS-CAD Backend
 
+---
+
 [![Generic badge](https://img.shields.io/badge/python-3.10%20|%203.11-informational.svg)](https://shields.io/)
 
 # Installation

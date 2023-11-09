@@ -1,4 +1,4 @@
-name: Generate Latest Release
+name: Test and Release
 
 on:
   push:
