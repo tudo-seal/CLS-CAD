@@ -95,10 +95,3 @@ def test_synthesis_intersection_counting():
     assert response.status_code == 200
     assert response.text != "FAIL"
     assert response.json()["count"] == 1
-
-
-if __name__ == "__main__":
-    test_synthesis_simple()
-    test_synthesis_intersection()
-    test_synthesis_simple_counting()
-    test_synthesis_intersection_counting()

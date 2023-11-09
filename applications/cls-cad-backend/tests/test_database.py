@@ -99,8 +99,3 @@ def test_upsert_parts():
     }
     response = client.post("/submit/part", json=test_payload)
     assert response.status_code == 200
-
-
-if __name__ == "__main__":
-    test_upsert_taxonomy()
-    test_upsert_parts()

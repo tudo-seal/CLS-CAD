@@ -20,20 +20,22 @@ storage_engine = "flatfile" if any(platform.win32_ver()) else "lightning"
 
 def init_database() -> None:
     global database, parts, taxonomies, results
-    if "__compiled__" in globals():
+    if "__compiled__" in globals():  # pragma: no cover
         application_path = os.path.dirname(sys.argv[0])
     elif __file__:
         application_path = os.path.dirname(__file__)
     config_path = os.path.join(application_path, "config.ini")
     container_path = os.path.join(application_path, "container")
     config = configparser.ConfigParser()
-    if not os.path.exists(config_path) and not os.path.exists(container_path):
+    if not os.path.exists(config_path) and not os.path.exists(
+        container_path
+    ):  # pragma: no cover
         is_remote = askyesno(
             "Connect to remote DB?",
             "Do you want to connect to a hosted MongoDB instance?",
         )
         connection_url: str | None = ""
-        if is_remote:
+        if is_remote:  # pragma: no cover
             connection_url = askstring(
                 "Remote URL",
                 "Please enter the connection url (with user and password, stored locally in plain text): ",
@@ -44,7 +46,7 @@ def init_database() -> None:
             except errors.ServerSelectionTimeoutError as err:
                 showerror("Connection Error", "Could not connect to database. Exiting.")
                 exit(0)
-        else:
+        else:  # pragma: no cover
             database = MontyClient(os.path.join(application_path, "db"))
             if askyesno("Import", "Import an existing database?"):
                 import_data = askopenfilename()
@@ -72,7 +74,7 @@ def init_database() -> None:
             map_size="1073741824",
         )
         database = MontyClient(os.path.join(application_path, "db"))
-    else:
+    else:  # pragma: no cover
         config.read(config_path)
         if config["db"]["is_remote"] and config["db"]["connection_url"] != "":
             try:
