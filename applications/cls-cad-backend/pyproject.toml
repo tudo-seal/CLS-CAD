@@ -43,6 +43,7 @@ pytest = "^7"
 pytest-cov = "^4"
 coverage = "^7"
 pytest-dependency = "^0"
+pytest-order = "^1"
 httpx = "^0"
 
 [build-system]
@@ -51,3 +52,11 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 start = "main:start"
+
+[tool.coverage.run]
+branch = true
+
+[tool.coverage.report]
+omit = ["__init__.py", "main.py", "conftest.py"]
+
+ignore_errors = true

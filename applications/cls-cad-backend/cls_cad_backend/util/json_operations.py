@@ -1,15 +1,13 @@
 import copy
-import json
 import re
 from collections import defaultdict, deque
 
 base_json = True
-try:
-    import orjson
-    import ujson
+try:  # pragma: no cover
+    pass
 
     base_json = False
-except ImportError:
+except ImportError:  # pragma: no cover
     pass
 
 from cls_cad_backend.repository_builder import Part
@@ -147,15 +145,3 @@ def suffix_taxonomy_and_add_mirror(taxonomy: dict):
             ]
         suffixed_taxonomy.update(suffixed_individual_taxonomy)
     return suffixed_taxonomy
-
-
-def fast_json_to_string(content: dict):
-    if base_json:
-        return json.dumps(content, ensure_ascii=False).encode("utf-8")
-    try:
-        return orjson.dumps(content)
-    except TypeError:
-        try:
-            return ujson.dumps(content, ensure_ascii=False).encode("utf-8")
-        except OverflowError:
-            return json.dumps(content, ensure_ascii=False).encode("utf-8")

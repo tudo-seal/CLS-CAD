@@ -1,10 +1,8 @@
 import cls_cad_backend.server
 import pytest
-from cls_cad_backend.database.commands import switch_to_test_database
 from fastapi.testclient import TestClient
 
 client = TestClient(cls_cad_backend.server.app)
-switch_to_test_database()
 
 
 @pytest.mark.dependency(
@@ -14,6 +12,7 @@ switch_to_test_database()
     ],
     scope="session",
 )
+@pytest.mark.order(4)
 def test_synthesis_simple():
     test_payload = {
         "forgeProjectId": "a.YnVzaW5lc3M6Y2hhdW1ldCMyMDIzMTEwOTY5NjQ4MjUwMQ",
@@ -33,6 +32,7 @@ def test_synthesis_simple():
     ],
     scope="session",
 )
+@pytest.mark.order(5)
 def test_synthesis_intersection():
     test_payload = {
         "forgeProjectId": "a.YnVzaW5lc3M6Y2hhdW1ldCMyMDIzMTEwOTY5NjQ4MjUwMQ",
@@ -52,6 +52,7 @@ def test_synthesis_intersection():
     ],
     scope="session",
 )
+@pytest.mark.order(6)
 def test_synthesis_simple_counting():
     test_payload = {
         "forgeProjectId": "a.YnVzaW5lc3M6Y2hhdW1ldCMyMDIzMTEwOTY5NjQ4MjUwMQ",
@@ -78,6 +79,7 @@ def test_synthesis_simple_counting():
     ],
     scope="session",
 )
+@pytest.mark.order(7)
 def test_synthesis_intersection_counting():
     test_payload = {
         "forgeProjectId": "a.YnVzaW5lc3M6Y2hhdW1ldCMyMDIzMTEwOTY5NjQ4MjUwMQ",

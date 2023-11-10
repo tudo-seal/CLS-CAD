@@ -31,7 +31,6 @@ from picls import (
     Subtypes,
     Type,
     enumerate_terms,
-    enumerate_terms_of_size,
     interpret_term,
 )
 from picls.types import Literal, Omega
@@ -177,15 +176,7 @@ async def synthesize_assembly(
     result = gamma.inhabit(query)
     terms = []
 
-    if payload.depths:
-        for depth in payload.depths:
-            terms.extend(
-                enumerate_terms_of_size(
-                    query, result, term_size=depth, max_count=payload.resultsPerDepth
-                )
-            )
-    else:
-        terms.extend(enumerate_terms(query, result, max_count=100))
+    terms.extend(enumerate_terms(query, result, max_count=100))
     # print(timer() - start)
     interpreted_terms = [postprocess(interpret_term(term)) for term in terms]
 

@@ -32,12 +32,6 @@ class Part:
             },
         )
 
-    def __repr__(self) -> str:
-        return self.__call__()
-
-    def __str__(self) -> str:
-        return ""
-
     def __hash__(self):
         return hash(json.dumps(self.info))
 
