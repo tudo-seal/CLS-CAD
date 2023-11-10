@@ -85,7 +85,7 @@ Download the [modular components for synthesizing robotic arms](https://doi.org/
 <details>
 <summary>GIF</summary>
 
-![](docs/images/download-dataset.gif)
+![](docs/images/obtain-dataset.gif)
 
 </details>
 
