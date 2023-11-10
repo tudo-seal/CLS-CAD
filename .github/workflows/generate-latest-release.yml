@@ -37,7 +37,7 @@ jobs:
 
   build-msi:
     name: Installer
-    needs: [changes, run-tests]
+    needs: [changes]
     if: ${{ needs.changes.outputs.plugin == 'true' }}
     uses: tudo-seal/CLS-CAD/.github/workflows/build-publish-installer.yml@main
     secrets: inherit

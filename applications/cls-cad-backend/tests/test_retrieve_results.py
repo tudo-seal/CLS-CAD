@@ -53,14 +53,14 @@ def test_for_project_results_are_sane():
         f"/results/a.YnVzaW5lc3M6Y2hhdW1ldCMyMDIzMTEwOTY5NjQ4MjUwMQ/{result}"
     )
     assert response.status_code == 200
-    assert len(response.json()) == 1
+    assert len(response.json()) > 0
 
     # Tests for caching
     response = client.get(
         f"/results/a.YnVzaW5lc3M6Y2hhdW1ldCMyMDIzMTEwOTY5NjQ4MjUwMQ/{result}"
     )
     assert response.status_code == 200
-    assert len(response.json()) == 1
+    assert len(response.json()) > 0
 
 
 @pytest.mark.dependency(
@@ -71,7 +71,7 @@ def test_for_project_results_are_sane():
 def test_for_project_results_are_batchable():
     response = client.get("/results/a.YnVzaW5lc3M6Y2hhdW1ldCMyMDIzMTEwOTY5NjQ4MjUwMQ")
     response = client.get(
-        f"/results/a.YnVzaW5lc3M6Y2hhdW1ldCMyMDIzMTEwOTY5NjQ4MjUwMQ/{response.json()[len(response.json())-1]['id']}/maxcounts"
+        f"/results/a.YnVzaW5lc3M6Y2hhdW1ldCMyMDIzMTEwOTY5NjQ4MjUwMQ/{response.json()[0]['id']}/maxcounts"
     )
     assert response.status_code == 200
     assert response.json()

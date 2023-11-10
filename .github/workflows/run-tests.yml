@@ -1,4 +1,4 @@
-name: Build and Publish Installer
+name: Run Tests
 on:
   workflow_call:
   workflow_dispatch:

@@ -28,9 +28,8 @@ WORKSPACE_ID = "FusionSolidEnvironment"
 PANEL_ID = "SYNTH_ASSEMBLY"
 COMMAND_BESIDE_ID = "ScriptsManagerCommand"
 ICON_FOLDER = os.path.join(os.path.dirname(__file__), "resources", "")
-DISPLAY_TIME = True
+DISPLAY_TIME = False
 NO_GRAPHICS = False
-remaining_assemblies = 0
 design: adsk.fusion.Design = adsk.fusion.Design.cast(None)
 bucket_primed = False
 bucket_attributes = defaultdict(list)
@@ -425,8 +424,8 @@ def create_assembly_document(data, name):
     progress_dialog.maximumValue = data["count"]
     create_joints_from_instructions(data["instructions"])
     progress_dialog.hide()
-    total_time = timer() - total_time
     if DISPLAY_TIME:
+        total_time = timer() - total_time
         ui.messageBox(
             f"""
             Total time elapsed: {total_time}
