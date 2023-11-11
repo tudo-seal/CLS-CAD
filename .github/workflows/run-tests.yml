@@ -41,3 +41,4 @@ jobs:
           file: ./coverage.xml
           fail_ci_if_error: true
           working-directory: applications/cls-cad-backend
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'

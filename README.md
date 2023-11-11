@@ -2,11 +2,14 @@
 
 ---
 
-[![Generic badge](https://img.shields.io/badge/python-fusion360%20|%203.10%20|%203.11-informational.svg?style=for-the-badge)](https://shields.io/)
-[![Supported systems](https://img.shields.io/badge/os-windows-informational.svg?style=for-the-badge)](https://shields.io/)
+![Generic badge](https://img.shields.io/badge/python-fusion360%20|%203.10%20|%203.11-informational.svg?style=for-the-badge)
+![Supported systems](https://img.shields.io/badge/os-windows-informational.svg?style=for-the-badge)
 [![GitHub license](https://img.shields.io/github/license/tudo-seal/CLS-CAD?style=for-the-badge)](https://github.com/tudo-seal/CLS-CAD/blob/main/LICENSE)
 [![CodeCov](https://img.shields.io/codecov/c/gh/tudo-seal/CLS-CAD/badge.svg?style=for-the-badge)](https://codecov.io/gh/tudo-seal/CLS-CAD)
-![Generate Latest Release](https://img.shields.io/github/actions/workflow/status/tudo-seal/CLS-CAD/generate-latest-release.yml?style=for-the-badge&label=Release)
+
+[![Latest Release](https://img.shields.io/github/v/release/tudo-seal/CLS-CAD.svg?style=for-the-badge)](https://github.com/tudo-seal/CLS-CAD/releases/latest/download/cls-cad-fusion-plugin.msi)
+[![Youtube Overview](https://img.shields.io/badge/YouTube-Overview-informational?style=for-the-badge)](https://youtu.be/gNqHxLpqiFw)
+[![Dataset](https://img.shields.io/badge/dataset-zenodo.10051244-blue?style=for-the-badge)](https://doi.org/10.5281/zenodo.10051244)
 
 <!---[![Issues](https://img.shields.io/github/issues/tudo-seal/CLS-CAD)](https://github.com/tudo-seal/CLS-CAD/issues)-->
 
