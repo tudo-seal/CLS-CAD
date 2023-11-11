@@ -33,8 +33,6 @@ There is an overview video available at: https://youtu.be/gNqHxLpqiFw <br>
 
 # Installation
 
----
-
 To install the add-in in Fusion 360, download the [latest installer](https://github.com/tudo-seal/CLS-CAD/releases/download/latest/cls-cad-fusion-plugin.msi) and execute it.
 To use the plugin, you need a running backend.
 This requires [docker](https://docs.docker.com/desktop/install/windows-install/) to be installed.
@@ -47,11 +45,7 @@ For subsequent usage, simply start the `cls-cad-backend` container from the cont
 
 # Getting Started
 
----
-
 ## Install Add-In
-
----
 
 Install the add-in using the [latest installer](https://github.com/tudo-seal/CLS-CAD/releases/download/latest/cls-cad-fusion-plugin.msi).
 <br>
@@ -66,8 +60,6 @@ Please make sure to have started Fusion 360 at least once before installation. T
 
 ## Install Docker and Run Backend
 
----
-
 Run the backend (using docker, as detailed in the [Installation](#installation) section)
 <br>
 On subsequent runs after rebooting the PC, the created container shown at the end of the GIF can just be started again.
@@ -81,8 +73,6 @@ On subsequent runs after rebooting the PC, the created container shown at the en
 
 ## Download and Extract Dataset
 
----
-
 Download the [modular components for synthesizing robotic arms](https://doi.org/10.5281/zenodo.10051244) dataset.
 
 <details>
@@ -94,8 +84,6 @@ Download the [modular components for synthesizing robotic arms](https://doi.org/
 
 ## Upload Dataset to Fusion
 
----
-
 Launch Fusion 360 and create a new empty project. Open that project and upload the dataset.
 
 <details>
@@ -106,8 +94,6 @@ Launch Fusion 360 and create a new empty project. Open that project and upload t
 </details>
 
 ## Prepare Project for Synthesis
-
----
 
 Switch to the CLS-CAD tab in Fusion 360, and press the `Upload Taxonomy` button. Select the .taxonomy in the [modular components for synthesizing robotic arms](https://doi.org/10.5281/zenodo.10051244).
 <br>
@@ -122,8 +108,6 @@ Press the `Crawl Project` button in the CLS-CAD tab and wait for the process to 
 
 ## Request Synthesis
 
----
-
 At the far right of the CLS-CAD tab, press the `Request Synthesis` button.
 <br>
 Select the part type `Base` in the upper taxonomy, optionally add constraints, and hit Ok.
@@ -136,8 +120,6 @@ Select the part type `Base` in the upper taxonomy, optionally add constraints, a
 </details>
 
 ## Explore Results
-
----
 
 Press the `Assemble Results` button to explore and assemble any results
 
