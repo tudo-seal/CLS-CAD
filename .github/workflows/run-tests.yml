@@ -10,6 +10,9 @@ jobs:
     defaults:
       run:
         working-directory: applications/cls-cad-backend
+    permissions:
+      checks: write
+      pull-requests: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -33,7 +36,19 @@ jobs:
       - name: Install dependencies
         run: touch cls_cad_backend/database/container
       - name: Test with pytest
-        run: poetry run pytest --cov=. --cov-report=xml
+        run: poetry run pytest --junit-xml=report.xml --cov=. --cov-report=xml
+      - name: Comment Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: github.event_name == 'pull_request'
+        with:
+          files: |
+            ./applications/cls-cad-backend/report.xml
+      - name: Comment with coverage
+        uses: orgoro/coverage@v3.1
+        with:
+          coverageFile: ./applications/cls-cad-backend/coverage.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
+        if: github.event_name == 'pull_request'
       - name: Upload coverage
         uses: codecov/codecov-action@v3
         with:
