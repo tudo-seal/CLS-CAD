@@ -2,12 +2,11 @@ import json
 from collections import OrderedDict, defaultdict
 from collections.abc import Mapping
 from enum import Enum
-from functools import partial, reduce
+from functools import partial
 
 from cls_cad_backend.database.commands import get_all_parts_for_project
-from cls_cad_backend.util.hrid import generate_id
 from cls_cad_backend.util.motion import combine_motions
-from picls import Any, Arrow, Constructor, Omega, Subtypes, Type
+from picls import Any, Constructor, Omega, Subtypes, Type
 from picls.dsl import DSL
 from picls.types import Literal, TVar
 
@@ -98,15 +97,6 @@ def get_joint_origin_type(
     return [Constructor(f"{prefix}{tpe}") for tpe in part["jointOrigins"][uuid][role]]
 
 
-def is_blacklisted_under_subtyping(
-    blacklist, joint_origin_uuid, part, taxonomy, role: Role
-):
-    return bool(blacklist) and taxonomy.check_subtype(
-        get_joint_origin_type(joint_origin_uuid, part, role),
-        Type.intersect([Constructor(t) for t in blacklist]),
-    )
-
-
 def fetch_required_joint_origins_info(part, configuration):
     return {
         joint_origin_uuid: fetch_joint_origin_info(part, joint_origin_uuid)
@@ -116,20 +106,6 @@ def fetch_required_joint_origins_info(part, configuration):
 
 def fetch_joint_origin_info(part, joint_origin_uuid: str):
     return part["jointOrigins"][joint_origin_uuid]
-
-
-def create_virtual_substitute_part(part, required_joint_origin_uuid):
-    return Part(
-        {
-            "name": "clsconnectmarker_" + str(hash(generate_id())),
-            "forgeDocumentId": "NoInsert",
-            "forgeFolderId": "NoInsert",
-            "forgeProjectId": "NoInsert",
-            "jointOrder": {},
-            "provides": required_joint_origin_uuid,
-            "motion": "Rigid",
-        }
-    )
 
 
 def wrapped_counted_types(types: list[Type]) -> Type:
@@ -155,21 +131,6 @@ def types_from_uuids(
     )
 
 
-def multiarrow_from_types(type_list):
-    return reduce(lambda a, b: Arrow(b, a), reversed(type_list))
-
-
-def counting_multiarrow_from_uuid(uuid_list, count_type: str):
-    return reduce(
-        lambda a, b: Arrow(b, a),
-        map(lambda uuid: TVar(f"{uuid}_{count_type}"), reversed(uuid_list)),
-    )
-
-
-def multiarrow_to_self(tpe, length: int):
-    return multiarrow_from_types([tpe] * length)
-
-
 class RepositoryBuilder:
     @staticmethod
     def add_part_to_repository(
@@ -177,8 +138,6 @@ class RepositoryBuilder:
         repository: dict,
         *,
         part_counts: list[tuple[str, int, str]] | None = None,
-        blacklist=None,
-        connect_uuid=None,
         taxonomy: Subtypes = None,
     ) -> None:
         """
@@ -200,19 +159,6 @@ class RepositoryBuilder:
         :return:
         """
         for configuration in part["configurations"]:
-            # Since SetDecoder is used for creating the part dict, we can just check if the part provides the leaf type
-            # or an even more specific type, which we also can not allow.
-            pass
-
-            if is_blacklisted_under_subtyping(
-                blacklist,
-                configuration["providesJointOrigin"],
-                part,
-                taxonomy,
-                Role.provides,
-            ):
-                continue
-
             types_by_uuid: dict[str, list[Constructor]] = types_from_uuids(
                 [
                     *configuration["requiresJointOrigins"],
@@ -239,7 +185,7 @@ class RepositoryBuilder:
                 multiplicities: dict[str, int] = {}
 
                 for count_types, _, count_name in part_counts:
-                    for uuid, joint_type in types_by_uuid.items():
+                    for uuid, _ in types_by_uuid.items():
                         part_type = part_type.Use(f"{uuid}_{count_name}", count_name)
                         counted_types[uuid].append(TVar(f"{uuid}_{count_name}"))
                         multiplicities[uuid] = part["jointOrigins"][uuid]["count"]
@@ -315,28 +261,11 @@ class RepositoryBuilder:
                 )
             ] = part_type
 
-            for required_joint_origin_uuid in configuration["requiresJointOrigins"]:
-                # If a joint would require a blacklisted type or a subtype of it, we add that specific
-                # version to the repository as a virtual Part along with a fitting PartConfig. This results in the
-                # output JSON specifying that virtual part for the "back-side" of the synthesised connector.
-                if not is_blacklisted_under_subtyping(
-                    blacklist, required_joint_origin_uuid, part, taxonomy, Role.provides
-                ):
-                    continue
-
-                repository[
-                    create_virtual_substitute_part(part, required_joint_origin_uuid)
-                ] = get_joint_origin_type(
-                    required_joint_origin_uuid, part, Role.requires
-                )
-
     @staticmethod
     def add_all_to_repository(
         project_id: str,
         *,
         part_counts: list[tuple[str, int, str]] | None = None,
-        blacklist=None,
-        connect_uuid=None,
         taxonomy=None,
     ):
         repository: dict = {}
@@ -345,8 +274,6 @@ class RepositoryBuilder:
                 part,
                 repository,
                 part_counts=part_counts,
-                blacklist=blacklist,
-                connect_uuid=connect_uuid,
                 taxonomy=taxonomy,
             )
         return repository

@@ -1,7 +1,6 @@
 import configparser
 import os
 import platform
-import sys
 import zipfile
 from tkinter.filedialog import askopenfilename
 from tkinter.messagebox import askyesno, showerror, showinfo
@@ -20,10 +19,7 @@ storage_engine = "flatfile" if any(platform.win32_ver()) else "lightning"
 
 def init_database() -> None:
     global database, parts, taxonomies, results
-    if "__compiled__" in globals():  # pragma: no cover
-        application_path = os.path.dirname(sys.argv[0])
-    elif __file__:
-        application_path = os.path.dirname(__file__)
+    application_path = os.path.dirname(__file__)
     config_path = os.path.join(application_path, "config.ini")
     container_path = os.path.join(application_path, "container")
     config = configparser.ConfigParser()
@@ -66,7 +62,9 @@ def init_database() -> None:
         config["db"] = {"is_remote": is_remote, "connection_url": connection_url}
         with open(config_path, "w") as configfile:  # save
             config.write(configfile)
-    elif os.path.exists(container_path):
+    elif os.path.exists(
+        container_path
+    ):  # pragma: no cover (don't check for docker image functionality, we probably want separate tests for that)
         set_storage(
             os.path.join(application_path, "db"),
             storage=storage_engine,

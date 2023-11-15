@@ -51,6 +51,4 @@ class SynthesisRequestInf(BaseModel, frozen=True):
     name: str | None = generate_id()
     tag: str | None = None
     partCounts: list[CountNumOfPartTypeInf] | None = None
-    blacklist: list | None = None
-    whitelist: list | None = None
     sourceUuid: str | None = None

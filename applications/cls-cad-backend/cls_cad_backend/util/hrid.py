@@ -2,16 +2,13 @@
 
 import itertools
 import random
-from collections.abc import Hashable
 
 __all__ = ["generate_id"]
 
 system_random: random.Random | random.SystemRandom = random.SystemRandom()
 
 
-def generate_id(
-    separator: str = "-", seed: Hashable = None, word_count: int = 6
-) -> str:
+def generate_id(separator: str = "-", word_count: int = 6) -> str:
     """
     Generate a human readable ID
     :param separator: The string to use to separate words
@@ -19,13 +16,9 @@ def generate_id(
     :param word_count: The number of words to use. Minimum of 3.
     :return: A human readable ID
     """
-    if word_count < 3:
-        raise ValueError("word_count cannot be lower than 3")
+    word_count = word_count if word_count > 3 else 3
 
     random_obj = system_random
-    if seed:
-        random_obj = random.Random(seed)
-
     parts = {verbs: 1, adjectives: 1, nouns: 1}
 
     for _ in range(3, word_count):

@@ -1,5 +1,6 @@
 import mimetypes
 import os
+import sys
 from collections import defaultdict
 from datetime import datetime
 from timeit import default_timer as timer
@@ -86,6 +87,7 @@ async def save_part(
     payload: PartInf,
 ) -> str:
     upsert_part(payload.model_dump(by_alias=True))
+    print(payload.model_dump(by_alias=True))
     return "OK"
 
 
@@ -157,8 +159,6 @@ async def synthesize_assembly(
 
     repo = RepositoryBuilder.add_all_to_repository(
         payload.forgeProjectId,
-        blacklist=payload.blacklist,
-        connect_uuid=payload.sourceUuid,
         taxonomy=taxonomy,
         part_counts=[
             (p.partType, p.partNumber, p.partCountName) for p in payload.partCounts
@@ -221,14 +221,19 @@ async def list_project_ids(project_id: str):
     return [dict(x, id=x["_id"]) for x in get_all_result_ids_for_project(project_id)]
 
 
+async def cache_request(request_id):
+    if request_id not in cache:
+        cache[request_id] = get_result_for_id(request_id)["interpretedTerms"]
+    results = cache[request_id]
+    return results
+
+
 @app.get("/results/{project_id}/{request_id}/maxcounts", response_class=FastResponse)
 async def maximum_counts_for_id(
     project_id: str,
     request_id: str,
 ):
-    if request_id not in cache:
-        cache[request_id] = get_result_for_id(request_id)["interpretedTerms"]
-    results = cache[request_id]
+    results = await cache_request(request_id)
     part_counts: defaultdict[int] = defaultdict(int)
     for result in results:
         for document_id, data in result["quantities"].items():
@@ -244,35 +249,30 @@ async def maximum_counts_for_id(
 async def results_for_id(
     project_id: str,
     request_id: str,
-    skip: int | None = None,
-    limit: int | None = None,
+    skip: int = 0,
+    limit: int = sys.maxsize,
 ):
     if limit == 0:
         return []
 
-    if request_id not in cache:
-        cache[request_id] = get_result_for_id(request_id)["interpretedTerms"]
-    results = cache[request_id]
-
-    if skip is not None and limit is not None:
-        return FastResponse(
-            [
-                results[result_id]
-                for result_id in range(
-                    skip if skip < len(results) else len(results) - 1,
-                    skip + limit if (skip + limit) <= len(results) else len(results),
-                )
-            ]
-        )
-    else:
+    results = await cache_request(request_id)
+    if (limit < 0 or limit > len(results)) and skip == 0:
         return FastResponse(results)
+
+    return FastResponse(
+        [
+            results[result_id]
+            for result_id in range(
+                skip if skip < len(results) else len(results) - 1,
+                skip + limit if (skip + limit) <= len(results) else len(results),
+            )
+        ]
+    )
 
 
 @app.get("/results/{project_id}/{request_id}/{result_id}", response_class=FastResponse)
 async def results_for_result_id(project_id: str, request_id: str, result_id: int):
-    if request_id not in cache:
-        cache[request_id] = get_result_for_id(request_id)["interpretedTerms"]
-    results = cache[request_id]
+    results = await cache_request(request_id)
     if result_id < len(results) or len(results) == -1:
         return FastResponse(results[result_id])
     else:

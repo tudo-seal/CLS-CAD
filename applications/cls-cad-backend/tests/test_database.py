@@ -9,8 +9,8 @@ client = TestClient(cls_cad_backend.server.app)
 @pytest.mark.order(1)
 def test_upsert_taxonomy():
     test_payload = {
-        "_id": "a.YnVzaW5lc3M6Y2hhdW1ldCMyMDIzMTEwOTY5NjQ4MjUwMQ",
-        "forgeProjectId": "a.YnVzaW5lc3M6Y2hhdW1ldCMyMDIzMTEwOTY5NjQ4MjUwMQ",
+        "_id": "forgeProject",
+        "forgeProjectId": "forgeProject",
         "taxonomies": {
             "parts": {"Cube": ["Part"]},
             "formats": {"Square": ["Format"]},
@@ -39,29 +39,29 @@ def test_upsert_taxonomy():
 @pytest.mark.order(2)
 def test_upsert_parts():
     test_payload = {
-        "_id": "urn:adsk.wipprod:dm.lineage:5Za2vPl5QGGfDsQXYV1peA",
+        "_id": "1",
         "configurations": [
             {
-                "requiresJointOrigins": ["speak-become-white-past-woman-case"],
-                "providesJointOrigin": "allow-difficult-political-game-guy-art",
+                "requiresJointOrigins": ["a1"],
+                "providesJointOrigin": "b1",
             }
         ],
         "meta": {
             "name": "Cube v2",
-            "forgeDocumentId": "urn:adsk.wipprod:dm.lineage:5Za2vPl5QGGfDsQXYV1peA",
-            "forgeFolderId": "urn:adsk.wipprod:fs.folder:co.FZZmke6KQXG_Fww59QryrA",
-            "forgeProjectId": "a.YnVzaW5lc3M6Y2hhdW1ldCMyMDIzMTEwOTY5NjQ4MjUwMQ",
+            "forgeDocumentId": "1",
+            "forgeFolderId": "forgeFolder",
+            "forgeProjectId": "forgeProject",
             "cost": 1.0,
             "availability": 1.0,
         },
         "jointOrigins": {
-            "speak-become-white-past-woman-case": {
+            "a1": {
                 "motion": "Revolute",
                 "count": 1,
-                "requires": ["Square_formats", "Cube_parts", "Plastic_attributes"],
+                "requires": ["Square_formats", "Cube_parts"],
                 "provides": [],
             },
-            "allow-difficult-political-game-guy-art": {
+            "b1": {
                 "motion": "Rigid",
                 "count": 1,
                 "requires": [],
@@ -73,23 +73,57 @@ def test_upsert_parts():
     assert response.status_code == 200
 
     test_payload = {
-        "_id": "urn:adsk.wipprod:dm.lineage:7LFKjMFQRaSkLItKYLSJ6w",
+        "_id": "2",
         "configurations": [
             {
-                "requiresJointOrigins": [],
-                "providesJointOrigin": "allow-difficult-political-game-guy-art",
+                "requiresJointOrigins": ["a2"],
+                "providesJointOrigin": "b2",
             }
         ],
         "meta": {
-            "name": "Cube_End v2",
-            "forgeDocumentId": "urn:adsk.wipprod:dm.lineage:7LFKjMFQRaSkLItKYLSJ6w",
-            "forgeFolderId": "urn:adsk.wipprod:fs.folder:co.FZZmke6KQXG_Fww59QryrA",
-            "forgeProjectId": "a.YnVzaW5lc3M6Y2hhdW1ldCMyMDIzMTEwOTY5NjQ4MjUwMQ",
+            "name": "Cube Double v2",
+            "forgeDocumentId": "2",
+            "forgeFolderId": "forgeFolder",
+            "forgeProjectId": "forgeProject",
             "cost": 1.0,
             "availability": 1.0,
         },
         "jointOrigins": {
-            "allow-difficult-political-game-guy-art": {
+            "a2": {
+                "motion": "Revolute",
+                "count": 2,
+                "requires": ["Square_formats", "Cube_parts"],
+                "provides": [],
+            },
+            "b2": {
+                "motion": "Rigid",
+                "count": 1,
+                "requires": [],
+                "provides": ["Cube_parts", "Square_formats"],
+            },
+        },
+    }
+    response = client.post("/submit/part", json=test_payload)
+    assert response.status_code == 200
+
+    test_payload = {
+        "_id": "3",
+        "configurations": [
+            {
+                "requiresJointOrigins": [],
+                "providesJointOrigin": "b3",
+            }
+        ],
+        "meta": {
+            "name": "Cube_End v2",
+            "forgeDocumentId": "3",
+            "forgeFolderId": "forgeFolder",
+            "forgeProjectId": "forgeProject",
+            "cost": 1.0,
+            "availability": 1.0,
+        },
+        "jointOrigins": {
+            "b3": {
                 "motion": "Rigid",
                 "count": 1,
                 "requires": [],
@@ -108,8 +142,6 @@ def test_fetch_taxonomy():
     assert response.status_code == 200
     assert len(response.json()["taxonomies"]["parts"]["Part"]) == 0
 
-    response = client.get(
-        "/data/taxonomy/a.YnVzaW5lc3M6Y2hhdW1ldCMyMDIzMTEwOTY5NjQ4MjUwMQ"
-    )
+    response = client.get("/data/taxonomy/forgeProject")
     assert response.status_code == 200
     assert len(response.json()["taxonomies"]["parts"]["Part"]) == 1
