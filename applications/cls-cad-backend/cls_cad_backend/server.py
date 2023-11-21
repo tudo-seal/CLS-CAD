@@ -8,7 +8,7 @@ from timeit import default_timer as timer
 from cls_cad_backend.database.commands import (
     get_all_projects_in_results,
     get_all_result_ids_for_project,
-    get_result_for_id,
+    get_result_for_id_in_project,
     get_taxonomy_for_project,
     init_database,
     upsert_part,
@@ -22,7 +22,7 @@ from cls_cad_backend.util.hrid import generate_id
 from cls_cad_backend.util.json_operations import (
     invert_taxonomy,
     postprocess,
-    suffix_taxonomy_and_add_mirror,
+    suffix_and_merge_taxonomy,
 )
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -37,21 +37,6 @@ from picls import (
 from picls.types import Literal, Omega
 from starlette.background import BackgroundTasks
 from starlette.staticfiles import StaticFiles
-
-# no_hypermapper = False
-# try:
-#     from hypermapper import optimizer
-#
-#     from cls_cad_backend.hypermapper_tools.hypermapper_compatibility import (
-#         create_hypermapper_config,
-#         wrapped_synthesis_optimization_function,
-#     )
-#     from cls_cad_backend.hypermapper_tools.hypermapper_visualisation import (
-#         compute_pareto_front,
-#         visualize_pareto_front,
-#     )
-# except ImportError:
-#     no_hypermapper = True
 
 origins = [
     "http://localhost:3000",
@@ -86,6 +71,13 @@ cache = {}
 async def save_part(
     payload: PartInf,
 ) -> str:
+    """
+    Takes a part payload in JSON form and inserts it into the database as is. It is indexed by a unique ID, usually the
+    Fusion 360 file identifier.
+
+    :param payload: The payload containing project, folder and part ids, as well as type information.
+    :return: Returns "OK" when successful, else returns a 422 response code if payload didn't pass validation.
+    """
     upsert_part(payload.model_dump(by_alias=True))
     print(payload.model_dump(by_alias=True))
     return "OK"
@@ -95,48 +87,31 @@ async def save_part(
 async def save_taxonomy(
     payload: TaxonomyInf,
 ) -> str:
+    """
+    Takes a taxonomy payload in JSON form and inserts it into the database as is. It is indexed by a unique ID, usually
+    the Fusion 360 project identifier.
+
+    :param payload: The payload containing the taxonomy, split into three distinct taxonomies.
+    :return: Returns "OK" when successful, else returns a 422 response code if payload didn't pass validation.
+    """
     upsert_taxonomy(payload.model_dump(by_alias=True))
     return "OK"
-
-
-# @app.post("/request/assembly/optimization")
-# async def request_optimization(
-#     payload: SynthesisRequestInf,
-# ):
-#     if no_hypermapper:
-#         return "Unsupported."
-#     request_id = str(generate_id())
-#     p = Path(os.path.join("Results", "Hypermapper", payload.forgeProjectId, request_id))
-#     p.mkdir(parents=True, exist_ok=True)
-#     with open(
-#         f"Results/Hypermapper/{payload.forgeProjectId}/{request_id}/hypermapper_config.json",
-#         "w+",
-#     ) as f:
-#         json.dump(
-#             create_hypermapper_config(
-#                 request_id, payload.forgeProjectId, [json.dumps(payload.target)]
-#             ),
-#             f,
-#             indent=4,
-#         )
-#
-#     optimizer.optimize(
-#         f"Results/Hypermapper/{payload.forgeProjectId}/{request_id}/hypermapper_config.json",
-#         wrapped_synthesis_optimization_function,
-#     )
-#     df = compute_pareto_front(
-#         f"Results/Hypermapper/{payload.forgeProjectId}/{request_id}"
-#     )
-#     visualize_pareto_front(
-#         df, f"Results/Hypermapper/{payload.forgeProjectId}/{request_id}"
-#     )
-#     return "OK."
 
 
 @app.post("/request/assembly")
 async def synthesize_assembly(
     payload: SynthesisRequestInf, background_tasks: BackgroundTasks
 ):
+    """
+    Takes a payload describing a synthesis request as JSON. Builds a repository and a query and then executes PiCLS.
+    Results (if present) get enumerated (up to 100) and then post-processed into assembly instructions for the
+    Fusion 360 Add-In to execute. A background task inserts the results bundled in a single JSON Object into the
+    database.
+
+    :param payload: The payload containing target types and constraints for the synthesis request.
+    :param background_tasks: The background tasks to asynchronously insert into the database.
+    :return: A JSON containing a result id and metadata, or FAIL if there are no results.
+    """
     take_time = timer()
     literals = {}
     part_count_type = Omega()
@@ -148,13 +123,8 @@ async def synthesize_assembly(
         )
 
     query = Type.intersect([Constructor(x, part_count_type) for x in payload.target])
-    # if payload.partCounts:
-    #     for partCount in payload.partCounts:
-    #         query = query & Literal(partCount.partNumber, partCount.partType)
-    #         literals[partCount.partType] = list(range(partCount.partNumber + 1))
-
     taxonomy = Subtypes(
-        suffix_taxonomy_and_add_mirror(get_taxonomy_for_project(payload.forgeProjectId))
+        suffix_and_merge_taxonomy(get_taxonomy_for_project(payload.forgeProjectId))
     )
 
     repo = RepositoryBuilder.add_all_to_repository(
@@ -169,15 +139,14 @@ async def synthesize_assembly(
 
     gamma = FiniteCombinatoryLogic(
         repo,
-        taxonomy,
+        subtypes=taxonomy,
         literals=literals,
     )
 
     result = gamma.inhabit(query)
-    terms = []
 
+    terms = []
     terms.extend(enumerate_terms(query, result, max_count=100))
-    # print(timer() - start)
     interpreted_terms = [postprocess(interpret_term(term)) for term in terms]
 
     if not interpreted_terms:
@@ -208,23 +177,51 @@ async def synthesize_assembly(
 
 @app.get("/data/taxonomy/{project_id}", response_class=FastResponse)
 async def get_taxonomy(project_id: str):
+    """
+    Retrieves the taxonomy and inverts subtype and supertype (Add-In uses Keys as Supertypes, CLS uses Keys as Subtype,
+    for multiple inheritance).
+
+    :param project_id: The project id for which a taxonomy should be retrieved.
+    :return: The inverted taxonomy for the project id if present. If not present, an empty default taxonomy.
+    """
     return invert_taxonomy(get_taxonomy_for_project(project_id))
 
 
 @app.get("/results", response_class=FastResponse)
 async def list_result_ids():
+    """
+    Lists all project ids for which synthesis results are found in the database.
+
+    :return: The list of project ids. An empty list if no results exist.
+    """
     return get_all_projects_in_results()
 
 
 @app.get("/results/{project_id}", response_class=FastResponse)
 async def list_project_ids(project_id: str):
+    """
+    Lists all result metadata for a specific project id.
+
+    :param project_id: The project id for which to list metadata.
+    :return: A list of JSON objects describing the individual results. Each object has an "id" key.
+    """
     return [dict(x, id=x["_id"]) for x in get_all_result_ids_for_project(project_id)]
 
 
-async def cache_request(request_id):
+async def cache_request(request_id, project_id: str):
+    """
+    Caches a specific synthesis result. Since these can be several Mb of JSON data, this avoids unnecessary database
+    accesses.
+
+    :param project_id: The id of the project of the result to be cached.
+    :param request_id: The id of the result to be cached.
+    :return: The JSON data of the result.
+    """
     if request_id not in cache:
-        cache[request_id] = get_result_for_id(request_id)["interpretedTerms"]
-    results = cache[request_id]
+        cache[f"{request_id}_{project_id}"] = get_result_for_id_in_project(
+            request_id, project_id
+        )["interpretedTerms"]
+    results = cache[f"{request_id}_{project_id}"]
     return results
 
 
@@ -233,7 +230,18 @@ async def maximum_counts_for_id(
     project_id: str,
     request_id: str,
 ):
-    results = await cache_request(request_id)
+    """
+    Computes the maximum amount of a part across all assemblies contained in a synthesis result.
+    This is used to create a template file that contains enough parts to assemble any assembly from the results.
+
+    :param project_id: The project id of the project the result is from.
+    :param request_id: The id of the result.
+    :return: A JSON object containing all the maximum counts. "Invalid" if the request or project ids were invalid.
+    """
+    try:
+        results = await cache_request(request_id, project_id)
+    except TypeError:
+        return "Invalid"
     part_counts: defaultdict[int] = defaultdict(int)
     for result in results:
         for document_id, data in result["quantities"].items():
@@ -252,10 +260,22 @@ async def results_for_id(
     skip: int = 0,
     limit: int = sys.maxsize,
 ):
+    """
+    Returns the assemblies contained in a synthesis result.
+
+    :param project_id: The project id of the project the result is from.
+    :param request_id: The id of the result.
+    :param skip: How many assemblies to skip from the start.
+    :param limit: How many assemblies to return.
+    :return: A list of assemblies of size up to limit. "Invalid" if the request or project ids were invalid.
+    """
     if limit == 0:
         return []
 
-    results = await cache_request(request_id)
+    try:
+        results = await cache_request(request_id, project_id)
+    except TypeError:
+        return "Invalid"
     if (limit < 0 or limit > len(results)) and skip == 0:
         return FastResponse(results)
 
@@ -272,7 +292,17 @@ async def results_for_id(
 
 @app.get("/results/{project_id}/{request_id}/{result_id}", response_class=FastResponse)
 async def results_for_result_id(project_id: str, request_id: str, result_id: int):
-    results = await cache_request(request_id)
+    """
+    Returns a single assembly from a synthesis result.
+    :param project_id: The project id of the project the result is from.
+    :param request_id: The id of the result.
+    :param result_id: The index of the assembly in the result.
+    :return: The assembly, or "" if the index did not exist. "Invalid" if the request or project ids were invalid.
+    """
+    try:
+        results = await cache_request(request_id, project_id)
+    except TypeError:
+        return "Invalid"
     if result_id < len(results) or len(results) == -1:
         return FastResponse(results[result_id])
     else:

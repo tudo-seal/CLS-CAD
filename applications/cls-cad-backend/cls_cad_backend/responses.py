@@ -17,6 +17,13 @@ class FastResponse(Response):
     media_type = "application/json"
 
     def render(self, content: typing.Any) -> bytes:
+        """
+        Encodes the response of an endpoint into a JSON. When not running on PyPy, uses faster JSON encoders in a
+        cascading fashion based on maximum JSON depth.
+
+        :param content: The content to encode.
+        :return: The encoded content.
+        """
         if base_json:
             return json.dumps(content, indent=2, ensure_ascii=False).encode("utf-8")
         try:  # pragma: no cover

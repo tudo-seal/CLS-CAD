@@ -2,6 +2,9 @@ import copy
 import re
 from collections import defaultdict, deque
 
+from cls_cad_backend.repository_builder import Part
+from cls_cad_backend.util.hrid import generate_id
+
 base_json = True
 try:  # pragma: no cover
     pass
@@ -10,11 +13,15 @@ try:  # pragma: no cover
 except ImportError:  # pragma: no cover
     pass
 
-from cls_cad_backend.repository_builder import Part
-from cls_cad_backend.util.hrid import generate_id
-
 
 def postprocess(data: dict | Part):
+    """
+    Used to post-process a tree-like dictionary from interpreting a term into a flat list of part counts and assembly
+    instructions.
+
+    :param data: The tree-like dictionary.
+    :return: The post-processed flat dictionary.
+    """
     data = data() if isinstance(data, Part) else data
     name = re.sub("v[0-9]+$", "", data["name"])
     data = {"connections": {"origin": data}, "name": "origin", "count": 1}
@@ -35,6 +42,13 @@ def postprocess(data: dict | Part):
 
 
 def resolve_multiplicity(data: dict):
+    """
+    Propagates all multiplicities of joints (multiple identical physical joints being mapped to the same type) through
+    the dictionary by multiplying their subtree multiplicities accordingly.
+
+    :param data: The tree-like dictionary with multiplicities not yet resolved.
+    :return: A tree-like dictionary with resolved multiplicities.
+    """
     connection_list = []
     for k, v in data["connections"].items():
         v["count"] *= data["count"]
@@ -53,6 +67,12 @@ def resolve_multiplicity(data: dict):
 
 
 def compute_insertions_and_totals(data: dict) -> tuple:
+    """
+    Aggregates all parts present in the tree-like assembly dictionary, computing their total counts and costs.
+
+    :param data: The tree-like dictionary.
+    :return: A dictionary of part counts and costs.
+    """
     part_counts: defaultdict = defaultdict(lambda: {"count": 0, "name": "", "cost": 0})
     total_count, total_cost = 0, 0
     to_traverse = deque(data["connections"])
@@ -68,6 +88,13 @@ def compute_insertions_and_totals(data: dict) -> tuple:
 
 
 def compute_instructions(data):
+    """
+    Traverse the tree-like assembly dict in the order that it must be assembled in. Creates assembly instructions in
+    the traversed order, thus flattening the tree-like structure.
+
+    :param data: The tree-like dictionary.
+    :return: A set of assembly instructions, and the total amount of encountered links.
+    """
     instructions = []
     idx = 0
     to_traverse = deque([list(tup) + [idx] for tup in data["connections"]])
@@ -90,6 +117,12 @@ def compute_instructions(data):
 
 
 def remove_unused_keys_from_part_json(data: dict):
+    """
+    Removes metadata keys that are not relevant to the assembly instructions, reducing JSON size.
+
+    :param data: The dictionary with unused keys.
+    :return: The dictionary without unused keys.
+    """
     data.pop("requiredJointOriginsInfo", None)
     for k, v in data["connections"]:
         remove_unused_keys_from_part_json(v)
@@ -97,6 +130,12 @@ def remove_unused_keys_from_part_json(data: dict):
 
 
 def invert_taxonomy(taxonomy):
+    """
+    Converts a taxonomy where the keys denote supertypes to one where the keys denote subtypes, and vice versa.
+
+    :param taxonomy: The taxonomy before inversion.
+    :return: The inverted taxonomy, or a default taxonomy if the passed taxonomy was empty.
+    """
     if not taxonomy:
         return {
             "taxonomies": {
@@ -124,6 +163,12 @@ def invert_taxonomy(taxonomy):
 
 
 def invert_sub_taxonomy(sub_taxonomy):
+    """
+    Converts a sub-taxonomy where the keys denote supertypes to one where the keys denote subtypes, and vice versa.
+
+    :param sub_taxonomy: The taxonomy before inversion.
+    :return: The inverted taxonomy.
+    """
     subtypes = defaultdict(list)
     for key, values in sub_taxonomy.items():
         subtypes[key] = subtypes[key]
@@ -132,16 +177,20 @@ def invert_sub_taxonomy(sub_taxonomy):
     return subtypes
 
 
-def suffix_taxonomy_and_add_mirror(taxonomy: dict):
+def suffix_and_merge_taxonomy(taxonomy: dict):
+    """
+    Merges individual taxonomies into a single one for usage with PiCLS. This is done by suffixing the types in each
+    taxonomy by the individual taxonomies names.
+
+    :param taxonomy: The taxonomy dictionary with the individual taxonomies separated (as stored in database).
+    :return: The merged taxonomy.
+    """
     suffixed_taxonomy = {}
     for key, individual_taxonomy in taxonomy["taxonomies"].items():
         suffixed_individual_taxonomy = {}
         for entry in individual_taxonomy:
             suffixed_individual_taxonomy[f"{entry}_{key}"] = [
                 f"{name}_{key}" for name in individual_taxonomy[entry]
-            ]
-            suffixed_individual_taxonomy[f"Has_{entry}_{key}"] = [
-                f"Has_{name}_{key}" for name in individual_taxonomy[entry]
             ]
         suffixed_taxonomy.update(suffixed_individual_taxonomy)
     return suffixed_taxonomy
