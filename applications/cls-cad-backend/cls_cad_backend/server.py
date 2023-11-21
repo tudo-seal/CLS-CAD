@@ -217,7 +217,7 @@ async def cache_request(request_id, project_id: str):
     :param request_id: The id of the result to be cached.
     :return: The JSON data of the result.
     """
-    if request_id not in cache:
+    if f"{request_id}_{project_id}" not in cache:
         cache[f"{request_id}_{project_id}"] = get_result_for_id_in_project(
             request_id, project_id
         )["interpretedTerms"]

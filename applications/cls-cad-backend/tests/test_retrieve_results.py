@@ -38,6 +38,9 @@ def test_for_project_results_are_individually_retrievable():
     assert response.status_code == 200
     assert response.json()
 
+    response = client.get(f"/results/forgeProject/nonexistent/0")
+    assert response.text == '"Invalid"'
+
 
 @pytest.mark.dependency(
     depends=["tests/test_synthesis.py::test_synthesis_intersection_counting"],
@@ -56,6 +59,10 @@ def test_for_project_results_are_sane():
     assert response.status_code == 200
     assert len(response.json()) > 0
 
+    # Test for invalid
+    response = client.get(f"/results/forgeProject/nonexistent")
+    assert response.text == '"Invalid"'
+
 
 @pytest.mark.dependency(
     depends=["tests/test_synthesis.py::test_synthesis_intersection_counting"],
@@ -67,6 +74,9 @@ def test_for_project_results_are_batchable():
     response = client.get(f"/results/forgeProject/{response.json()[0]['id']}/maxcounts")
     assert response.status_code == 200
     assert response.json()
+
+    response = client.get(f"/results/forgeProject/nonexistent/maxcounts")
+    assert response.text == '"Invalid"'
 
 
 @pytest.mark.dependency(
