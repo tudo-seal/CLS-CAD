@@ -11,11 +11,29 @@ system_random = random.SystemRandom()
 
 def generate_id(separator="-", seed: Hashable = None, word_count=6) -> str:
     """
-    Generate a human readable ID
-    :param separator: The string to use to separate words
-    :param seed: The seed to use. The same seed will produce the same ID
-    :param word_count: The number of words to use. Minimum of 3.
-    :return: A human readable ID
+    Generate a human readable ID :param separator: The string to use to separate words.
+
+    Args:
+      seed: The seed to use.  The same seed will produce the same ID
+      word_count: The number of words to use. Minimum of 3. (Default value = 6)
+      separator: Default value = "-")
+      seed: Hashable:  (Default value = None)
+      seed: Hashable:  (Default value = None)
+
+    Returns:
+      A human readable ID
+
+    Args:
+      separator: Default value = "-")
+      seed: Hashable:  (Default value = None)
+      word_count: Default value = 6)
+      seed: Hashable:  (Default value = None)
+
+    Returns:
+
+    :param separator: (Default value = "-")
+    :param seed: Hashable:  (Default value = None)
+    :param word_count: (Default value = 6)
     """
     if word_count < 3:
         raise ValueError("word_count cannot be lower than 3")

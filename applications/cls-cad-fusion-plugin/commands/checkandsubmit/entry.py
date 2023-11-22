@@ -28,10 +28,9 @@ local_handlers = []
 def start():
     """
     Creates the promoted "Check and Submit" command in the CLS-CAD tab.
+
     Registers the commandCreated handler.
-
-    Returns:
-
+    :return:
     """
     cmd_def = ui.commandDefinitions.addButtonDefinition(
         CMD_ID, CMD_NAME, CMD_Description, ICON_FOLDER
@@ -46,11 +45,11 @@ def start():
 
 def stop():
     """
-    Removes this command from the CLS-CAD tab along with all others it shares a panel with.
+    Removes this command from the CLS-CAD tab along with all others it shares a panel
+    with.
+
     This does not fail, even if the panel is emptied by multiple commands.
-
-    Returns:
-
+    :return:
     """
     workspace = ui.workspaces.itemById(WORKSPACE_ID)
     panel = workspace.toolbarPanels.itemById(PANEL_ID)
@@ -69,14 +68,12 @@ type_text_box_input = adsk.core.TextBoxCommandInput.cast(None)
 
 def command_created(args: adsk.core.CommandCreatedEventArgs):
     """
-    Called when the user clicks the command in CLS-CAD tab.
-    Registers execute, destroy and most importantly validate handlers.
+    Called when the user clicks the command in CLS-CAD tab. Registers execute, destroy
+    and most importantly validate handlers.
 
-    Args:
-        args: A CommandCreatedEventArgs that allows access to the commands properties and inputs.
-
-    Returns:
-
+    :param args: A CommandCreatedEventArgs that allows access to the commands properties
+        and inputs.
+    :return:
     """
     futil.log(f"{CMD_NAME} Command Created Event")
     global type_text_box_input
@@ -104,22 +101,17 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
 
 def command_execute(args: adsk.core.CommandEventArgs):
     """
-    This method is called when the user clicks the "OK" button.
-    It concatenates the singular taxonomies into a combined one. For details see ~create_backend_taxonomy.
+    This method is called when the user clicks the "OK" button. It concatenates the
+    singular taxonomies into a combined one. For details see ~create_backend_taxonomy.
     It assembles the JSON representing the part. For details see ~create_backend_json.
-    These types are then intersected. A constructor with the ordered UUIDs as string acts as guard per configuration.
+    These types are then intersected. A constructor with the ordered UUIDs as string
+    acts as guard per configuration.
 
-    The method connects to the backend at /submit/part and submit/taxonomy and posts the created JSON files.
+    The method connects to the backend at /submit/part and submit/taxonomy and posts the
+    created JSON files.
 
-    Attributes:
-        Reads: (CLS-INFO, UUID),(CLS-JOINT,*)
-        Sets: None
-
-    Args:
-        args: A CommandEventArgs that allows access to the commands properties and inputs.
-
-    Returns:
-
+    :param args: adsk.core.CommandEventArgs: inputs.
+    :return:
     """
     futil.log(f"{CMD_NAME} Command Execute Event")
 
@@ -150,11 +142,11 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
 def create_backend_json():
     """
-     Assembles the JSON representing the part by creating a type for every "provides" joint.
-     Duplicate UUIDs are removed and instead added as "count" to the jointOrderInfo objects.
+    Assembles the JSON representing the part by creating a type for every "provides"
+    joint. Duplicate UUIDs are removed and instead added as "count" to the
+    jointOrderInfo objects.
 
-    Returns: The created JSON/dict.
-
+    :return: The created JSON/dict.
     """
     app = adsk.core.Application.get()
     design = adsk.fusion.Design.cast(app.activeProduct)
@@ -284,14 +276,12 @@ def create_backend_json():
 
 def command_validate(args: adsk.core.ValidateInputsEventArgs):
     """
-    The method checks if there is at least one JointOrigin present that has received a ProvidesFormat.
-    This implies the part can be connected at that JointOrigin, making it usable.
+    The method checks if there is at least one JointOrigin present that has received a
+    ProvidesFormat. This implies the part can be connected at that JointOrigin, making
+    it usable.
 
-    Args:
-        args: A ValidateInputsEventArgs that allows setting the current validity state.
-
-    Returns:
-
+    :param args: adsk.core.ValidateInputsEventArgs: state.
+    :return:
     """
     app = adsk.core.Application.get()
     design = adsk.fusion.Design.cast(app.activeProduct)
@@ -307,13 +297,11 @@ def command_validate(args: adsk.core.ValidateInputsEventArgs):
 
 def command_destroy(args: adsk.core.CommandEventArgs):
     """
-    Logs that the command was destroyed (window closed). Currently, does not clean up anything.
+    Logs that the command was destroyed (window closed). Currently, does not clean up
+    anything.
 
-    Args:
-        args: A CommandEventArgs that allows access to the commands properties and inputs.
-
-    Returns:
-
+    :param args: adsk.core.CommandEventArgs: inputs.
+    :return:
     """
     global local_handlers
     local_handlers = []

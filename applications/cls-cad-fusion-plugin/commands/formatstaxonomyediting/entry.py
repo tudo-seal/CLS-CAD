@@ -34,6 +34,13 @@ local_handlers = []
 
 
 def start():
+    """
+    Creates the promoted "Edit Taxonomy" command for the format taxonomy in the CLS-CAD
+    tab.
+
+    Registers the commandCreated handler.
+    :return:
+    """
     cmd_def = ui.commandDefinitions.addButtonDefinition(
         CMD_ID, CMD_NAME, CMD_DESCRIPTION, ICON_FOLDER
     )
@@ -48,6 +55,13 @@ def start():
 
 
 def stop():
+    """
+    Removes this command from the CLS-CAD tab along with all others it shares a panel
+    with.
+
+    This does not fail, even if the panel is emptied by multiple commands.
+    :return:
+    """
     workspace = ui.workspaces.itemById(WORKSPACE_ID)
     panel = workspace.toolbarPanels.itemById(PANEL_ID)
     command_control = panel.controls.itemById(CMD_ID)
@@ -64,6 +78,13 @@ def stop():
 
 
 def command_created(args: adsk.core.CommandCreatedEventArgs):
+    """
+    Called when the user clicks the command in CLS-CAD tab. Registers execute and
+    destroy handlers.
+
+    :param args: adsk.core.CommandCreatedEventArgs:
+    :return:
+    """
     futil.log(f"{CMD_NAME}: Command created event.")
     load_project_taxonomy_to_config()
     futil.add_handler(
@@ -75,6 +96,14 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
 
 
 def command_execute(args: adsk.core.CommandEventArgs):
+    """
+    Executes immediately when the command is clicked in the CLS-CAD tab, since there are
+    no inputs. If the palette does not already exist, it is created. The palette is set
+    to be visible and docked.
+
+    :param args: adsk.core.CommandEventArgs:
+    :return:
+    """
     palettes = ui.palettes
     palette = palettes.itemById(PALETTE_ID)
     if palette is not None:
@@ -93,8 +122,6 @@ def command_execute(args: adsk.core.CommandEventArgs):
             height=800,
             useNewWebBrowser=True,
         )
-        futil.add_handler(palette.closed, palette_closed)
-        futil.add_handler(palette.navigatingURL, palette_navigating)
         futil.add_handler(palette.incomingFromHTML, palette_incoming)
 
     args.command.setDialogMinimumSize(1200, 800)
@@ -106,23 +133,14 @@ def command_execute(args: adsk.core.CommandEventArgs):
     futil.log(f"{CMD_NAME}: Command execute event.")
 
 
-def palette_closed(args: adsk.core.UserInterfaceGeneralEventArgs):
-    futil.log(f"{CMD_NAME}: Palette was closed.")
-
-
-def palette_navigating(args: adsk.core.NavigationEventArgs):
-    futil.log(f"{CMD_NAME}: Palette navigating event.")
-
-    url = args.navigationURL
-
-    log_msg = f"User is attempting to navigate to {url}\n"
-    futil.log(log_msg, adsk.core.LogLevels.InfoLogLevel)
-
-    if url.startswith("http"):
-        args.launchExternally = True
-
-
 def palette_incoming(html_args: adsk.core.HTMLEventArgs):
+    """
+    Handles incoming messages from the JavaScript portion of the palette. Receives an
+    "taxonomyDataMessage" that contains the JSON representation of the format taxonomy.
+
+    :param html_args: adsk.core.HTMLEventArgs: The received HTML event containing data.
+    :return:
+    """
     futil.log(f"{CMD_NAME}: Palette incoming event.")
 
     message_data: dict = json.loads(html_args.data)
@@ -160,6 +178,13 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
 
 
 def command_destroy(args: adsk.core.CommandEventArgs):
+    """
+    Logs the command terminating. This is instantly the case upon clicking, as the
+    command only opens the palette.
+
+    :param args: adsk.core.CommandEventArgs:
+    :return:
+    """
     futil.log(f"{CMD_NAME}: Command destroy event.")
 
     global local_handlers

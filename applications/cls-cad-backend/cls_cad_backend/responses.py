@@ -18,8 +18,8 @@ class FastResponse(Response):
 
     def render(self, content: typing.Any) -> bytes:
         """
-        Encodes the response of an endpoint into a JSON. When not running on PyPy, uses faster JSON encoders in a
-        cascading fashion based on maximum JSON depth.
+        Encodes the response of an endpoint into a JSON. When not running on PyPy, uses
+        faster JSON encoders in a cascading fashion based on maximum JSON depth.
 
         :param content: The content to encode.
         :return: The encoded content.

@@ -4,6 +4,9 @@ from .lib import fusion360utils as futil
 
 
 def run(context):
+    """
+    :param context:
+    """
     try:
         # This will run the start function in each of your commands as defined in commands/__init__.py
         commands.start()
@@ -13,6 +16,9 @@ def run(context):
 
 
 def stop(context):
+    """
+    :param context:
+    """
     try:
         # Remove all of the event handlers your app has created
         futil.clear_handlers()

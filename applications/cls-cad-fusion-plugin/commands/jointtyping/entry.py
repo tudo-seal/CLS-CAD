@@ -44,6 +44,12 @@ reset_bool_value_input: adsk.core.BoolValueCommandInput = None
 
 
 def start():
+    """
+    Creates the promoted "Typed Joint" command in the CLS-CAD tab.
+
+    Registers the commandCreated handler.
+    :return:
+    """
     cmd_def = ui.commandDefinitions.addButtonDefinition(
         CMD_ID, CMD_NAME, CMD_DESCRIPTION, ICON_FOLDER
     )
@@ -60,6 +66,13 @@ def start():
 
 
 def stop():
+    """
+    Removes this command from the CLS-CAD tab along with all others it shares a panel
+    with.
+
+    This does not fail, even if the panel is emptied by multiple commands.
+    :return:
+    """
     workspace = ui.workspaces.itemById(WORKSPACE_ID)
     panel = workspace.toolbarPanels.itemById(PANEL_ID)
     command_definition = ui.commandDefinitions.itemById(CMD_ID)
@@ -87,6 +100,13 @@ typing = "Blocked"
 
 
 def command_created(args: adsk.core.CommandCreatedEventArgs):
+    """
+    Called when the user clicks the command in CLS-CAD tab. Registers all important
+    handlers for the command.
+
+    :param args: adsk.core.CommandCreatedEventArgs:
+    :return:
+    """
     futil.log(f"{CMD_NAME} Command Created Event")
 
     load_project_taxonomy_to_config()
@@ -98,26 +118,7 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
         args.command.inputChanged, command_input_changed, local_handlers=local_handlers
     )
     futil.add_handler(
-        args.command.executePreview, command_preview, local_handlers=local_handlers
-    )
-    futil.add_handler(
         args.command.destroy, command_destroy, local_handlers=local_handlers
-    )
-    futil.add_handler(
-        args.command.preSelectMouseMove,
-        command_preselect_mousemove,
-        local_handlers=local_handlers,
-    )
-    futil.add_handler(
-        args.command.preSelect, command_preselect, local_handlers=local_handlers
-    )
-    futil.add_handler(
-        args.command.preSelectEnd, command_preselect_end, local_handlers=local_handlers
-    )
-    futil.add_handler(
-        args.command.executePreview,
-        command_execute_preview,
-        local_handlers=local_handlers,
     )
     futil.add_handler(
         args.command.select, command_select, local_handlers=local_handlers
@@ -126,15 +127,8 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
         args.command.unselect, command_unselect, local_handlers=local_handlers
     )
     futil.add_handler(
-        args.command.navigatingURL, palette_navigating, local_handlers=local_handlers
-    )
-    futil.add_handler(
         args.command.incomingFromHTML, palette_incoming, local_handlers=local_handlers
     )
-    futil.add_handler(
-        args.command.activate, command_activate, local_handlers=local_handlers
-    )
-
     inputs = args.command.commandInputs
     args.command.setDialogMinimumSize(600, 800)
     args.command.setDialogInitialSize(600, 800)
@@ -205,19 +199,16 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     )
 
 
-def command_execute_preview(args: adsk.core.CommandEventHandler):
-    app = adsk.core.Application.get()
-    design = adsk.fusion.Design.cast(app.activeProduct)
-    if design:
-        pass
-
-
-def command_activate(args: adsk.core.CommandEventArgs):
-    app = adsk.core.Application.get()
-    app.log("In command_activate event handler.")
-
-
 def command_select(args: adsk.core.SelectionEventArgs):
+    """
+    Fires when the user selects a JointOrigin.
+
+    Adds the selected JointOrigin to a global selection list and updates the command's
+    ui accordingly.
+    :param args: adsk.core.SelectionEventArgs: The event data of the selection,
+        containing the entity.
+    :return:
+    """
     app = adsk.core.Application.get()
     design = adsk.fusion.Design.cast(app.activeProduct)
     selected_joint_origin = adsk.fusion.JointOrigin.cast(args.selection.entity)
@@ -276,6 +267,15 @@ def command_select(args: adsk.core.SelectionEventArgs):
 
 
 def command_unselect(args: adsk.core.SelectionEventArgs):
+    """
+    Fires when the user selects a JointOrigin.
+
+    Removes the selected JointOrigin from a global selection list and updates the
+    command's ui accordingly.
+    :param args: adsk.core.SelectionEventArgs: The event data of the selection,
+        containing the entity.
+    :return:
+    """
     app = adsk.core.Application.get()
     design = adsk.fusion.Design.cast(app.activeProduct)
     selected_joint_origin = adsk.fusion.JointOrigin.cast(args.selection.entity)
@@ -287,27 +287,16 @@ def command_unselect(args: adsk.core.SelectionEventArgs):
         ]
 
 
-def command_preselect_mousemove(args: adsk.core.SelectionEventArgs):
-    app = adsk.core.Application.get()
-    design = adsk.fusion.Design.cast(app.activeProduct)
-    selected_joint_origin = adsk.fusion.JointOrigin.cast(args.selection.entity)
-    if design and selected_joint_origin:
-        pass
-
-
-def command_preselect(args: adsk.core.SelectionEventArgs):
-    app = adsk.core.Application.get()
-    design = adsk.fusion.Design.cast(app.activeProduct)
-    selected_joint_origin = adsk.fusion.JointOrigin.cast(args.selection.entity)
-    if design and selected_joint_origin:
-        pass
-
-
-def command_preselect_end(args: adsk.core.SelectionEventArgs):
-    pass
-
-
 def command_input_changed(args: adsk.core.InputChangedEventArgs):
+    """
+    Fires when any of the command inputs changes. Specifically checks if the user has
+    selected the reset attributes checkbox, and cleans all pre-existing type information
+    in that case.
+
+    :param args: adsk.core.InputChangedEventArgs: The event data containing info on
+        which input has changed.
+    :return:
+    """
     if args.input.id == "resetAttribsBoolInput":
         global reset_bool_value_input, req_formats, req_attributes, req_parts, provides_formats, provides_parts, provides_attributes
         if reset_bool_value_input.value:
@@ -321,19 +310,17 @@ def command_input_changed(args: adsk.core.InputChangedEventArgs):
             ) = ([], [], [], [], [], [])
 
 
-def palette_navigating(args: adsk.core.NavigationEventArgs):
-    futil.log(f"{CMD_NAME}: Palette navigating event.")
-
-    url = args.navigationURL
-
-    log_msg = f"User is attempting to navigate to {url}\n"
-    futil.log(log_msg, adsk.core.LogLevels.InfoLogLevel)
-
-    if url.startswith("http"):
-        args.launchExternally = True
-
-
 def palette_incoming(html_args: adsk.core.HTMLEventArgs):
+    """
+    Handles incoming messages from the JavaScript portion of the palette. Receives an
+    "updateDataNotification", "renameDataNotification", or "selectionNotification", that
+    contain the JSON representation of data instructing the add-in to rename a type
+    internally, update a taxonomy with new data, or add an element from the palette to
+    the currently selected types.
+
+    :param html_args: adsk.core.HTMLEventArgs: The received HTML event containing data.
+    :return:
+    """
     futil.log(f"{CMD_NAME}: Palette incoming event.")
     message_data = json.loads(html_args.data)
     message_action = html_args.action
@@ -414,6 +401,15 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
 
 
 def command_execute(args: adsk.core.CommandEventArgs):
+    """
+    This method is called when the user clicks the "OK" button. It applies the selected
+    types from the palettes to all selected JointOrigins. If multiple JointOrigins are
+    selected, this marks them as being identical, meaning their subassemblies during
+    synthesis will be identical.
+
+    :param args: adsk.core.CommandEventArgs: inputs.
+    :return:
+    """
     futil.log(f"{CMD_NAME} Command Execute Event")
 
     app = adsk.core.Application.get()
@@ -476,6 +472,12 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
 
 def update_type_information_graphics():
+    """
+    Executes the display of custom graphics twice, effectively redrawing all custom
+    graphics.
+
+    :return:
+    """
     config.custom_graphics_displaying = True
     cmd = ui.commandDefinitions.itemById(
         f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_toggle_display"
@@ -484,11 +486,13 @@ def update_type_information_graphics():
     cmd.execute()
 
 
-def command_preview(args: adsk.core.CommandEventArgs):
-    futil.log(f"{CMD_NAME} Command Preview Event")
-
-
 def command_destroy(args: adsk.core.CommandEventArgs):
+    """
+    Cleans up all collected data after the user has pressed the "Okay" button.
+
+    :param args: adsk.core.CommandEventArgs:
+    :return:
+    """
     global local_handlers, req_attributes, req_formats, req_parts, provides_attributes, provides_formats, provides_parts
     local_handlers = []
     (

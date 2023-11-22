@@ -49,6 +49,7 @@ commands = [
 
 
 def add_tab() -> adsk.core.ToolbarTab:
+    """"""
     design_workspace = ui.workspaces.itemById("FusionSolidEnvironment")
 
     if design_workspace:
@@ -65,6 +66,11 @@ def add_tab() -> adsk.core.ToolbarTab:
 def add_panel(
     parent_tab: adsk.core.ToolbarTab, panel_id: str, panel_name: str
 ) -> adsk.core.ToolbarPanel:
+    """
+    :param parent_tab: adsk.core.ToolbarTab:
+    :param panel_id: str:
+    :param panel_name: str:
+    """
     new_panel = parent_tab.toolbarPanels.itemById(panel_id)
 
     if new_panel is None:
@@ -79,6 +85,7 @@ local_handlers = []
 # Assumes you defined a "start" function in each of your modules.
 # The start function will be run when the add-in is started.
 def start():
+    """"""
     main_tab = add_tab()
     if not main_tab.isActive:
         main_tab.activate
@@ -97,6 +104,9 @@ def start():
 
 
 def application_document_opened(args: adsk.core.DocumentEventArgs):
+    """
+    :param args: adsk.core.DocumentEventArgs:
+    """
     # Restore custom graphics
     if assemble_result.NO_GRAPHICS:
         return
@@ -111,5 +121,6 @@ def application_document_opened(args: adsk.core.DocumentEventArgs):
 # Assumes you defined a "stop" function in each of your modules.
 # The stop function will be run when the add-in is stopped.
 def stop():
+    """"""
     for command in commands:
         command.stop()

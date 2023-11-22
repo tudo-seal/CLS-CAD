@@ -24,6 +24,12 @@ isDisplaying = False
 
 
 def start():
+    """
+    Creates the promoted "Download Taxonomy" command in the CLS-CAD tab.
+
+    Registers the commandCreated handler.
+    :return:
+    """
     cmd_def = ui.commandDefinitions.addButtonDefinition(
         CMD_ID, CMD_NAME, CMD_DESCRIPTION, ICON_FOLDER
     )
@@ -36,6 +42,13 @@ def start():
 
 
 def stop():
+    """
+    Removes this command from the CLS-CAD tab along with all others it shares a panel
+    with.
+
+    This does not fail, even if the panel is emptied by multiple commands.
+    :return:
+    """
     workspace = ui.workspaces.itemById(WORKSPACE_ID)
     panel = workspace.toolbarPanels.itemById(PANEL_ID)
     command_definition = ui.commandDefinitions.itemById(CMD_ID)
@@ -49,27 +62,33 @@ def stop():
 
 
 def command_created(args: adsk.core.CommandCreatedEventArgs):
+    """
+    Called when the user clicks the command in CLS-CAD tab. Registers execute and
+    destroy handlers.
+
+    :param args: A CommandCreatedEventArgs that allows access to the commands properties
+        and inputs.
+    :return:
+    """
     futil.log(f"{CMD_NAME} Command Created Event")
 
     futil.add_handler(
         args.command.execute, command_execute, local_handlers=local_handlers
     )
     futil.add_handler(
-        args.command.inputChanged, command_input_changed, local_handlers=local_handlers
-    )
-    futil.add_handler(
-        args.command.executePreview, command_preview, local_handlers=local_handlers
-    )
-    futil.add_handler(
         args.command.destroy, command_destroy, local_handlers=local_handlers
     )
 
 
-def command_execute_preview(args: adsk.core.CommandEventHandler):
-    return
-
-
 def command_execute(args: adsk.core.CommandEventArgs):
+    """
+    Executes immediately when the command is clicked in the CLS-CAD tab, since there are
+    no inputs.
+
+    Displays a file dialog so the user can select where to store the project taxonomy.
+    :param args: adsk.core.CommandEventArgs:
+    :return:
+    """
     futil.log(f"{CMD_NAME} Command Execute Event")
     file_dlg = ui.createFileDialog()
     file_dlg.isMultiSelectEnabled = True
@@ -87,18 +106,14 @@ def command_execute(args: adsk.core.CommandEventArgs):
         return
 
 
-def command_preview(args: adsk.core.CommandEventArgs):
-    futil.log(f"{CMD_NAME} Command Preview Event")
-
-
-def command_input_changed(args: adsk.core.InputChangedEventArgs):
-    changed_input = args.input
-    futil.log(
-        f"{CMD_NAME} Input Changed Event fired from a change to {changed_input.id}"
-    )
-
-
 def command_destroy(args: adsk.core.CommandEventArgs):
+    """
+    Logs that the command was destroyed (window closed). Currently, does not clean up
+    anything.
+
+    :param args: adsk.core.CommandEventArgs: inputs.
+    :return:
+    """
     global local_handlers
     local_handlers = []
     futil.log(f"{CMD_NAME} Command Destroy Event")

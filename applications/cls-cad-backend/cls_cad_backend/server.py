@@ -72,11 +72,13 @@ async def save_part(
     payload: PartInf,
 ) -> str:
     """
-    Takes a part payload in JSON form and inserts it into the database as is. It is indexed by a unique ID, usually the
-    Fusion 360 file identifier.
+    Takes a part payload in JSON form and inserts it into the database as is. It is
+    indexed by a unique ID, usually the Fusion 360 file identifier.
 
-    :param payload: The payload containing project, folder and part ids, as well as type information.
-    :return: Returns "OK" when successful, else returns a 422 response code if payload didn't pass validation.
+    :param payload: The payload containing project, folder and part ids, as well as type
+        information.
+    :return: Returns "OK" when successful, else returns a 422 response code if payload
+        didn't pass validation.
     """
     upsert_part(payload.model_dump(by_alias=True))
     print(payload.model_dump(by_alias=True))
@@ -88,11 +90,13 @@ async def save_taxonomy(
     payload: TaxonomyInf,
 ) -> str:
     """
-    Takes a taxonomy payload in JSON form and inserts it into the database as is. It is indexed by a unique ID, usually
-    the Fusion 360 project identifier.
+    Takes a taxonomy payload in JSON form and inserts it into the database as is. It is
+    indexed by a unique ID, usually the Fusion 360 project identifier.
 
-    :param payload: The payload containing the taxonomy, split into three distinct taxonomies.
-    :return: Returns "OK" when successful, else returns a 422 response code if payload didn't pass validation.
+    :param payload: The payload containing the taxonomy, split into three distinct
+        taxonomies.
+    :return: Returns "OK" when successful, else returns a 422 response code if payload
+        didn't pass validation.
     """
     upsert_taxonomy(payload.model_dump(by_alias=True))
     return "OK"
@@ -103,14 +107,18 @@ async def synthesize_assembly(
     payload: SynthesisRequestInf, background_tasks: BackgroundTasks
 ):
     """
-    Takes a payload describing a synthesis request as JSON. Builds a repository and a query and then executes PiCLS.
-    Results (if present) get enumerated (up to 100) and then post-processed into assembly instructions for the
-    Fusion 360 Add-In to execute. A background task inserts the results bundled in a single JSON Object into the
+    Takes a payload describing a synthesis request as JSON. Builds a repository and a
+    query and then executes PiCLS. Results (if present) get enumerated (up to 100) and
+    then post-processed into assembly instructions for the Fusion 360 Add-In to execute.
+    A background task inserts the results bundled in a single JSON Object into the
     database.
 
-    :param payload: The payload containing target types and constraints for the synthesis request.
-    :param background_tasks: The background tasks to asynchronously insert into the database.
-    :return: A JSON containing a result id and metadata, or FAIL if there are no results.
+    :param payload: The payload containing target types and constraints for the
+        synthesis request.
+    :param background_tasks: The background tasks to asynchronously insert into the
+        database.
+    :return: A JSON containing a result id and metadata, or FAIL if there are no
+        results.
     """
     take_time = timer()
     literals = {}
@@ -178,11 +186,12 @@ async def synthesize_assembly(
 @app.get("/data/taxonomy/{project_id}", response_class=FastResponse)
 async def get_taxonomy(project_id: str):
     """
-    Retrieves the taxonomy and inverts subtype and supertype (Add-In uses Keys as Supertypes, CLS uses Keys as Subtype,
-    for multiple inheritance).
+    Retrieves the taxonomy and inverts subtype and supertype (Add-In uses Keys as
+    Supertypes, CLS uses Keys as Subtype, for multiple inheritance).
 
     :param project_id: The project id for which a taxonomy should be retrieved.
-    :return: The inverted taxonomy for the project id if present. If not present, an empty default taxonomy.
+    :return: The inverted taxonomy for the project id if present. If not present, an
+        empty default taxonomy.
     """
     return invert_taxonomy(get_taxonomy_for_project(project_id))
 
@@ -203,15 +212,16 @@ async def list_project_ids(project_id: str):
     Lists all result metadata for a specific project id.
 
     :param project_id: The project id for which to list metadata.
-    :return: A list of JSON objects describing the individual results. Each object has an "id" key.
+    :return: A list of JSON objects describing the individual results. Each object has
+        an "id" key.
     """
     return [dict(x, id=x["_id"]) for x in get_all_result_ids_for_project(project_id)]
 
 
 async def cache_request(request_id, project_id: str):
     """
-    Caches a specific synthesis result. Since these can be several Mb of JSON data, this avoids unnecessary database
-    accesses.
+    Caches a specific synthesis result. Since these can be several Mb of JSON data, this
+    avoids unnecessary database accesses.
 
     :param project_id: The id of the project of the result to be cached.
     :param request_id: The id of the result to be cached.
@@ -231,12 +241,14 @@ async def maximum_counts_for_id(
     request_id: str,
 ):
     """
-    Computes the maximum amount of a part across all assemblies contained in a synthesis result.
-    This is used to create a template file that contains enough parts to assemble any assembly from the results.
+    Computes the maximum amount of a part across all assemblies contained in a synthesis
+    result. This is used to create a template file that contains enough parts to
+    assemble any assembly from the results.
 
     :param project_id: The project id of the project the result is from.
     :param request_id: The id of the result.
-    :return: A JSON object containing all the maximum counts. "Invalid" if the request or project ids were invalid.
+    :return: A JSON object containing all the maximum counts. "Invalid" if the request
+        or project ids were invalid.
     """
     try:
         results = await cache_request(request_id, project_id)
@@ -267,7 +279,8 @@ async def results_for_id(
     :param request_id: The id of the result.
     :param skip: How many assemblies to skip from the start.
     :param limit: How many assemblies to return.
-    :return: A list of assemblies of size up to limit. "Invalid" if the request or project ids were invalid.
+    :return: A list of assemblies of size up to limit. "Invalid" if the request or
+        project ids were invalid.
     """
     if limit == 0:
         return []
@@ -294,10 +307,12 @@ async def results_for_id(
 async def results_for_result_id(project_id: str, request_id: str, result_id: int):
     """
     Returns a single assembly from a synthesis result.
+
     :param project_id: The project id of the project the result is from.
     :param request_id: The id of the result.
     :param result_id: The index of the assembly in the result.
-    :return: The assembly, or "" if the index did not exist. "Invalid" if the request or project ids were invalid.
+    :return: The assembly, or "" if the index did not exist. "Invalid" if the request or
+        project ids were invalid.
     """
     try:
         results = await cache_request(request_id, project_id)

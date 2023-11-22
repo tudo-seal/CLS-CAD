@@ -19,12 +19,14 @@ def log(
     level: adsk.core.LogLevels = adsk.core.LogLevels.InfoLogLevel,
     force_console: bool = False,
 ):
-    """Utility function to easily handle logging in your app.
+    """
+    Utility function to easily handle logging in your app.
 
-    Arguments:
-    message -- The message to log.
-    level -- The logging severity level.
-    force_console -- Forces the message to be written to the Text Command window.
+    :param message: str:
+    :param level: adsk.core.LogLevels: (Default value =
+        adsk.core.LogLevels.InfoLogLevel)
+    :param force_console: bool: (Default value = False)
+        adsk.core.LogLevels.InfoLogLevel)
     """
     # Always print to console, only seen through IDE.
     print(message)
@@ -41,13 +43,13 @@ def log(
 
 
 def handle_error(name: str, show_message_box: bool = False):
-    """Utility function to simplify error handling.
+    """
+    Utility function to simplify error handling.
 
-    Arguments:
-    name -- A name used to label the error.
-    show_message_box -- Indicates if the error should be shown in the message box.
-                        If False, it will only be shown in the Text Command window
-                        and logged to the log file.
+    :param name: str:
+    :param show_message_box: bool:  (Default value = False)
+    :param If: False
+    :param and: logged to the log file
     """
 
     log("===== Error =====", adsk.core.LogLevels.ErrorLogLevel)

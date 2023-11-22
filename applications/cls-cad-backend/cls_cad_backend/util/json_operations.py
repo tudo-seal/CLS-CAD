@@ -16,8 +16,8 @@ except ImportError:  # pragma: no cover
 
 def postprocess(data: dict | Part):
     """
-    Used to post-process a tree-like dictionary from interpreting a term into a flat list of part counts and assembly
-    instructions.
+    Used to post-process a tree-like dictionary from interpreting a term into a flat
+    list of part counts and assembly instructions.
 
     :param data: The tree-like dictionary.
     :return: The post-processed flat dictionary.
@@ -43,8 +43,9 @@ def postprocess(data: dict | Part):
 
 def resolve_multiplicity(data: dict):
     """
-    Propagates all multiplicities of joints (multiple identical physical joints being mapped to the same type) through
-    the dictionary by multiplying their subtree multiplicities accordingly.
+    Propagates all multiplicities of joints (multiple identical physical joints being
+    mapped to the same type) through the dictionary by multiplying their subtree
+    multiplicities accordingly.
 
     :param data: The tree-like dictionary with multiplicities not yet resolved.
     :return: A tree-like dictionary with resolved multiplicities.
@@ -68,7 +69,8 @@ def resolve_multiplicity(data: dict):
 
 def compute_insertions_and_totals(data: dict) -> tuple:
     """
-    Aggregates all parts present in the tree-like assembly dictionary, computing their total counts and costs.
+    Aggregates all parts present in the tree-like assembly dictionary, computing their
+    total counts and costs.
 
     :param data: The tree-like dictionary.
     :return: A dictionary of part counts and costs.
@@ -89,8 +91,9 @@ def compute_insertions_and_totals(data: dict) -> tuple:
 
 def compute_instructions(data):
     """
-    Traverse the tree-like assembly dict in the order that it must be assembled in. Creates assembly instructions in
-    the traversed order, thus flattening the tree-like structure.
+    Traverse the tree-like assembly dict in the order that it must be assembled in.
+    Creates assembly instructions in the traversed order, thus flattening the tree-like
+    structure.
 
     :param data: The tree-like dictionary.
     :return: A set of assembly instructions, and the total amount of encountered links.
@@ -118,7 +121,8 @@ def compute_instructions(data):
 
 def remove_unused_keys_from_part_json(data: dict):
     """
-    Removes metadata keys that are not relevant to the assembly instructions, reducing JSON size.
+    Removes metadata keys that are not relevant to the assembly instructions, reducing
+    JSON size.
 
     :param data: The dictionary with unused keys.
     :return: The dictionary without unused keys.
@@ -131,10 +135,12 @@ def remove_unused_keys_from_part_json(data: dict):
 
 def invert_taxonomy(taxonomy):
     """
-    Converts a taxonomy where the keys denote supertypes to one where the keys denote subtypes, and vice versa.
+    Converts a taxonomy where the keys denote supertypes to one where the keys denote
+    subtypes, and vice versa.
 
     :param taxonomy: The taxonomy before inversion.
-    :return: The inverted taxonomy, or a default taxonomy if the passed taxonomy was empty.
+    :return: The inverted taxonomy, or a default taxonomy if the passed taxonomy was
+        empty.
     """
     if not taxonomy:
         return {
@@ -164,7 +170,8 @@ def invert_taxonomy(taxonomy):
 
 def invert_sub_taxonomy(sub_taxonomy):
     """
-    Converts a sub-taxonomy where the keys denote supertypes to one where the keys denote subtypes, and vice versa.
+    Converts a sub-taxonomy where the keys denote supertypes to one where the keys
+    denote subtypes, and vice versa.
 
     :param sub_taxonomy: The taxonomy before inversion.
     :return: The inverted taxonomy.
@@ -179,10 +186,11 @@ def invert_sub_taxonomy(sub_taxonomy):
 
 def suffix_and_merge_taxonomy(taxonomy: dict):
     """
-    Merges individual taxonomies into a single one for usage with PiCLS. This is done by suffixing the types in each
-    taxonomy by the individual taxonomies names.
+    Merges individual taxonomies into a single one for usage with PiCLS. This is done by
+    suffixing the types in each taxonomy by the individual taxonomies names.
 
-    :param taxonomy: The taxonomy dictionary with the individual taxonomies separated (as stored in database).
+    :param taxonomy: The taxonomy dictionary with the individual taxonomies separated
+        (as stored in database).
     :return: The merged taxonomy.
     """
     suffixed_taxonomy = {}

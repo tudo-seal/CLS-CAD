@@ -41,6 +41,12 @@ _rowNumber = 0
 
 
 def add_row_to_table(table_input):
+    """
+    Adds a row to the table for specifying the synthesis constraints.
+
+    :param table_input:
+    :return:
+    """
     global _rowNumber, counted_parts, counted_formats, counted_attributes, counted_types, selected_text
     cmd_inputs = adsk.core.CommandInputs.cast(table_input.commandInputs)
 
@@ -72,6 +78,12 @@ def add_row_to_table(table_input):
 
 
 def start():
+    """
+    Creates the promoted "Request Synthesis" command in the CLS-CAD tab.
+
+    Registers the commandCreated handler.
+    :return:
+    """
     cmd_def = ui.commandDefinitions.addButtonDefinition(
         CMD_ID, CMD_NAME, CMD_DESCRIPTION, ICON_FOLDER
     )
@@ -84,6 +96,13 @@ def start():
 
 
 def stop():
+    """
+    Removes this command from the CLS-CAD tab along with all others it shares a panel
+    with.
+
+    This does not fail, even if the panel is emptied by multiple commands.
+    :return:
+    """
     workspace = ui.workspaces.itemById(WORKSPACE_ID)
     panel = workspace.toolbarPanels.itemById(PANEL_ID)
     command_definition = ui.commandDefinitions.itemById(CMD_ID)
@@ -103,6 +122,13 @@ parts_type_selection_browser_input = adsk.core.BrowserCommandInput.cast(None)
 
 
 def command_created(args: adsk.core.CommandCreatedEventArgs):
+    """
+    Called when the user clicks the command in CLS-CAD tab. Registers all important
+    handlers for the command.
+
+    :param args: adsk.core.CommandCreatedEventArgs:
+    :return:
+    """
     global type_text_box_input, parts_type_selection_browser_input, request_parts, request_attributes, counted_parts, counted_attributes, counted_formats, selected_text
 
     futil.log(f"{CMD_NAME} Command Created Event")
@@ -113,9 +139,6 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
         args.command.execute, command_execute, local_handlers=local_handlers
     )
     futil.add_handler(
-        args.command.executePreview, command_preview, local_handlers=local_handlers
-    )
-    futil.add_handler(
         args.command.inputChanged, input_changed, local_handlers=local_handlers
     )
     futil.add_handler(
@@ -123,9 +146,6 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     )
     futil.add_handler(
         args.command.incomingFromHTML, palette_incoming, local_handlers=local_handlers
-    )
-    futil.add_handler(
-        args.command.activate, command_activate, local_handlers=local_handlers
     )
 
     request_attributes = []
@@ -191,6 +211,14 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
 
 
 def input_changed(args: adsk.core.InputChangedEventArgs):
+    """
+    Fires when any of the command inputs changes. Used to respond to any changes or
+    button clicks with regard to the synthesis constraints table.
+
+    :param args: adsk.core.InputChangedEventArgs: The event data containing info on
+        which input has changed.
+    :return:
+    """
     global counted_types
     table_input: adsk.core.TableCommandInput = args.inputs.itemById("amount_table")
     if args.input.id == "table_add":
@@ -203,16 +231,17 @@ def input_changed(args: adsk.core.InputChangedEventArgs):
             table_input.deleteRow(table_input.selectedRow)
 
 
-def command_execute_preview(args: adsk.core.CommandEventHandler):
-    pass
-
-
-def command_activate(args: adsk.core.CommandEventArgs):
-    app = adsk.core.Application.get()
-    app.log("In command_activate event handler.")
-
-
 def palette_incoming(html_args: adsk.core.HTMLEventArgs):
+    """
+    Handles incoming messages from the JavaScript portion of the palette. Receives an
+    "updateDataNotification", "renameDataNotification", or "selectionNotification", that
+    contain the JSON representation of data instructing the add-in to rename a type
+    internally, update a taxonomy with new data, or add an element from the palette to
+    the currently selected types for the synthesis request.
+
+    :param html_args: adsk.core.HTMLEventArgs: The received HTML event containing data.
+    :return:
+    """
     futil.log(f"{CMD_NAME}: Palette incoming event.")
     print("Incoming")
     message_data: dict = json.loads(html_args.data)
@@ -301,6 +330,14 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
 
 
 def winapi_path(dos_path, encoding=None):
+    """
+    Encodes a path into a winapi compatible path, this is important for longer paths
+    that exceed the standard char limit.
+
+    :param dos_path: The path to encode.
+    :param encoding: Default value = None) The encoding to use.
+    :return:
+    """
     if not isinstance(dos_path, str) and encoding is not None:
         dos_path = dos_path.decode(encoding)
     path = os.path.abspath(dos_path)
@@ -310,6 +347,14 @@ def winapi_path(dos_path, encoding=None):
 
 
 def command_execute(args: adsk.core.CommandEventArgs):
+    """
+    This method is called when the user clicks the "OK" button. It generates a JSON from
+    the collected information (selected types in palettes and table),describing a
+    synthesis request, and sends it to the backend.
+
+    :param args: adsk.core.CommandEventArgs: inputs.
+    :return:
+    """
     futil.log(f"{CMD_NAME} Command Execute Event")
 
     global request_attributes, request_parts
@@ -345,11 +390,13 @@ def command_execute(args: adsk.core.CommandEventArgs):
     print(response.read().decode())
 
 
-def command_preview(args: adsk.core.CommandEventArgs):
-    futil.log(f"{CMD_NAME} Command Preview Event")
-
-
 def command_destroy(args: adsk.core.CommandEventArgs):
+    """
+    Cleans up all collected data after the user has pressed the "Okay" button.
+
+    :param args: adsk.core.CommandEventArgs:
+    :return:
+    """
     global local_handlers, request_attributes, request_parts
     request_parts = []
     request_attributes = []

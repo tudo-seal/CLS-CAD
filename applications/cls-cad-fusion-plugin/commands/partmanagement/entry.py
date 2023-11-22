@@ -20,6 +20,12 @@ local_handlers = []
 
 
 def start():
+    """
+    Creates the promoted "Manage Part" command in the CLS-CAD tab.
+
+    Registers the commandCreated handler.
+    :return:
+    """
     cmd_def = ui.commandDefinitions.addButtonDefinition(
         CMD_ID, CMD_NAME, CMD_DESCRIPTION, ICON_FOLDER
     )
@@ -33,6 +39,13 @@ def start():
 
 
 def stop():
+    """
+    Removes this command from the CLS-CAD tab along with all others it shares a panel
+    with.
+
+    This does not fail, even if the panel is emptied by multiple commands.
+    :return:
+    """
     workspace = ui.workspaces.itemById(WORKSPACE_ID)
     panel = workspace.toolbarPanels.itemById(PANEL_ID)
     command_definition = ui.commandDefinitions.itemById(CMD_ID)
@@ -51,6 +64,13 @@ availability_value_input = adsk.core.FloatSliderCommandInput.cast(None)
 
 
 def command_created(args: adsk.core.CommandCreatedEventArgs):
+    """
+    Called when the user clicks the command in CLS-CAD tab. Registers all important
+    handlers for the command.
+
+    :param args: adsk.core.CommandCreatedEventArgs:
+    :return:
+    """
     global cost_value_input, availability_value_input
 
     futil.log(f"{CMD_NAME} Command Created Event")
@@ -62,9 +82,6 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     )
     futil.add_handler(
         args.command.destroy, command_destroy, local_handlers=local_handlers
-    )
-    futil.add_handler(
-        args.command.activate, command_activate, local_handlers=local_handlers
     )
 
     app = adsk.core.Application.get()
@@ -97,12 +114,14 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     )
 
 
-def command_activate(args: adsk.core.CommandEventArgs):
-    app = adsk.core.Application.get()
-    app.log("In command_activate event handler.")
-
-
 def command_execute(args: adsk.core.CommandEventArgs):
+    """
+    This method is called when the user clicks the "OK" button. It persists the
+    configured cost and availability in the rootComponents attributes.
+
+    :param args: adsk.core.CommandEventArgs: inputs.
+    :return:
+    """
     futil.log(f"{CMD_NAME} Command Execute Event")
 
     global cost_value_input, availability_value_input
@@ -124,6 +143,13 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
 
 def command_destroy(args: adsk.core.CommandEventArgs):
+    """
+    Logs that the command was destroyed (window closed). Currently, does not clean up
+    anything.
+
+    :param args: adsk.core.CommandEventArgs: inputs.
+    :return:
+    """
     global local_handlers, provides_attributes, provides_parts
     provides_parts = []
     provides_attributes = []

@@ -41,10 +41,9 @@ progress_dialog: adsk.core.ProgressDialog = None
 def start():
     """
     Creates the promoted "Assemble Result" command in the CLS-CAD tab.
+
     Registers the commandCreated handler.
-
-    Returns:
-
+    :return:
     """
     cmd_def = ui.commandDefinitions.addButtonDefinition(
         CMD_ID, CMD_NAME, CMD_Description, ICON_FOLDER
@@ -60,10 +59,10 @@ def start():
 
 def stop():
     """
-    Removes this command from the CLS-CAD tab. Also removes the associated palette.
+    Removes this command from the CLS-CAD tab.
 
-    Returns:
-
+    Also removes the associated palette.
+    :return:
     """
     workspace = ui.workspaces.itemById(WORKSPACE_ID)
     panel = workspace.toolbarPanels.itemById(PANEL_ID)
@@ -83,14 +82,11 @@ def stop():
 
 def command_created(args: adsk.core.CommandCreatedEventArgs):
     """
-    Called when the user clicks the command in CLS-CAD tab.
-    Registers execute and destroy handlers.
+    Called when the user clicks the command in CLS-CAD tab. Registers execute and
+    destroy handlers.
 
-    Args:
-        args: A CommandCreatedEventArgs that allows access to the commands properties and inputs.
-
-    Returns:
-
+    :param args: adsk.core.CommandCreatedEventArgs: and inputs.
+    :return:
     """
     futil.log(f"{CMD_NAME}: Command created event.")
 
@@ -105,15 +101,12 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
 
 def command_execute(args: adsk.core.CommandEventArgs):
     """
-    Executes immediately when the command is clicked in the CLS-CAD tab, since there are no inputs.
-    If the palette does not already exist, it is created.
-    The palette is sets to be visible and docked.
+    Executes immediately when the command is clicked in the CLS-CAD tab, since there are
+    no inputs. If the palette does not already exist, it is created. The palette is set
+    to be visible and docked.
 
-    Args:
-        args: A CommandEventArgs that allows access to the commands properties and inputs.
-
-    Returns:
-
+    :param args: adsk.core.CommandEventArgs: inputs.
+    :return:
     """
     futil.log(f"{CMD_NAME}: Command execute event.")
 
@@ -147,6 +140,12 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
 
 def center_in_window():
+    """
+    Selects the entire assembly and then executes "FindInWindow" Fusion 360 command.
+
+    Used to graphically show the assembly during the assembly process.
+    :return:
+    """
     if NO_GRAPHICS:
         return
     global progress_dialog
@@ -170,6 +169,13 @@ def center_in_window():
 
 
 def do_events_for_duration(duration: float):
+    """
+    Allows the main Fusion 360 thread to process ui events for the specified duration.
+    Prevents the interface lagging during the assembly process.
+
+    :param duration: float: The duration for which to process ui events.
+    :return:
+    """
     start_time = timer()
     while timer() - start_time < duration:
         adsk.doEvents()
@@ -182,13 +188,10 @@ def create_offset_joint_origin_in_occurence(
     Creates a JointOrigin that is offset from its parent geometry by specified vector.
     The JointOrigin is created in specified occurrence.
 
-    Args:
-        source_joint_origin: The JointOrigin the new JointOrigin is an offset copy off.
-        offset_vector: The offset Vector3D {x, y, z}
-        occurrence: The occurrence to create the JointOrigin in
-
-    Returns:
-
+    :param source_joint_origin: The JointOrigin the new JointOrigin is an offset copy
+    :param offset_vector: The offset Vector3D {x, y, z}
+    :param occurrence: The occurrence to create the JointOrigin in
+    :return: off.
     """
     joint_origin_input = occurrence.component.jointOrigins.createInput(
         source_joint_origin.geometry
@@ -199,12 +202,20 @@ def create_offset_joint_origin_in_occurence(
     return occurrence.component.jointOrigins.add(joint_origin_input)
 
 
-def create_ground_joint(ground_joint):
+def create_ground_joint(ground_joint_origin):
+    """
+    Creates a joint between the passed JointOrigin and the origin of the coordinate
+    system. This is used to force the assembly to be upright and consistently oriented.
+
+    :param ground_joint_origin: The JointOrigin which identifies the root of the
+        assembly.
+    :return: The newly created joint.
+    """
     global design
     root = design.rootComponent
     joints = root.joints
     joint_input = joints.createInput(
-        ground_joint,
+        ground_joint_origin,
         adsk.fusion.JointGeometry.createByPoint(
             design.rootComponent.originConstructionPoint
         ),
@@ -217,18 +228,17 @@ def create_ground_joint(ground_joint):
 
 def palette_incoming(html_args: adsk.core.HTMLEventArgs):
     """
-    Handles incoming messages from the JavaScript portion of the palette.
-    Receives an "assembleMessage" that contains the JSON representation of the assembly as data.
-    If not present, the necessary folders in the project are created.
-    The initial part of the assembly is inserted and then assemble_recursively is called to start the assembly process.
+    Handles incoming messages from the JavaScript portion of the palette. Receives an
+    "assembleMessage" that contains the JSON representation of the assembly as data. If
+    not present, the necessary folders in the project are created. The initial part of
+    the assembly is inserted and then assemble_recursively is called to start the
+    assembly process.
 
-    Sets the document to direct modeling mode during assembly to improve performance and avoid congested history.
+    Sets the document to direct modeling mode during assembly to improve performance and
+    avoid congested history.
 
-    Args:
-        html_args:
-
-    Returns:
-
+    :param html_args: adsk.core.HTMLEventArgs: The received HTML event containing data
+    :return:
     """
     futil.log(f"{CMD_NAME}: Palette incoming event.")
 
@@ -297,6 +307,16 @@ def palette_incoming(html_args: adsk.core.HTMLEventArgs):
 
 
 def buckets_saved_handler(args: adsk.core.DataEventArgs):
+    """
+    Waits for the initial template file created to batch assemble result to be
+    successfully saved. This allows the user interface to completely free up before the
+    lengthy batch assembly process begins and ensures the bucket datafile is completely
+    done processing.
+
+    :param args: adsk.core.DataEventArgs: The event data, containing info about the
+        saved file.
+    :return:
+    """
     global bucket_primed
     if (
         ("Parts Template" in args.file.name)
@@ -306,6 +326,20 @@ def buckets_saved_handler(args: adsk.core.DataEventArgs):
 
 
 def create_assembly_documents(data, maxcounts, name):
+    """
+    Batch assembles all assemblies contained in data. To achieve this, creates part
+    buckets containing the amount of part specified in maxcounts, respectively. The part
+    bucket template gets copied again and again, extraneous parts deleted w.r.t. to the
+    specific assembly and then an assembly gets made. This is a lot faster than creating
+    individual assemblies, because the bulk of the per-assembly runtime is inserting
+    parts.
+
+    :param data: The data containing the instructions for all assemblies to be built.
+    :param name: The name of the folder in which results will be stored (created if not
+        present)
+    :param maxcounts: The computed maximum counts for the part buckets.
+    :return:
+    """
     global progress_dialog, NO_GRAPHICS, design, bucket_primed, bucket_attributes
     bucket_primed = True
     bucket_attributes = defaultdict(list)
@@ -394,6 +428,16 @@ def create_assembly_documents(data, maxcounts, name):
 
 
 def create_assembly_document(data, name):
+    """
+    Creates a single assembly document based on the instructions in data. Inserts all
+    parts contained in data, and then creates joints in the order that the instructions
+    specify.
+
+    :param data: The instruction data for creating the assembly.
+    :param name: The name of the result to be placed in the "Synthesized Assemblies"
+        folder.
+    :return:
+    """
     global progress_dialog, design, bucket_attributes, NO_GRAPHICS
     bucket_attributes = defaultdict(list)
     total_time = timer()
@@ -435,6 +479,16 @@ def create_assembly_document(data, name):
 
 
 def insert_part_into_bucket_from_quantity_information(forge_document_id, count):
+    """
+    Based on a given document id and a count, create a bucket that contains that part
+    count times.
+
+    Uses the patter command to speed up creation. The bucket gets an attribute added to
+    it to be easily retrievable during assembly.
+    :param forge_document_id: The document id of the part to insert
+    :param count: The amount of copies of the part to place in the bucket
+    :return:
+    """
     global progress_dialog, bucket_attributes
     root = adsk.fusion.Design.cast(app.activeProduct).rootComponent
     document = app.data.findFileById(forge_document_id)
@@ -471,6 +525,15 @@ def insert_part_into_bucket_from_quantity_information(forge_document_id, count):
 
 
 def create_copies_of_part_in_container(count, inserted_occurrence, parts_container):
+    """
+    Creates count copies of a part inside a wrapping component. Uses the rectangular
+    pattern command internally.
+
+    :param count: The amount of copies to create.
+    :param parts_container: The wrapping component to place the copies in.
+    :param inserted_occurrence: The original occurrence of the part to copy.
+    :return:
+    """
     global progress_dialog
     root = adsk.fusion.Design.cast(app.activeProduct).rootComponent
     object_collection_wrapper_for_part = adsk.core.ObjectCollection.create()
@@ -498,6 +561,12 @@ def create_copies_of_part_in_container(count, inserted_occurrence, parts_contain
 
 
 def create_links(count):
+    """
+    Create a set of empty wrapping components with names link_0 to link_count.
+
+    :param count: The amount of wrapping components to create.
+    :return:
+    """
     app.activeDocument.dataFile
     root = adsk.fusion.Design.cast(app.activeProduct).rootComponent
     link_occurrences = {}
@@ -515,6 +584,18 @@ def move_part_to_links_from_instructions(
     group: str = "BUCKET",
     tag: str = "DOCUMENT",
 ):
+    """
+    Move parts from their wrapping bucket to the corresponding assembly link in which
+    they belong, based on the assembly instructions.
+
+    :param instructions: The instructions containing information about which parts to
+        move where.
+    :param group: str:  (Default value = "BUCKET") The attribute group of the buckets.
+    :param tag: str: (Default value = "DOCUMENT") The tag of the bucket to find parts to
+        move in.
+    :param link_occurrences: The list of wrapping components serving as kinematic links.
+    :return:
+    """
     global design, bucket_attributes
     for joint_info in instructions:
         link, move, count = (
@@ -544,12 +625,32 @@ def move_part_to_links_from_instructions(
 
 
 def remove_tagged_occurrences(group: str, tag: str):
+    """
+    Remove all occurrences from the design that are in attribute group "group" and are
+    tagged with "tag".
+
+    Primarily used to delete wrapping components that are no longer needed after
+    assembly, i.e., the buckets.
+    :param group: str: The attribute group to remove from.
+    :param tag: str: The tag to remove.
+    :return:
+    """
     global design
     for bucket_occurrence in [x.parent for x in design.findAttributes(group, tag)]:
         bucket_occurrence.deleteMe()
 
 
 def create_joints_from_instructions(instructions):
+    """
+    Exexcute the set of instructions that detail which joints to create between which
+    JointOrigins and in which order.
+
+    The JointOrigin's uuid attributes are utilized to find them in the assembly tree.
+    Previous move operation into wrapping components must match the order of the
+    instructions.
+    :param instructions: The instructions for assembly to execute.
+    :return:
+    """
     global progress_dialog
     global design
     progress_dialog.message = "Creating all Joints..."
@@ -583,6 +684,13 @@ def create_joints_from_instructions(instructions):
 
 
 def create_result_class_folder(progress_dialog, name="User Picked Name"):
+    """
+    Create a folder to house batch assembled results.
+
+    :param progress_dialog: A progress dialog reference to display feedback in.
+    :param name: Default value = "User Picked Name") The name of the folder to create.
+    :return:
+    """
     results_folder = create_results_folder(progress_dialog)
     request_folder = wrapped_forge_call(
         partial(
@@ -600,6 +708,13 @@ def create_result_class_folder(progress_dialog, name="User Picked Name"):
 
 
 def create_results_folder(progress_dialog, folder_name: str):
+    """
+    Create a folder to house  assembled results.
+
+    :param progress_dialog: A progress dialog reference to display feedback in.
+    :param folder_name: str: The name of the folder to create.
+    :return:
+    """
     root_folder_children = (
         app.activeDocument.dataFile.parentProject.rootFolder.dataFolders
         if app.activeDocument.dataFile is not None
@@ -623,6 +738,18 @@ def create_joint_from_typed_joint_origins(
     motion,
     link: adsk.fusion.Occurrence = None,
 ):
+    """
+    Create a joint of specified motion type between two joint origins.
+
+    The joint is either created with a wrapping component as parent or in the global
+    context, depending on if a link was passed or not.
+    :param target_joint_origin: The JointOrigin to attach to.
+    :param motion: The joint motion (Rigid or Revolute are supported)
+    :param source_joint_origin: The JointOrigin to be attached.
+    :param link: adsk.fusion.Occurrence: An optional link that serves as the parent of
+        the joint.
+    :return:
+    """
     global design
     root = design.rootComponent
     target_joint_origin.attributes.itemByName("CLS-INFO", "UUID").deleteMe()
@@ -641,13 +768,11 @@ def create_joint_from_typed_joint_origins(
 
 def command_destroy(args: adsk.core.CommandEventArgs):
     """
-    Logs the command terminating. This is instantly the case upon clicking, as the command only opens the palette.
+    Logs the command terminating. This is instantly the case upon clicking, as the
+    command only opens the palette.
 
-    Args:
-        args: Unused
-
-    Returns:
-
+    :param args: adsk.core.CommandEventArgs:
+    :return:
     """
     # General logging for debug.
     futil.log(f"{CMD_NAME}: Command destroy event.")

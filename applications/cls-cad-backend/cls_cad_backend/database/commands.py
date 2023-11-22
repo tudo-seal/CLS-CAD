@@ -19,11 +19,12 @@ storage_engine = "flatfile" if any(platform.win32_ver()) else "lightning"
 
 def init_database():
     """
-    Initialize the database for the backend. This can either be a remote MongoDB instance, or a local MontyDB instance.
-    When possible, the local instance uses LMDB as storage engine, else a normal flatfile.
-    The configuration is done via the config.ini in this folder.
-    If no configuration exists, the user is prompted graphically to create one.
-    If the backend runs in a container, a LMDB MontyDB instance is always created.
+    Initialize the database for the backend. This can either be a remote MongoDB
+    instance, or a local MontyDB instance. When possible, the local instance uses LMDB
+    as storage engine, else a normal flatfile. The configuration is done via the
+    config.ini in this folder. If no configuration exists, the user is prompted
+    graphically to create one. If the backend runs in a container, a LMDB MontyDB
+    instance is always created.
 
     :return:
     """
@@ -109,7 +110,8 @@ def init_database():
 
 def switch_to_test_database() -> None:
     """
-    For running test cases, a separate MontyDB instance is gets created by this method and attached to.
+    For running test cases, a separate MontyDB instance is gets created by this method
+    and attached to.
 
     :return:
     """

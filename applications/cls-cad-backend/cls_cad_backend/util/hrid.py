@@ -10,9 +10,10 @@ system_random: random.Random | random.SystemRandom = random.SystemRandom()
 
 def generate_id(separator: str = "-", word_count: int = 6) -> str:
     """
-    Generate a human readable ID
-    :param separator: The string to use to separate words
-    :param seed: The seed to use. The same seed will produce the same ID
+    Generate a human readable ID :param separator: The string to use to separate words
+    :param seed: The seed to use.
+
+    The same seed will produce the same ID
     :param word_count: The number of words to use. Minimum of 3.
     :return: A human readable ID
     """

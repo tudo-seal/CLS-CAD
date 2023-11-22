@@ -17,14 +17,15 @@ ROOT_FOLDER = os.path.join(os.path.dirname(__file__), "..", "..")
 
 def wrapped_forge_call(forge_call: Callable, progress_dialog=None):
     """
-    Attempts to get array from forge object until it succeeds.
-    What can I say, for some reason that part of the API is super flaky.
+    Attempts to get array from forge object until it succeeds. What can I say, for some
+    reason that part of the API is super flaky.
 
-    Args:
-        forge_call:
-
-    Returns:
-
+    :param forge_call: param forge_call: Callable:
+    :param progress_dialog: Default value = None)
+    :param forge_call: Callable:
+    :param forge_call: Callable:
+    :param forge_call: Callable:
+    :param forge_call: Callable:
     """
     success = False
     once = True
@@ -57,6 +58,9 @@ def wrapped_forge_call(forge_call: Callable, progress_dialog=None):
 
 
 def invert_sub_taxonomy(sub_taxonomy):
+    """
+    :param sub_taxonomy:
+    """
     subtypes = defaultdict(list)
     for key, values in sub_taxonomy.items():
         for value in values:
@@ -65,6 +69,7 @@ def invert_sub_taxonomy(sub_taxonomy):
 
 
 def load_project_taxonomy_to_config():
+    """"""
     app = adsk.core.Application.get()
     active_id = (
         app.activeDocument.dataFile.parentProject.id
@@ -84,6 +89,10 @@ def load_project_taxonomy_to_config():
 
 
 def winapi_path(dos_path, encoding=None):
+    """
+    :param dos_path: param encoding:  (Default value = None)
+    :param encoding: Default value = None)
+    """
     if not isinstance(dos_path, str) and encoding is not None:
         dos_path = dos_path.decode(encoding)
     path = os.path.abspath(dos_path)
@@ -93,6 +102,7 @@ def winapi_path(dos_path, encoding=None):
 
 
 def update_taxonomy_in_backend():
+    """"""
     payload_dict = create_backend_taxonomy()
     req = urllib.request.Request("http://127.0.0.1:8000/submit/taxonomy")
     req.add_header("Content-Type", "application/json; charset=utf-8")
@@ -108,11 +118,11 @@ def update_taxonomy_in_backend():
 
 def create_backend_taxonomy():
     """
-    Creates a taxonomy in the format that the backend expects. Each individual taxonomy is suffixed with its identifier,
-    guaranteeing that namespaces don't overlap. The Forge ProjectID is also added to the JSON.
+    Creates a taxonomy in the format that the backend expects. Each individual taxonomy
+    is suffixed with its identifier, guaranteeing that namespaces don't overlap. The
+    Forge ProjectID is also added to the JSON.
 
     Returns: The created JSON/dict.
-
     """
     suffixed_taxonomy = {}
     update_map_for_taxonomies(config.taxonomies, config.mappings)
@@ -132,6 +142,10 @@ def create_backend_taxonomy():
 
 
 def apply_map_to_taxonomy(taxonomies: dict, mapping: dict):
+    """
+    :param taxonomies: dict:
+    :param mapping: dict:
+    """
     resolved_taxonomies = defaultdict(dict)
     for name, taxonomy in taxonomies.items():
         for k, v in taxonomy.items():
@@ -140,6 +154,10 @@ def apply_map_to_taxonomy(taxonomies: dict, mapping: dict):
 
 
 def update_map_for_taxonomies(taxonomies: dict, mapping=defaultdict(dict)):
+    """
+    :param taxonomies: dict:
+    :param mapping: Default value = defaultdict(dict))
+    """
     for name, taxonomy in taxonomies.items():
         for k, v in taxonomy.items():
             if k not in mapping[name]:
@@ -151,6 +169,9 @@ def update_map_for_taxonomies(taxonomies: dict, mapping=defaultdict(dict)):
 
 
 def invert_map(mapping: dict):
+    """
+    :param mapping: dict:
+    """
     inverted_mapping = defaultdict(dict)
     for name, s_map in mapping.items():
         inverted_mapping[name] = {v: k for k, v in s_map.items()}

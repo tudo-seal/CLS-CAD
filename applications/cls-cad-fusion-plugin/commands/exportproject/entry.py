@@ -30,10 +30,9 @@ export_path = ""
 def start():
     """
     Creates the promoted "Export Project" command in the CLS-CAD tab.
+
     Registers the commandCreated handler.
-
-    Returns:
-
+    :return:
     """
     cmd_def = ui.commandDefinitions.addButtonDefinition(
         CMD_ID, CMD_NAME, CMD_DESCRIPTION, ICON_FOLDER
@@ -48,11 +47,11 @@ def start():
 
 def stop():
     """
-    Removes this command from the CLS-CAD tab along with all others it shares a panel with.
+    Removes this command from the CLS-CAD tab along with all others it shares a panel
+    with.
+
     This does not fail, even if the panel is emptied by multiple commands.
-
-    Returns:
-
+    :return:
     """
     workspace = ui.workspaces.itemById(WORKSPACE_ID)
     panel = workspace.toolbarPanels.itemById(PANEL_ID)
@@ -68,14 +67,11 @@ def stop():
 
 def command_created(args: adsk.core.CommandCreatedEventArgs):
     """
-    Called when the user clicks the command in CLS-CAD tab.
-    Registers execute and destroy handlers.
+    Called when the user clicks the command in CLS-CAD tab. Registers execute and
+    destroy handlers.
 
-    Args:
-        args: A CommandCreatedEventArgs that allows access to the commands properties and inputs.
-
-    Returns:
-
+    :param args: adsk.core.CommandCreatedEventArgs: and inputs.
+    :return:
     """
     futil.log(f"{CMD_NAME} Command Created Event")
 
@@ -89,16 +85,14 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
 
 def recursively_submit(folders: adsk.core.DataFolders):
     """
-    For every passed DataFolder, all contained Files are opened that are f3d files.
-    The corresponding JSON for the backend is created and submitted if the file is valid. (Provides at least one format)
-    If the file is not valid, it is skipped. This may be changed to provide an error report in the future.
-    The file traversal is DFS, after a single folder is done, its children are processed immediately.
+    For every passed DataFolder, all contained Files are opened that are f3d files. The
+    corresponding JSON for the backend is created and submitted if the file is valid.
+    (Provides at least one format) If the file is not valid, it is skipped. This may be
+    changed to provide an error report in the future. The file traversal is DFS, after a
+    single folder is done, its children are processed immediately.
 
-    Args:
-        folders: A list of DataFolders to process.
-
-    Returns:
-
+    :param folders: adsk.core.DataFolders:
+    :return:
     """
     global progress_dialog
     for folder in wrapped_forge_call(folders.asArray, progress_dialog):
@@ -112,6 +106,13 @@ def recursively_submit(folders: adsk.core.DataFolders):
 
 
 def submit_files_in_folder(folder):
+    """
+    Opens all files in a DataFolder in sequence and calls the CheckAndSubmit command on
+    them, submitting them to the backend database as long as they pass validation.
+
+    :param folder: The DataFolder to process.
+    :return:
+    """
     global progress_dialog
     folder_data_files = wrapped_forge_call(folder.dataFiles.asArray, progress_dialog)
     for file in folder_data_files:
@@ -143,12 +144,15 @@ def submit_files_in_folder(folder):
 
 
 def slugify(value, allow_unicode=False):
-    """
-    Taken from https://github.com/django/django/blob/master/django/utils/text.py
+    """Taken from https://github.com/django/django/blob/master/django/utils/text.py
     Convert to ASCII if 'allow_unicode' is False. Convert spaces or repeated
     dashes to single dashes. Remove characters that aren't alphanumerics,
     underscores, or hyphens. Convert to lowercase. Also strip leading and
     trailing whitespace, dashes, and underscores.
+
+    :param value: param allow_unicode:  (Default value = False)
+    :param allow_unicode: Default value = False)
+    :return:
     """
     value = str(value)
     if allow_unicode:
@@ -165,16 +169,13 @@ def slugify(value, allow_unicode=False):
 
 def command_execute(args: adsk.core.CommandEventArgs):
     """
-    Executes immediately when user clicks the button in CLS-CAD tab as there are no command inputs.
-    Prompts the user to confirm beginning the lengthy crawling process.
-    Fetches the activeDocuments (priority, else active side browser position) projects root folder.
-    Recursively traverses this initial set of folders.
+    Executes immediately when user clicks the button in CLS-CAD tab as there are no
+    command inputs. Prompts the user to confirm beginning the lengthy crawling process.
+    Fetches the activeDocuments (priority, else active side browser position) projects
+    root folder. Recursively traverses this initial set of folders.
 
-    Args:
-        args:
-
-    Returns:
-
+    :param args: adsk.core.CommandEventArgs:
+    :return:
     """
     futil.log(f"{CMD_NAME} Command Execute Event")
 
@@ -236,13 +237,11 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
 def command_destroy(args: adsk.core.CommandEventArgs):
     """
-    Logs that the command was destroyed (window closed). Currently, does not clean up anything.
+    Logs that the command was destroyed (window closed). Currently, does not clean up
+    anything.
 
-    Args:
-        args: A CommandEventArgs that allows access to the commands properties and inputs.
-
-    Returns:
-
+    :param args: adsk.core.CommandEventArgs: inputs.
+    :return:
     """
     global local_handlers
     local_handlers = []

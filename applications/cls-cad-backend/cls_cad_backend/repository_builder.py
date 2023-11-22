@@ -14,8 +14,9 @@ from picls.types import Literal, TVar
 class Part:
     def __call__(self, *required_parts):
         """
-        Collects all arguments that the term gives to a specific application.
-        Then, recursively interprets these into a dict that matches the later Fusion 360 assembly tree.
+        Collects all arguments that the term gives to a specific application. Then,
+        recursively interprets these into a dict that matches the later Fusion 360
+        assembly tree.
 
         :param required_parts: The set of all parts connected to this part.
         :return: The completed dictionary of this part.
@@ -48,7 +49,8 @@ class Part:
 
     def __init__(self, info) -> None:
         """
-        Parts get created with info from their JSON representation. This is aggregated in the call method.
+        Parts get created with info from their JSON representation. This is aggregated
+        in the call method.
 
         :param info: A dict containing information about the part.
         """
@@ -56,7 +58,8 @@ class Part:
 
     def __eq__(self, other):
         """
-        Required for PiCLS. Computes equality based on if two parts have exactly the same info dict.
+        Required for PiCLS. Computes equality based on if two parts have exactly the
+        same info dict.
 
         :param other: The object to compare against.
         :return: true if the objects are equal, else false.
@@ -71,13 +74,15 @@ class Role(str, Enum):
 
 def generate_leaf(provides: list[Constructor], part_counts, taxonomy) -> Type:
     """
-    Generates a leaf type, i.e., the type of a part that only provides something and doesn't require anything.
-    Such a part binds either a part count of 0 or 1 of a counted Literal, depending on if it is a subtype of the
-    counted metric or not.
+    Generates a leaf type, i.e., the type of a part that only provides something and
+    doesn't require anything. Such a part binds either a part count of 0 or 1 of a
+    counted Literal, depending on if it is a subtype of the counted metric or not.
 
-    :param provides: A list of constructors that when intersected represent the provided type.
+    :param provides: A list of constructors that when intersected represent the provided
+        type.
     :param part_counts: The set of constraints.
-    :param taxonomy: The taxonomy that decides if the part provides 1 or 0 of a constraint.
+    :param taxonomy: The taxonomy that decides if the part provides 1 or 0 of a
+        constraint.
     :return: The complete type of the leaf part.
     """
     arguments = [
@@ -100,11 +105,13 @@ def collect_and_increment_part_count(
     counted_vars: dict[str, Any], count_name: str, multiplicities: Mapping[str, int]
 ):
     """
-    Collect the part counts of all positions in the multi-arrow type and compute their sum, incremented by one.
+    Collect the part counts of all positions in the multi-arrow type and compute their
+    sum, incremented by one.
 
     :param counted_vars: The set of Literals that are bound by PiCLS.
     :param count_name: The name of the Literal that will be bound to the result.
-    :param multiplicities: An optional set of multiplicities, signalling that a type corresponds to multiple physical.
+    :param multiplicities: An optional set of multiplicities, signalling that a type
+        corresponds to multiple physical.
     :return: The sum of the weighted individual part counts.
     """
     return (
@@ -123,11 +130,13 @@ def collect_part_count(
     counted_vars: dict, count_name: str, multiplicities: Mapping[str, int]
 ):
     """
-    Collect the part counts of all positions in the multi-arrow type and compute their sum.
+    Collect the part counts of all positions in the multi-arrow type and compute their
+    sum.
 
     :param counted_vars: The set of Literals that are bound by PiCLS.
     :param count_name: The name of the Literal that will be bound to the result.
-    :param multiplicities: An optional set of multiplicities, signalling that a type corresponds to multiple physical.
+    :param multiplicities: An optional set of multiplicities, signalling that a type
+        corresponds to multiple physical.
     :return: The sum of the weighted individual part counts.
     """
     return sum(
@@ -143,7 +152,8 @@ def get_joint_origin_type(
     uuid: str, part: dict, role: Role, prefix: str = ""
 ) -> list[Constructor]:
     """
-    Convert the type information for a specific JointOrigin in a part JSON to actual type constructors.
+    Convert the type information for a specific JointOrigin in a part JSON to actual
+    type constructors.
 
     :param uuid: The uuid of the JointOrigin to create constructors for.
     :param part: The part JSON containing information on the JointOrigin.
@@ -156,12 +166,14 @@ def get_joint_origin_type(
 
 def fetch_required_joint_origins_info(part, configuration):
     """
-    Retrieve the subsets of the part JSON relevant to the JointOrigin uuids of a configuration of the part.
-    A configuration is one joint being selected as provided and all others as required.
+    Retrieve the subsets of the part JSON relevant to the JointOrigin uuids of a
+    configuration of the part. A configuration is one joint being selected as provided
+    and all others as required.
 
     :param part: The complete part JSON.
     :param configuration: The configuration to retrieve information for.
-    :return: A list of the JSON subsets pertaining to the JointOrigins in the configuration.
+    :return: A list of the JSON subsets pertaining to the JointOrigins in the
+        configuration.
     """
     return {
         joint_origin_uuid: fetch_joint_origin_info(part, joint_origin_uuid)
@@ -172,6 +184,7 @@ def fetch_required_joint_origins_info(part, configuration):
 def fetch_joint_origin_info(part, joint_origin_uuid: str):
     """
     Retrieve the subset of the part JSON relevant to a specific JointOrigin uuid.
+
     :param part: The complete part JSON.
     :param joint_origin_uuid: The uuid to retrieve a subset for.
     :return: The subset of the JSON for given uuid.
@@ -195,8 +208,8 @@ def types_from_uuids(
     uuids: list, part: dict, prefix: str = ""
 ) -> OrderedDict[str, list[Constructor]]:
     """
-    Given a JSON of a part and a list of JointOrigin uuids, return a list of tuples of uuid and corresponding type
-    information.
+    Given a JSON of a part and a list of JointOrigin uuids, return a list of tuples of
+    uuid and corresponding type information.
 
     :param uuids: A list of uuids to retrieve type information for.
     :param part: The part JSON that contains all the uuids.
@@ -227,14 +240,17 @@ class RepositoryBuilder:
         taxonomy: Subtypes = None,
     ) -> None:
         """
-        Adds a part to a repository to be used for synthesis. The type is dependent on the constraints in part_counts.
-        If no part_counts are provided, the generated types are multi-arrows where each position is the type of the
-        respective JointOrigin, terminating in the provided type of the provided JointOrigin.
+        Adds a part to a repository to be used for synthesis. The type is dependent on
+        the constraints in part_counts. If no part_counts are provided, the generated
+        types are multi-arrows where each position is the type of the respective
+        JointOrigin, terminating in the provided type of the provided JointOrigin.
 
-        :param part_counts: The constraints the type needs to account for, i.e. add Literals that get incremented.
+        :param part_counts: The constraints the type needs to account for, i.e. add
+            Literals that get incremented.
         :param part: The JSON representation of the part to add to the repository.
         :param repository: The repository dict for the part to be added to.
-        :param taxonomy: The taxonomy to check against if a type needs to increment a Literal or not.
+        :param taxonomy: The taxonomy to check against if a type needs to increment a
+            Literal or not.
         :return:
         """
         for configuration in part["configurations"]:
@@ -352,8 +368,10 @@ class RepositoryBuilder:
 
         :param project_id: The id of the project to get parts from.
         :param taxonomy: The taxonomy describing the subtype relationships.
-        :param part_counts: The constraints for the synthesis request (the types in the repository depend on this).
-        :return: The repository containing all part combinators with their respective types.
+        :param part_counts: The constraints for the synthesis request (the types in the
+            repository depend on this).
+        :return: The repository containing all part combinators with their respective
+            types.
         """
         repository: dict = {}
         for part in get_all_parts_for_project(project_id):
