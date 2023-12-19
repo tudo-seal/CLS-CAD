@@ -186,7 +186,7 @@ def invert_sub_taxonomy(sub_taxonomy):
 
 def suffix_and_merge_taxonomy(taxonomy: dict):
     """
-    Merges individual taxonomies into a single one for usage with PiCLS. This is done by
+    Merges individual taxonomies into a single one for usage with clsp. This is done by
     suffixing the types in each taxonomy by the individual taxonomies names.
 
     :param taxonomy: The taxonomy dictionary with the individual taxonomies separated

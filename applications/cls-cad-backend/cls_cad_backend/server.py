@@ -24,9 +24,7 @@ from cls_cad_backend.util.json_operations import (
     postprocess,
     suffix_and_merge_taxonomy,
 )
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from picls import (
+from clsp import (
     Constructor,
     FiniteCombinatoryLogic,
     Subtypes,
@@ -34,7 +32,9 @@ from picls import (
     enumerate_terms,
     interpret_term,
 )
-from picls.types import Literal, Omega
+from clsp.types import Literal, Omega
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from starlette.background import BackgroundTasks
 from starlette.staticfiles import StaticFiles
 
@@ -108,7 +108,7 @@ async def synthesize_assembly(
 ):
     """
     Takes a payload describing a synthesis request as JSON. Builds a repository and a
-    query and then executes PiCLS. Results (if present) get enumerated (up to 100) and
+    query and then executes clsp. Results (if present) get enumerated (up to 100) and
     then post-processed into assembly instructions for the Fusion 360 Add-In to execute.
     A background task inserts the results bundled in a single JSON Object into the
     database.

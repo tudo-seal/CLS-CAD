@@ -25,7 +25,7 @@ jobs:
           aip-commands: |
             SetVersion 1.0.2
       - name: Upload setup artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Fusion Plugin Installer
           path: ${{ github.workspace }}\applications\cls-cad-fusion-plugin\setup\cls-cad-fusion-plugin.msi

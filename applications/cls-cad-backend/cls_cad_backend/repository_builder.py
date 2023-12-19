@@ -6,9 +6,9 @@ from functools import partial
 
 from cls_cad_backend.database.commands import get_all_parts_for_project
 from cls_cad_backend.util.motion import combine_motions
-from picls import Any, Constructor, Omega, Subtypes, Type
-from picls.dsl import DSL
-from picls.types import Literal, TVar
+from clsp import Any, Constructor, Omega, Subtypes, Type
+from clsp.dsl import DSL
+from clsp.types import Literal, LVar
 
 
 class Part:
@@ -41,7 +41,7 @@ class Part:
 
     def __hash__(self):
         """
-        Necessary for PiCLS to distinguish Part objects in the repository.
+        Necessary for clsp to distinguish Part objects in the repository.
 
         :return: A hash dependent on the Part JSON.
         """
@@ -58,7 +58,7 @@ class Part:
 
     def __eq__(self, other):
         """
-        Required for PiCLS. Computes equality based on if two parts have exactly the
+        Required for clsp. Computes equality based on if two parts have exactly the
         same info dict.
 
         :param other: The object to compare against.
@@ -108,7 +108,7 @@ def collect_and_increment_part_count(
     Collect the part counts of all positions in the multi-arrow type and compute their
     sum, incremented by one.
 
-    :param counted_vars: The set of Literals that are bound by PiCLS.
+    :param counted_vars: The set of Literals that are bound by clsp.
     :param count_name: The name of the Literal that will be bound to the result.
     :param multiplicities: An optional set of multiplicities, signalling that a type
         corresponds to multiple physical.
@@ -133,7 +133,7 @@ def collect_part_count(
     Collect the part counts of all positions in the multi-arrow type and compute their
     sum.
 
-    :param counted_vars: The set of Literals that are bound by PiCLS.
+    :param counted_vars: The set of Literals that are bound by clsp.
     :param count_name: The name of the Literal that will be bound to the result.
     :param multiplicities: An optional set of multiplicities, signalling that a type
         corresponds to multiple physical.
@@ -282,7 +282,7 @@ class RepositoryBuilder:
                 for count_types, _, count_name in part_counts:
                     for uuid, _ in types_by_uuid.items():
                         part_type = part_type.Use(f"{uuid}_{count_name}", count_name)
-                        counted_types[uuid].append(TVar(f"{uuid}_{count_name}"))
+                        counted_types[uuid].append(LVar(f"{uuid}_{count_name}"))
                         multiplicities[uuid] = part["jointOrigins"][uuid]["count"]
 
                     if taxonomy.check_subtype(
