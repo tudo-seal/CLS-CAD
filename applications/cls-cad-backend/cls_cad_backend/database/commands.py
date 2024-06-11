@@ -11,13 +11,13 @@ from pymongo import MongoClient, errors
 from pymongo.collection import Collection
 
 database: MontyClient | MongoClient
-parts: Collection
-taxonomies: Collection
-results: Collection
+parts: Collection = None
+taxonomies: Collection = None
+results: Collection = None
 storage_engine = "flatfile" if any(platform.win32_ver()) else "lightning"
 
 
-def init_database():
+def init_database():  # pragma: no cover
     """
     Initialize the database for the backend. This can either be a remote MongoDB
     instance, or a local MontyDB instance. When possible, the local instance uses LMDB
@@ -33,15 +33,13 @@ def init_database():
     config_path = os.path.join(application_path, "config.ini")
     container_path = os.path.join(application_path, "container")
     config = configparser.ConfigParser()
-    if not os.path.exists(config_path) and not os.path.exists(
-        container_path
-    ):  # pragma: no cover
+    if not os.path.exists(config_path) and not os.path.exists(container_path):
         is_remote = askyesno(
             "Connect to remote DB?",
             "Do you want to connect to a hosted MongoDB instance?",
         )
         connection_url: str | None = ""
-        if is_remote:  # pragma: no cover
+        if is_remote:
             connection_url = askstring(
                 "Remote URL",
                 "Please enter the connection url (with user and password, stored locally in plain text): ",
@@ -52,7 +50,7 @@ def init_database():
             except errors.ServerSelectionTimeoutError as err:
                 showerror("Connection Error", "Could not connect to database. Exiting.")
                 exit(0)
-        else:  # pragma: no cover
+        else:
             database = MontyClient(os.path.join(application_path, "db"))
             if askyesno("Import", "Import an existing database?"):
                 import_data = askopenfilename()
@@ -82,7 +80,7 @@ def init_database():
             map_size="1073741824",
         )
         database = MontyClient(os.path.join(application_path, "db"))
-    else:  # pragma: no cover
+    else:
         config.read(config_path)
         if config["db"]["is_remote"] and config["db"]["connection_url"] != "":
             try:

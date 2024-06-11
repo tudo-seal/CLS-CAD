@@ -10,7 +10,6 @@ from cls_cad_backend.database.commands import (
     get_all_result_ids_for_project,
     get_result_for_id_in_project,
     get_taxonomy_for_project,
-    init_database,
     upsert_part,
     upsert_result,
     upsert_taxonomy,
@@ -56,14 +55,11 @@ app.add_middleware(
 
 mimetypes.init()
 mimetypes.add_type("application/javascript", ".js")
-
 app.mount(
     "/static",
     StaticFiles(directory=os.path.join(os.path.dirname(__file__), "static"), html=True),
     name="static",
 )
-init_database()
-
 cache = {}
 
 

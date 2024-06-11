@@ -1,7 +1,6 @@
 import os
 import shutil
 
-import cls_cad_backend.database.commands
 import cls_cad_backend.server
 import pytest
 from cls_cad_backend.database.commands import switch_to_test_database

@@ -24,7 +24,7 @@ class FastResponse(Response):
         :param content: The content to encode.
         :return: The encoded content.
         """
-        if base_json:
+        if base_json:  # pragma: no cover
             return json.dumps(content, indent=2, ensure_ascii=False).encode("utf-8")
         try:  # pragma: no cover
             return orjson.dumps(content, option=orjson.OPT_INDENT_2)
