@@ -36,7 +36,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Docker
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: applications/cls-cad-backend
           platforms: linux/amd64
@@ -47,7 +47,7 @@ jobs:
         if: github.event_name == 'pull_request'
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: applications/cls-cad-backend
           platforms: linux/amd64
