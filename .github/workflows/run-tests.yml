@@ -44,7 +44,7 @@ jobs:
           files: |
             ./applications/cls-cad-backend/report.xml
       - name: Comment with coverage
-        uses: orgoro/coverage@v3.1
+        uses: orgoro/coverage@v3.2
         with:
           coverageFile: ./applications/cls-cad-backend/coverage.xml
           token: ${{ secrets.GITHUB_TOKEN }}
