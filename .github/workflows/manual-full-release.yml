@@ -1,0 +1,50 @@
+name: Full Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-tests:
+    name: Tests
+    uses: tudo-seal/CLS-CAD/.github/workflows/run-tests.yml@main
+    secrets: inherit
+    permissions:
+      checks: write
+      pull-requests: write
+
+  build-msi:
+    name: Installer
+    uses: tudo-seal/CLS-CAD/.github/workflows/build-publish-installer.yml@main
+    secrets: inherit
+
+  build-container:
+    name: Container
+    needs: [run-tests]
+    uses: tudo-seal/CLS-CAD/.github/workflows/build-publish-container.yml@main
+    permissions:
+      contents: read
+      packages: write
+    secrets: inherit
+
+  pre-release:
+    permissions: write-all
+    name: Update Latest Release
+    needs: [run-tests, build-msi, build-container]
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@master
+        with:
+          name: Fusion Plugin Installer
+          path: cls-cad-fusion-plugin.msi
+
+      - uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "latest"
+          prerelease: false
+          title: "Installer"
+          files: |
+            cls-cad-fusion-plugin.msi
