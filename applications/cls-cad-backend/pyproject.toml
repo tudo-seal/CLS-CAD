@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "cls_cad_backend"}]
 
 [tool.poetry.dependencies]
-python = "^3.10,<3.12"
+python = "^3.10,<3.13"
 clsp = {git = "https://github.com/tudo-seal/clsp-python.git", branch = "main"}
 fastapi = "^0"
 uvicorn = "^0"
@@ -52,6 +52,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 start = "main:start"
+docker = "main:start_docker"
 
 [tool.coverage.run]
 branch = true

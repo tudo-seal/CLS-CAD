@@ -503,6 +503,7 @@ def insert_part_into_bucket_from_quantity_information(forge_document_id, count):
         adsk.core.Matrix3D.create(),
         True,
     )
+    inserted_occurrence.isGroundToParent = False
     parts_container.component.name = f"{inserted_occurrence.name}s Quantity:{count}"
     parts_container.attributes.add("BUCKET", "DOCUMENT", forge_document_id)
     progress_dialog.progressValue = 1

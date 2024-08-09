@@ -1,14 +1,31 @@
-FROM pypy:3.10-slim
-ENV PIP_ROOT_USER_ACTION=ignore
-COPY requirements_docker.txt /cls_cad_backend/
+FROM pypy:3.10-slim as just-python
+
+ENV POETRY_VERSION=1.8.3
+ENV POETRY_HOME=/opt/poetry
+ENV POETRY_VENV=/opt/poetry-venv
+ENV POETRY_CACHE_DIR=/opt/.cache
+
+
+FROM just-python as with-poetry
+
+RUN python3 -m venv $POETRY_VENV \
+    && $POETRY_VENV/bin/pip install -U pip setuptools \
+    && $POETRY_VENV/bin/pip install poetry==${POETRY_VERSION}
+
+FROM just-python as cls-cad
+
+COPY --from=with-poetry ${POETRY_VENV} ${POETRY_VENV}
+ENV PATH="${PATH}:${POETRY_VENV}/bin"
+
 WORKDIR /cls_cad_backend
+COPY poetry.lock pyproject.toml ./
 RUN apt-get update && apt-get install -y libxft2 libxext6 git gcc \
-    && pip install --no-cache-dir -r /cls_cad_backend/requirements_docker.txt \
+    && poetry install --with docker --no-interaction --no-cache \
     && apt-get purge -y --auto-remove git gcc\
     && rm -rf /var/lib/apt/lists/*
 COPY . /cls_cad_backend
-ENV TZ=Europe/Berlin
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
-EXPOSE 8000
 RUN touch cls_cad_backend/database/container
-CMD pypy -m uvicorn cls_cad_backend.server:app --host 0.0.0.0 --port 80
+
+
+EXPOSE 8000
+CMD [ "poetry", "run", "docker" ]

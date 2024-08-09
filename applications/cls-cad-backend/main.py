@@ -8,5 +8,10 @@ def start():
     uvicorn.run("cls_cad_backend.server:app", reload=True)
 
 
+def start_docker():
+    """Launched with `poetry run start` at root level."""
+    uvicorn.run("cls_cad_backend.server:app", reload=False, host="0.0.0.0", port=80)
+
+
 if __name__ == "__main__":
     start()
