@@ -12,7 +12,7 @@ from cls_cad_backend.database.commands import (
     get_taxonomy_for_project,
     upsert_part,
     upsert_result,
-    upsert_taxonomy,
+    upsert_taxonomy, init_database,
 )
 from cls_cad_backend.repository_builder import RepositoryBuilder, wrapped_counted_types
 from cls_cad_backend.responses import FastResponse
@@ -36,6 +36,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.background import BackgroundTasks
 from starlette.staticfiles import StaticFiles
+
+init_database()
 
 origins = [
     "http://localhost:3000",
