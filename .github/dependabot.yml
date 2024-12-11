@@ -3,7 +3,7 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     groups:
       production-dependencies:
         dependency-type: "production"
@@ -13,7 +13,7 @@ updates:
   - package-ecosystem: "pip"
     directory: "/applications/cls-cad-backend"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     groups:
       production-dependencies:
         dependency-type: "production"
@@ -23,7 +23,7 @@ updates:
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     groups:
       production-dependencies:
         dependency-type: "production"
