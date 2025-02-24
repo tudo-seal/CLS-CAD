@@ -167,7 +167,7 @@ def copy_occs(root):
         occs.component.name = 'old_component'
 
 
-def export_stl(design, save_dir, components):  
+def export_stl(design, save_dir, root):  
     """
     export stl files into "sace_dir/"
     
@@ -189,21 +189,22 @@ def export_stl(design, save_dir, components):
     # export the occurrence one by one in the component to a specified file
     # TODO: only export top level components, not the nested ones
     # TODO: fix name of components
-    for component in components:
-        allOccus = component.allOccurrences
-        for occ in allOccus:
-            if 'old_component' not in occ.component.name:
-                try:
-                    fileName = scriptDir + "/" + occ.component.name              
-                    # create stl exportOptions
-                    stlExportOptions = exportMgr.createSTLExportOptions(occ, fileName)
-                    stlExportOptions.sendToPrintUtility = False
-                    stlExportOptions.isBinaryFormat = True
-                    # options are .MeshRefinementLow .MeshRefinementMedium .MeshRefinementHigh
-                    stlExportOptions.meshRefinement = adsk.fusion.MeshRefinementSettings.MeshRefinementLow
-                    exportMgr.execute(stlExportOptions)
-                except:
-                    print('Component ' + occ.component.name + 'has something wrong.')
+    rootOccs = root.occurrences
+    
+    for occ in rootOccs:
+        if 'old_component' not in occ.component.name:
+            try:
+                newName = re.sub('[ :()]', '_', occ.name)
+                fileName = scriptDir + "/" + newName
+                # create stl exportOptions
+                stlExportOptions = exportMgr.createSTLExportOptions(occ, fileName)
+                stlExportOptions.sendToPrintUtility = False
+                stlExportOptions.isBinaryFormat = True
+                # options are .MeshRefinementLow .MeshRefinementMedium .MeshRefinementHigh
+                stlExportOptions.meshRefinement = adsk.fusion.MeshRefinementSettings.MeshRefinementLow
+                exportMgr.execute(stlExportOptions)
+            except:
+                print('Component ' + occ.name + 'has something wrong.')
 
 def write_link_urdf(joints_dict, repo, links_xyz_dict, file_name, inertial_dict):
     """
@@ -229,7 +230,8 @@ def write_link_urdf(joints_dict, repo, links_xyz_dict, file_name, inertial_dict)
     The origin of the coordinate of center_of_mass is the coordinate of the link
     """
     with open(file_name, mode='a') as f:
-        # for base_link
+        # for base_link -> not needed anomyore
+        """
         center_of_mass = inertial_dict['link_0_1']['center_of_mass']
         link = Link(name='link_0_1', xyz=[0,0,0], 
             center_of_mass=center_of_mass, repo=repo,
@@ -239,6 +241,7 @@ def write_link_urdf(joints_dict, repo, links_xyz_dict, file_name, inertial_dict)
         link.make_link_xml()
         f.write(link.link_xml)
         f.write('\n')
+        """
 
         # others TODO fix this
         for joint in joints_dict:
@@ -318,8 +321,7 @@ def write_gazebo_endtag(file_name):
         
 # entry point urdf
 def write_urdf(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_name, save_dir):
-    # TODO: dont write first link twice
-    # TODO: fix link naming issue link_0_1 should be link_0
+    # TODO: check why limit tag is missing
     # TODO: xyz in joint tags should not be zero everytime
     # TODO: double check axis calculation
     # TODO: in urdf under below joint tags there should be transmissions
@@ -1226,7 +1228,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
     # Generate STl files        
     # copy_occs(root)
-    export_stl(design, save_dir, components) 
+    export_stl(design, save_dir, root) 
         
 
 
