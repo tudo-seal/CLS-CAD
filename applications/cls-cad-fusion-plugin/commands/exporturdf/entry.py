@@ -31,6 +31,77 @@ local_handlers = []
 progress_dialog: adsk.core.ProgressDialog = None
 export_path = ""
 
+def setup_package_xml(save_dir, package_name):
+    """
+    Creates a package.xml file in the specified directory with predefined content.
+    
+    :param save_dir: Path to the directory where package.xml should be saved.
+    :param robot_name: Name of the robot for the package.
+    """
+    description = f"URDF {package_name} package"
+    
+    package_content = f"""<?xml version="1.0"?>
+<package format="2">
+    <name>{package_name}</name>
+    <version>0.0.0</version>
+    <description>{description}</description>
+
+    <maintainer email="felix.wolff@tu-dortmund.de">Felix Wolff</maintainer>
+    <license>Apache</license>
+
+    <author email="felix.wolff@tu-dortmund.de">Felix Wolff</author>
+
+    <buildtool_depend>catkin</buildtool_depend>
+    <build_depend>rospy</build_depend>
+    <build_export_depend>rospy</build_export_depend>
+    <exec_depend>rospy</exec_depend>
+
+    <export>
+    </export>
+</package>
+"""
+    
+    # Define the file path
+    package_file_path = os.path.join(save_dir, "package.xml")
+    
+    # Write the content to the file
+    with open(package_file_path, "w") as f:
+        f.write(package_content)
+
+
+def setup_cmakelists(save_dir, package_name):
+    """
+    Creates a CMakeLists.txt file in the specified directory with predefined content.
+    
+    :param save_dir: Path to the directory where CMakeLists.txt should be saved.
+    """
+    catkin_INCLUDE_DIRS = "${catkin_INCLUDE_DIRS}"
+    cmake_content = f"""cmake_minimum_required(VERSION 2.8.3)
+project({package_name})
+
+find_package(catkin REQUIRED COMPONENTS
+  rospy
+)
+
+catkin_package(
+)
+
+include_directories(
+# include
+  {catkin_INCLUDE_DIRS}
+)
+"""
+    
+    # Ensure the directory exists
+    os.makedirs(save_dir, exist_ok=True)
+    
+    # Define the file path
+    cmake_file_path = os.path.join(save_dir, "CMakeLists.txt")
+    
+    # Write the content to the file
+    with open(cmake_file_path, "w") as f:
+        f.write(cmake_content)
+
 def copy_package(save_dir, package_dir):
     try: os.mkdir(save_dir + '/launch')
     except: pass 
@@ -116,12 +187,13 @@ def export_stl(design, save_dir, components):
     except: pass
     scriptDir = save_dir + '/meshes'  
     # export the occurrence one by one in the component to a specified file
+    # TODO: only export top level components, not the nested ones
+    # TODO: fix name of components
     for component in components:
         allOccus = component.allOccurrences
         for occ in allOccus:
             if 'old_component' not in occ.component.name:
                 try:
-                    print(occ.component.name)
                     fileName = scriptDir + "/" + occ.component.name              
                     # create stl exportOptions
                     stlExportOptions = exportMgr.createSTLExportOptions(occ, fileName)
@@ -246,8 +318,8 @@ def write_gazebo_endtag(file_name):
         
 # entry point urdf
 def write_urdf(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_name, save_dir):
-    # TODO: fix header of urdf
     # TODO: dont write first link twice
+    # TODO: fix link naming issue link_0_1 should be link_0
     # TODO: xyz in joint tags should not be zero everytime
     # TODO: double check axis calculation
     # TODO: in urdf under below joint tags there should be transmissions
@@ -1051,6 +1123,7 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     futil.add_handler(
         args.command.destroy, command_destroy, local_handlers=local_handlers
     )
+    
 
 def command_execute(args: adsk.core.CommandEventArgs):
     """
@@ -1146,13 +1219,13 @@ def command_execute(args: adsk.core.CommandEventArgs):
     write_control_launch(package_name, robot_name, save_dir, joints_dict)
     write_yaml(package_name, robot_name, save_dir, joints_dict)
 
-     # copy over package files
-    copy_package(save_dir, package_dir)
-    update_cmakelists(save_dir, package_name)
-    update_package_xml(save_dir, package_name)
+
+    # create package files
+    setup_cmakelists(save_dir, package_name)
+    setup_package_xml(save_dir, package_name)
 
     # Generate STl files        
-    copy_occs(root)
+    # copy_occs(root)
     export_stl(design, save_dir, components) 
         
 
