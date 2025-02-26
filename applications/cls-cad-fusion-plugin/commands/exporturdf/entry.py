@@ -969,17 +969,17 @@ def make_joints_dict(root, msg):
             return( max([abs(a-b) for a,b in zip(v1, v2)]) < tol )
 
         try:
-            if joint.geometryOrOriginOne.origin: # Relative Joint pos
+            if hasattr(joint.geometryOrOriginOne, "origin"): # Relative Joint pos
                 xyz_from_one_to_joint = joint.geometryOrOriginOne.origin.asArray() 
             else:
                 xyz_from_one_to_joint = joint.geometryOrOriginOne.geometry.origin.asArray()
-            if joint.geometryOrOriginTwo.origin: # Relative Joint pos
+            if hasattr(joint.geometryOrOriginTwo, "origin"): # Relative Joint pos
                 xyz_from_two_to_joint = joint.geometryOrOriginTwo.origin.asArray()
             else:
                 xyz_from_two_to_joint = joint.geometryOrOriginTwo.geometry.origin.asArray()
              
-            xyz_of_one            = joint.occurrenceOne.transform.translation.asArray() # Link origin
-            xyz_of_two            = joint.occurrenceTwo.transform.translation.asArray() # Link origin
+            xyz_of_one = joint.occurrenceOne.transform.translation.asArray() # Link origin
+            xyz_of_two = joint.occurrenceTwo.transform.translation.asArray() # Link origin
             M_two = joint.occurrenceTwo.transform.asArray() # Matrix as a 16 element array.
 
         # Compose joint position
