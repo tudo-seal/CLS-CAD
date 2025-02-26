@@ -946,7 +946,7 @@ def make_joints_dict(root, msg):
 
         
         
-        #There seem to be a problem with geometryOrOriginTwo. To calcualte the correct orogin of the generated stl files following approach was used.
+        #There seem to be a problem with geometryOrOriginTwo. To calcualte the correct origin of the generated stl files following approach was used.
         #https://forums.autodesk.com/t5/fusion-360-api-and-scripts/difference-of-geometryororiginone-and-geometryororiginonetwo/m-p/9837767
         #Thanks to Masaki Yamamoto!
         
@@ -969,8 +969,15 @@ def make_joints_dict(root, msg):
             return( max([abs(a-b) for a,b in zip(v1, v2)]) < tol )
 
         try:
-            xyz_from_one_to_joint = joint.geometryOrOriginOne.origin.asArray() # Relative Joint pos
-            xyz_from_two_to_joint = joint.geometryOrOriginTwo.origin.asArray() # Relative Joint pos
+            if joint.geometryOrOriginOne.origin: # Relative Joint pos
+                xyz_from_one_to_joint = joint.geometryOrOriginOne.origin.asArray() 
+            else:
+                xyz_from_one_to_joint = joint.geometryOrOriginOne.geometry.origin.asArray()
+            if joint.geometryOrOriginTwo.origin: # Relative Joint pos
+                xyz_from_two_to_joint = joint.geometryOrOriginTwo.origin.asArray()
+            else:
+                xyz_from_two_to_joint = joint.geometryOrOriginTwo.geometry.origin.asArray()
+             
             xyz_of_one            = joint.occurrenceOne.transform.translation.asArray() # Link origin
             xyz_of_two            = joint.occurrenceTwo.transform.translation.asArray() # Link origin
             M_two = joint.occurrenceTwo.transform.asArray() # Matrix as a 16 element array.
@@ -985,7 +992,7 @@ def make_joints_dict(root, msg):
 
 
             joint_dict['xyz'] = [round(i / 100.0, 6) for i in xyz_of_joint]  # converted to meter
-
+        
         except:
             try:
                 if type(joint.geometryOrOriginTwo)==adsk.fusion.JointOrigin:
@@ -996,6 +1003,7 @@ def make_joints_dict(root, msg):
             except:
                 msg = joint.name + " doesn't have joint origin. Please set it and run again."
                 break
+        
         
         joints_dict[joint.name] = joint_dict
     return joints_dict, msg
