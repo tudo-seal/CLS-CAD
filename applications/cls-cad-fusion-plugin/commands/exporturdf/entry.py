@@ -316,7 +316,7 @@ def write_robot_endtag(file_name):
     with open(file_name, mode='a') as f:
         f.write('</robot>\n')
 
-def write_gazebo_endtag(inertial_dict, file_name):
+def write_gazebo_endtag(joints_dict, file_name):
     """
     Write about gazebo_plugin and the </robot> tag at the end of the urdf
     
@@ -329,22 +329,32 @@ def write_gazebo_endtag(inertial_dict, file_name):
     with open(file_name, mode='a') as f:
         f.write('<gazebo>\n')
         f.write('   <plugin filename="libgazebo_ros_control.so" name="control"/>\n')
-        f.write('</gazebo>')
+        f.write('</gazebo>\n')
+
+        f.write('\n')
         # first one has gravity true
-        f.write('<gazebo reference="{}">\n'.format(link))
+        # for base_link
+        f.write('<gazebo reference="link_0_1">\n')
         f.write('  <material>Gazebo/Silver</material>\n')
         f.write('  <mu1>0.2</mu1>\n')
         f.write('  <mu2>0.2</mu2>\n')
         f.write('  <selfCollide>true</selfCollide>\n')
         f.write('  <gravity>true</gravity>\n')
         f.write('</gazebo>\n')
-        for link in inertial_dict[1:]:
-            f.write('<gazebo reference="{}">\n'.format(link))
+        f.write('\n')
+
+        # others
+        for joint in joints_dict:
+            name = joints_dict[joint]['child']
+            if name == 'link_0_1':
+                continue
+            f.write('<gazebo reference="{}">\n'.format(name))
             f.write('  <material>Gazebo/Silver</material>\n')
             f.write('  <mu1>0.2</mu1>\n')
             f.write('  <mu2>0.2</mu2>\n')
             f.write('  <selfCollide>true</selfCollide>\n')
             f.write('</gazebo>\n')
+            f.write('\n')
 
         f.write('</robot>\n')
         
@@ -353,9 +363,7 @@ def write_urdf(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_n
     # TODO: check why limit tag is missing
     # TODO: xyz in joint tags should not be zero everytime
     # TODO: double check axis calculation
-    # TODO: in urdf under below joint tags there should be transmissions
-    # gazebo plugin tag
-    # gazebo 0 references
+    
     try: os.mkdir(save_dir + '/urdf')
     except: pass 
 
@@ -373,7 +381,7 @@ def write_urdf(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_n
     write_link_urdf(joints_dict, repo, links_xyz_dict, file_name, inertial_dict)
     write_joint_urdf(joints_dict, repo, links_xyz_dict, file_name)
     write_transmissions_urdf(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_name, save_dir)  
-    write_gazebo_endtag(links_xyz_dict, file_name)
+    write_gazebo_endtag(joints_dict, file_name)
 
 def write_xacro(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_name, save_dir):
 
@@ -541,7 +549,7 @@ def write_gazebo_xacro(joints_dict, links_xyz_dict, inertial_dict, package_name,
         f.write(gazebo_xml)
 
         # for base_link
-        f.write('<gazebo reference="base_link">\n')
+        f.write('<gazebo reference="link_0_1">\n')
         f.write('  <material>${body_color}</material>\n')
         f.write('  <mu1>0.2</mu1>\n')
         f.write('  <mu2>0.2</mu2>\n')
@@ -553,6 +561,8 @@ def write_gazebo_xacro(joints_dict, links_xyz_dict, inertial_dict, package_name,
         # others
         for joint in joints_dict:
             name = joints_dict[joint]['child']
+            if name == 'link_0_1':
+                continue
             f.write('<gazebo reference="{}">\n'.format(name))
             f.write('  <material>${body_color}</material>\n')
             f.write('  <mu1>0.2</mu1>\n')
