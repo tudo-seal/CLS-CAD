@@ -186,9 +186,6 @@ def export_stl(design, save_dir, root):
     try: os.mkdir(save_dir + '/meshes')
     except: pass
     scriptDir = save_dir + '/meshes'  
-    # export the occurrence one by one in the component to a specified file
-    # TODO: only export top level components, not the nested ones
-    # TODO: fix name of components
     rootOccs = root.occurrences
     
     for occ in rootOccs:
@@ -243,7 +240,7 @@ def write_link_urdf(joints_dict, repo, links_xyz_dict, file_name, inertial_dict)
         f.write('\n')
         """
 
-        # others TODO fix this
+        # others
         for joint in joints_dict:
             name = joints_dict[joint]['child']
             # check in which link part with name is located
@@ -306,7 +303,20 @@ def write_joint_urdf(joints_dict, repo, links_xyz_dict, file_name):
                 f.write(joint.joint_xml)
                 f.write('\n')
 
-def write_gazebo_endtag(file_name):
+def write_robot_endtag(file_name):
+    """
+    Write the </robot> tag at the end of the urdf
+    
+    
+    Parameters
+    ----------
+    file_name: str
+        urdf full path
+    """
+    with open(file_name, mode='a') as f:
+        f.write('</robot>\n')
+
+def write_gazebo_endtag(inertial_dict, file_name):
     """
     Write about gazebo_plugin and the </robot> tag at the end of the urdf
     
@@ -317,6 +327,25 @@ def write_gazebo_endtag(file_name):
         urdf full path
     """
     with open(file_name, mode='a') as f:
+        f.write('<gazebo>\n')
+        f.write('   <plugin filename="libgazebo_ros_control.so" name="control"/>\n')
+        f.write('</gazebo>')
+        # first one has gravity true
+        f.write('<gazebo reference="{}">\n'.format(link))
+        f.write('  <material>Gazebo/Silver</material>\n')
+        f.write('  <mu1>0.2</mu1>\n')
+        f.write('  <mu2>0.2</mu2>\n')
+        f.write('  <selfCollide>true</selfCollide>\n')
+        f.write('  <gravity>true</gravity>\n')
+        f.write('</gazebo>\n')
+        for link in inertial_dict[1:]:
+            f.write('<gazebo reference="{}">\n'.format(link))
+            f.write('  <material>Gazebo/Silver</material>\n')
+            f.write('  <mu1>0.2</mu1>\n')
+            f.write('  <mu2>0.2</mu2>\n')
+            f.write('  <selfCollide>true</selfCollide>\n')
+            f.write('</gazebo>\n')
+
         f.write('</robot>\n')
         
 # entry point urdf
@@ -343,12 +372,10 @@ def write_urdf(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_n
 
     write_link_urdf(joints_dict, repo, links_xyz_dict, file_name, inertial_dict)
     write_joint_urdf(joints_dict, repo, links_xyz_dict, file_name)
-    write_gazebo_endtag(file_name)
+    write_transmissions_urdf(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_name, save_dir)  
+    write_gazebo_endtag(links_xyz_dict, file_name)
 
 def write_xacro(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_name, save_dir):
-    # TODO: dont write first link twice
-    # TODO: xyz in joint tags should not be zero everytime
-    # TODO: double check axis calculation
 
     try: os.mkdir(save_dir + '/urdf')
     except: pass 
@@ -369,7 +396,7 @@ def write_xacro(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_
 
     write_link_urdf(joints_dict, repo, links_xyz_dict, file_name, inertial_dict)
     write_joint_urdf(joints_dict, repo, links_xyz_dict, file_name)
-    write_gazebo_endtag(file_name)
+    write_robot_endtag(file_name)
 
 # entry point materials xacro
 def write_materials_xacro(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_name, save_dir):
@@ -386,6 +413,56 @@ def write_materials_xacro(joints_dict, links_xyz_dict, inertial_dict, package_na
         f.write('</material>\n')
         f.write('\n')
         f.write('</robot>\n')
+
+# entry point transmissions xacro
+def write_transmissions_urdf(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_name, save_dir):
+    """
+    Write joints and transmission information into urdf "repo/file_name"
+    
+    
+    Parameters
+    ----------
+    joints_dict: dict
+        information of the each joint
+    repo: str
+        the name of the repository to save the xml file
+    links_xyz_dict: dict
+        xyz information of the each link
+    file_name: str
+        urdf full path
+    """
+    
+    file_name = save_dir + '/urdf/{}.urdf'.format(robot_name)  # the name of urdf file
+    with open(file_name, mode='a') as f:
+
+        for j in joints_dict:
+            parent = joints_dict[j]['parent']
+            if(parent == "base_link"):
+                continue
+            else:
+                child = joints_dict[j]['child']
+                joint_type = joints_dict[j]['type']
+                upper_limit = joints_dict[j]['upper_limit']
+                lower_limit = joints_dict[j]['lower_limit']
+                try:
+                    xyz = [round(p-c, 6) for p, c in \
+                        zip(links_xyz_dict[parent], links_xyz_dict[child])]  # xyz = parent - child
+                except KeyError as ke:
+                    app = adsk.core.Application.get()
+                    ui = app.userInterface
+                    ui.messageBox("There seems to be an error with the connection between\n\n%s\nand\n%s\n\nCheck \
+    whether the connections\nparent=component2=%s\nchild=component1=%s\nare correct or if you need \
+    to swap component1<=>component2"
+                    % (parent, child, parent, child), "Error!")
+                    quit()
+                    
+                joint = Joint(name=j, joint_type = joint_type, xyz=xyz, \
+                axis=joints_dict[j]['axis'], parent=parent, child=child, \
+                upper_limit=upper_limit, lower_limit=lower_limit)
+                if joint_type != 'fixed':
+                    joint.make_transmission_xml()
+                    f.write(joint.tran_xml)
+                    f.write('\n')
 
 # entry point transmissions xacro
 def write_transmissions_xacro(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_name, save_dir):
