@@ -1,6 +1,6 @@
 from statemachine import StateMachine, State
 
-class PlannerStateMachine(StateMachine):
+class BOStateMachine(StateMachine):
     # Define states
     generate_predicate = State("Generate Predicate", initial=True)
     performing_synthesis = State("Performing Synthesis")

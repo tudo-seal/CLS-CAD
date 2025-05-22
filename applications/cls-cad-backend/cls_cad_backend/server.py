@@ -23,6 +23,7 @@ from cls_cad_backend.util.json_operations import (
     postprocess,
     suffix_and_merge_taxonomy,
 )
+from cls_cad_backend.util.BOStateMachine import BOStateMachine
 from clsp import (
     Constructor,
     FiniteCombinatoryLogic,
@@ -36,6 +37,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.background import BackgroundTasks
 from starlette.staticfiles import StaticFiles
+
 
 origins = [
     "http://localhost:3000",
@@ -61,7 +63,7 @@ app.mount(
     name="static",
 )
 cache = {}
-
+state_machine = BOStateMachine()
 
 @app.post("/submit/part")
 async def save_part(
@@ -117,7 +119,10 @@ async def synthesize_assembly(
         results.
     """
     # state machine should transition to motion planning state after this is done
-    # IF state was in synthesis state
+    # and IF flag is set
+    optimization_running = False
+    if payload.optimizationRunning and state_machine.current_state == "performing_synthesis":
+        optimization_running = True
     take_time = timer()
     literals = {}
     part_count_type = Omega()
@@ -172,6 +177,8 @@ async def synthesize_assembly(
         },
     )
     print(f"Took: {timer() - take_time}")
+    if optimization_running:
+        state_machine.to_motion_planning()
     return {
         "_id": request_id,
         "forgeProjectId": payload.forgeProjectId,

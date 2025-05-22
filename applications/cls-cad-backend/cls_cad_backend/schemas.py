@@ -52,3 +52,4 @@ class SynthesisRequestInf(BaseModel, frozen=True):
     tag: str | None = None
     partCounts: list[CountNumOfPartTypeInf] | None = None
     sourceUuid: str | None = None
+    optimizationRunning: str | None = None
