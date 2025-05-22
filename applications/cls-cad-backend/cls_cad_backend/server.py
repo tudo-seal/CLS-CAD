@@ -260,6 +260,34 @@ async def maximum_counts_for_id(
             )
     return FastResponse(part_counts)
 
+@app.get("/results/{project_id}/{request_id}/cheapest", response_class=FastResponse)
+async def cheapest_assembly_for_id(
+    project_id: str,
+    request_id: str,
+):
+    """
+    Computes the cheapest assembly from a synthesis result.
+
+    :param project_id: The project id of the project the result is from.
+    :param request_id: The id of the result.
+    :return: A JSON object containing the cheapest assembly. "Invalid" if the request
+        or project ids were invalid.
+    """
+    try:
+        results = await cache_request(request_id, project_id)
+    except TypeError:
+        return "Invalid"
+    lowest_cost = None
+    lowest_cost_index = 0
+    for result_index, result in enumerate(results):
+        if lowest_cost is None:
+            lowest_cost = result["cost"]
+            lowest_cost_index = result_index
+        if result["cost"] < lowest_cost:
+            lowest_cost = result["cost"]
+            lowest_cost_index = result_index
+    return FastResponse(results[lowest_cost_index])
+
 
 @app.get("/results/{project_id}/{request_id}", response_class=FastResponse)
 async def results_for_id(

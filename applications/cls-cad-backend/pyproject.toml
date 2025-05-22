@@ -14,6 +14,7 @@ uvicorn = "^0"
 pydantic = "^2"
 pymongo = {extras = ["srv"], version = "^4"}
 montydb = {extras = ["bson"], version = "^2"}
+python-statemachine
 
 [tool.poetry.group.docker]
 optional = true
