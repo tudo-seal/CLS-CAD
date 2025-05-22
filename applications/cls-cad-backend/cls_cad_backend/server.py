@@ -116,6 +116,8 @@ async def synthesize_assembly(
     :return: A JSON containing a result id and metadata, or FAIL if there are no
         results.
     """
+    # state machine should transition to motion planning state after this is done
+    # IF state was in synthesis state
     take_time = timer()
     literals = {}
     part_count_type = Omega()
