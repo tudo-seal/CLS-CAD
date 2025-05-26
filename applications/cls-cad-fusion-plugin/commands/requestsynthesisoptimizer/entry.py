@@ -22,9 +22,9 @@ from ...lib.general_utils import (
 app = adsk.core.Application.get()
 ui = app.userInterface
 
-CMD_ID = f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_request_synthesis"
-CMD_NAME = "Request Synthesis"
-CMD_DESCRIPTION = "Put in a synthesis request"
+CMD_ID = f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_request_synthesis_optmizer"
+CMD_NAME = "Request Synthesis Optimizer"
+CMD_DESCRIPTION = "Put in a synthesis request and progress optimizer"
 IS_PROMOTED = True
 WORKSPACE_ID = "FusionSolidEnvironment"
 PANEL_ID = "SYNTH_ASSEMBLY"
@@ -395,6 +395,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
     req.add_header("Content-Length", len(payload))
     response = urllib.request.urlopen(req, payload)
     print(response.read().decode())
+    print("id for single assembly is:"+ response.read().decode()._id)
 
 
 def command_destroy(args: adsk.core.CommandEventArgs):
@@ -439,6 +440,7 @@ def synthesize_with_vector(input_vector):
                 "partType": ["40mm_attributes"]
             }
         ],
+        "optimizeAssembly": "True",
         "forgeProjectId": app.activeDocument.dataFile.parentProject.id
         if app.activeDocument.dataFile is not None
         else app.data.activeProject.id,

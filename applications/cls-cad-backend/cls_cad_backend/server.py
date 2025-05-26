@@ -121,7 +121,7 @@ async def synthesize_assembly(
     # state machine should transition to motion planning state after this is done
     # and IF flag is set
     optimization_running = False
-    if payload.optimizationRunning and state_machine.current_state == "performing_synthesis":
+    if payload.optimizeAssembly and state_machine.current_state == "performing_synthesis":
         optimization_running = True
     take_time = timer()
     literals = {}
