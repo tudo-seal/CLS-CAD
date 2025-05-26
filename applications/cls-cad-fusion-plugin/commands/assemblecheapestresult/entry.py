@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import urllib
 from collections import defaultdict
 from datetime import datetime
 from functools import partial
@@ -225,7 +226,7 @@ def create_ground_joint(ground_joint_origin):
     joint.isLightBulbOn = False
     return joint
 
-def request_cheapest():
+def request_cheapest(request_id):
     """
     Requests the cheapest assembly from the backend. This is done by sending a message
     to the endpoint /results/{project_id}/{request_id}/cheapest"""
@@ -234,8 +235,20 @@ def request_cheapest():
         if app.activeDocument.dataFile is not None
         else app.data.activeProject.id
     ) # this is project_id
+    # request id is entered by the user if function is called from UI -> solve programmatically later
+    request_dict = {
+        "project_id": active_id,
+        "request_id": request_id,
+    }
+    payload = json.dumps(request_dict).encode("utf-8")
+    req = urllib.request.Request(
+        f"{config.SERVER_URL}/results/{active_id}/{request_id}/cheapest",
+        data=payload,
+        headers={"Content-Type": "application/json; charset=utf-8"})
+    response = urllib.request.urlopen(req, payload)
+    print(response.read().decode())
 
-    
+
 
     create_assembly_document(message_data, name)
 
