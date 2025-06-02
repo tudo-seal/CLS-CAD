@@ -2,33 +2,32 @@ from statemachine import StateMachine, State
 
 class BOStateMachine(StateMachine):
     # Define states
-    generate_predicate = State("Generate Predicate", initial=True)
-    performing_synthesis = State("Performing Synthesis")
-    performing_motion_planning = State("Performing Motion Planning")
+    initial = State("Startup State", initial=True)
+    waiting_for_mp_results = State("Ready: Waiting for MP Results")
+    calculating_new_constraints = State("Busy: Calculating new synthesis constraints")
 
     # Define transitions
-    to_synthesis = generate_predicate.to(performing_synthesis)
-    to_motion_planning = performing_synthesis.to(performing_motion_planning)
-    to_generate_predicate = performing_motion_planning.to(generate_predicate)
+    to_synthesis = initial.to(calculating_new_constraints)
+    to_calculating_new_constraints = waiting_for_mp_results.to(calculating_new_constraints)
+    to_waiting_for_mp_results = calculating_new_constraints.to(waiting_for_mp_results)
 
-    def on_enter_generate_predicate(self):
-        print("GENERATE_PREDICATE")
-        # BO framework generates a predicate
-        # Placeholder logic
-        # send predicate back to fusion so fusion can make rest call
-        self.to_synthesis()
+    def __init__(self):
+        super().__init__()
+        self.cycle_counter = 0
+        self.optimal_vector = []
+        self.PLACEHOLDER_hyperparameters = {}
+    
+    def on_enter_initial(self):
+        print("STARTUP_STATE")
+        # placeholder logic to initialize BO framework
+        self.to_calculating_new_constraints()
 
-    def on_enter_performing_synthesis(self):
-        print("PERFORMING_SYNTHESIS")
-        # backend receives a synthesis request from fusion and generates a list of assemblies
-        
-
-        # done in server.py self.to_motion_planning()
+    def on_enter_waiting_for_mp_results(self):
+        print("READY_WAITING_FOR_MP_RESULTS")
+        self.to_calculating_new_constraints()
 
 
-    def on_enter_performing_motion_planning(self):
-        print("PERFORMING_MOTION_PLANNING")
-        # backend receives a single assembly and performs motion planning
-        # update BO
-        # Placeholder logic
-        self.to_generate_predicate()
+    def on_enter_calculating_new_constraints(self):
+        print("BUSY_CALCULATING_NEW_CONSTRAINTS")
+        # 
+        self.to_waiting_for_mp_results()
