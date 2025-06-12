@@ -110,34 +110,15 @@ def command_execute(args: adsk.core.CommandEventArgs):
     :return:
     """
     futil.log(f"{CMD_NAME}: Command execute event.")
-
-    palettes = ui.palettes
-    palette = palettes.itemById(PALETTE_ID)
-    if palette is not None:
-        palette.deleteMe()
-        futil.log("Deleted palette.")
-
-    if palette is None or not palette.isValid:
-        palette = palettes.add(
-            id=PALETTE_ID,
-            name=PALETTE_NAME,
-            htmlFileURL=PALETTE_URL,
-            isVisible=True,
-            showCloseButton=True,
-            isResizable=True,
-            width=1200,
-            height=800,
-            useNewWebBrowser=True,
-        )
-        futil.add_handler(palette.incomingFromHTML, palette_incoming)
-        futil.log(
-            f"{CMD_NAME}: Created a new palette: ID = {palette.id}, Name = {palette.name}"
-        )
-
-    if palette.dockingState == adsk.core.PaletteDockingStates.PaletteDockStateFloating:
-        palette.dockingState = PALETTE_DOCKING
-
-    palette.isVisible = True
+    (request_id, cancelled) = ui.inputBox(
+            "Please enter request id to assemble the cheapest result",
+            "Request ID",
+            "",
+    )
+    if cancelled:
+        return
+    request_cheapest(request_id)
+        
 
 
 def center_in_window():
@@ -246,91 +227,18 @@ def request_cheapest(request_id):
         data=payload,
         headers={"Content-Type": "application/json; charset=utf-8"})
     response = urllib.request.urlopen(req, payload)
+    message_data: dict = json.loads(response)
     print(response.read().decode())
 
-
+    (name, cancelled) = ui.inputBox(
+            "Please pick a name to describe the result.",
+            "Synthesized Result Name",
+            generate_id(),
+    )
+    if cancelled:
+        return
 
     create_assembly_document(message_data, name)
-
-
-def palette_incoming(html_args: adsk.core.HTMLEventArgs):
-    """
-    Handles incoming messages from the JavaScript portion of the palette. Receives an
-    "assembleMessage" that contains the JSON representation of the assembly as data. If
-    not present, the necessary folders in the project are created. The initial part of
-    the assembly is inserted and then assemble_recursively is called to start the
-    assembly process.
-
-    Sets the document to direct modeling mode during assembly to improve performance and
-    avoid congested history. 
-
-    :param html_args: adsk.core.HTMLEventArgs: The received HTML event containing data
-    :return:
-    """
-    futil.log(f"{CMD_NAME}: Palette incoming event.")
-
-    message_data: dict = json.loads(html_args.data)
-    message_action = html_args.action
-
-    # Read message sent from palette javascript and react appropriately.
-    if message_action == "assembleMessage":
-        palettes = ui.palettes
-        palette = palettes.itemById(PALETTE_ID)
-        palette.isVisible = False
-
-        (name, cancelled) = ui.inputBox(
-            "Please pick a name to describe the result.",
-            "Synthesized Result Name",
-            generate_id(),
-        )
-        if cancelled:
-            return
-
-        create_assembly_document(message_data, name)
-
-    if message_action == "assembleAllMessage":
-        palettes = ui.palettes
-        palette = palettes.itemById(PALETTE_ID)
-        palette.isVisible = False
-
-        result = ui.messageBox(
-            "This will take a considerable amount of time depending on the number of results."
-            "\n"
-            "\n"
-            "Do you wish to continue?",
-            "Export",
-            adsk.core.MessageBoxButtonTypes.OKCancelButtonType,
-        )
-        if result:
-            return
-        (name, cancelled) = ui.inputBox(
-            "Please pick a name to describe the result.",
-            "Synthesized Result Name",
-            generate_id(),
-        )
-        if cancelled:
-            return
-
-        create_assembly_documents(
-            message_data["results"], message_data["partcounts"], name
-        )
-
-    if message_action == "readyNotification":
-        # ADSK was injected, so now we send the payload
-        futil.log("Got Ready, sending projectID")
-        project_id = (
-            app.activeDocument.dataFile.parentProject.id
-            if app.activeDocument.dataFile is not None
-            else app.data.activeProject.id
-        )
-        palettes = ui.palettes
-        palette = palettes.itemById(PALETTE_ID)
-        palette.sendInfoToHTML("projectIDMessage", project_id)
-
-    # Return value.
-    now = datetime.now()
-    current_time = now.strftime("%H:%M:%S")
-    html_args.returnData = f"OK - {current_time}"
 
 
 def buckets_saved_handler(args: adsk.core.DataEventArgs):

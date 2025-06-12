@@ -50,5 +50,6 @@ axisrotaryjointintent -> 0-7
 40mm -> 0-5
 
 pixi shell im backend laufen lassen und ansprechen
+docker container für motion planning schreiben
 
 ![predicate für synthesis](image.png)

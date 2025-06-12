@@ -30,6 +30,19 @@ ICON_FOLDER = os.path.join(os.path.dirname(__file__), "resources", "")
 local_handlers = []
 progress_dialog: adsk.core.ProgressDialog = None
 export_path = ""
+# TODO: send files to backend
+# TODO: also create moveit_configs
+#cartesian_limits.yaml
+#fake_controllers.yaml
+#gazebo_controllers.yaml
+#joint_limits.yaml
+#kinematics.yaml
+#.srdf
+#ompl_planning.yaml
+#ros_controllers.yaml
+#sensors_3d.yaml
+#simple_moveit_controllers.yaml
+#stomp
 
 def setup_package_xml(save_dir, package_name):
     """
