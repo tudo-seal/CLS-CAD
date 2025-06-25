@@ -14,9 +14,9 @@ packages = [{include = "scripts", from="."}]
 python = "^3.9"
 
 [tool.poetry.dev-dependencies]
-black = "^24"
+black = "^25"
 flake8 = "^7"
-isort = "^5"
+isort = "^6"
 pyright = "^1"
 pytest = "^8"
 pre-commit = "^4"
