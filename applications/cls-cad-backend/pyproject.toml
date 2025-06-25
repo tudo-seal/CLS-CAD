@@ -7,20 +7,12 @@ readme = "README.md"
 packages = [{include = "cls_cad_backend"}]
 
 [tool.poetry.dependencies]
-python = "^3.10,<3.13"
+python = "^3.11,<3.13"
 clsp = {git = "https://github.com/tudo-seal/clsp-python.git", branch = "main"}
 fastapi = "^0"
 uvicorn = "^0"
-pydantic = "^2"
 pymongo = {extras = ["srv"], version = "^4"}
 montydb = {extras = ["bson"], version = "^2"}
-
-[tool.poetry.group.docker]
-optional = true
-
-[tool.poetry.group.docker.dependencies]
-montydb = {extras = ["lmdb"], version = "^2"}
-lmdb = "^1"
 
 [tool.poetry.group.cpython]
 optional = true
