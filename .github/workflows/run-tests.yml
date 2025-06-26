@@ -53,7 +53,7 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          file: ./coverage.xml
+          files: ./coverage.xml
           fail_ci_if_error: true
           working-directory: applications/cls-cad-backend
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
