@@ -83,6 +83,113 @@ async def save_part(
     return "OK"
 
 
+@app.post("/bo/{project_id}/{experiment_id}/initialize")
+async def initialize_bo(
+    project_id: str,
+    experiment_id: str,
+):
+    """
+    Initializes the state machine for a specific project and experiment id.
+
+    :param project_id: The project id for which the state machine should be initialized.
+    :param experiment_id: The experiment id for which the state machine should be
+        initialized.
+    :return: Returns "OK" when successful, else returns a 422 response code if payload
+        didn't pass validation.
+    """
+    #TODO placeholder logic
+    return "OK"
+
+@app.get("/bo/{project_id}/{experiment_id}/optimal-vector")
+async def optimal_vector(
+    project_id: str,
+    experiment_id: str,
+):
+    """
+    Retrieves the current optimal vector from the optimizer for a specific project and
+    experiment id.
+
+    :param project_id: The project id for which the optimal vector should be retrieved.
+    :param experiment_id: The experiment id for which the optimal vector should be
+        retrieved.
+    :return: Returns "OK" when successful, else returns a 422 response code if payload
+        didn't pass validation.
+    """
+    #TODO placeholder logic
+    return "OK"
+
+@app.post("/bo/store-mp-files")
+async def store_mp_files(
+    files: any,
+    form: any
+):
+    """
+    Stores the motion planning files.
+
+    :param files: The files to be stored.
+    :param form: Form data containing the relative file paths.
+    :return: Returns "OK" when successful, else returns a 422 response code if payload
+        didn't pass validation.
+    """
+    #TODO placeholder logic
+    return "OK"
+
+@app.post("/bo/perform-motion-planning")
+async def motion_planning(
+    project_id: str,
+    experiment_id: str,
+    request_id: str,
+):
+    """
+    Starts the motion planning process for a specific project, experiment and request.
+    :param project_id: The project id for which the motion planning should be started.
+    :param experiment_id: The experiment id for which the motion planning should be
+        started.
+    :param request_id: The request id for which the motion planning should be started.
+    :return: Returns "OK" when successful, else returns a 422 response code if payload
+        didn't pass validation.
+    """
+    #TODO placeholder logic
+    return "OK"
+
+@app.get("/bo/results/{project_id}/{experiment_id}/{request_id}/motion-planning")
+async def motion_planning_results(
+    project_id: str,
+    experiment_id: str,
+    request_id: str,
+):
+    """
+    Retrieves the motion planning results for a specific project, experiment and request.
+
+    :param project_id: The project id for which the motion planning results should be
+        retrieved.
+    :param experiment_id: The experiment id for which the motion planning results should
+        be retrieved.
+    :param request_id: The request id for which the motion planning results should be
+        retrieved.
+    :return: Returns motion planning stats when successful, else returns a 422 response code if payload
+        didn't pass validation.
+    """
+    #TODO placeholder logic
+    data = {}
+    return data
+
+@app.post("/bo/{project_id}/{experiment_id}/update-with-result")
+async def update_with_result(
+    project_id: str,
+    experiment_id: str
+):
+    """
+    Updates bo state machine from a specific experiment with the latest result.
+    
+    :param project_id: The project id for which the state machine should be updated.
+    :param experiment_id: The experiment id for which the state machine should be updated.
+    :return: Returns "OK" when successful, else returns a 422 response code if payload
+        didn't pass validation.
+    """
+    #TODO placeholder logic
+    return "OK"
+
 @app.post("/submit/taxonomy")
 async def save_taxonomy(
     payload: TaxonomyInf,
