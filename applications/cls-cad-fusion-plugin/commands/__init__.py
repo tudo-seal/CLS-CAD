@@ -12,6 +12,7 @@ from .checkandsubmit import entry as check_and_submit
 from .downloadtaxonomy import entry as download_taxonomy
 from .exportproject import entry as export_project
 from .exporturdf import entry as export_urdf
+from .requestsynthesisoptimizer import entry as request_synthesis_optimizer
 from .formatstaxonomyediting import entry as formats_taxonomy_editing
 from .jointtyping import entry as joint_typing
 from .partmanagement import entry as part_management
@@ -46,6 +47,7 @@ commands = [
     parts_taxonomy_editing,
     attributes_taxonomy_editing,
     request_synthesis,
+    request_synthesis_optimizer,
     assemble_result,
 ]
 

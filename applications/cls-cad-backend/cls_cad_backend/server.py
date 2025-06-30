@@ -13,6 +13,7 @@ from cls_cad_backend.database.commands import (
     upsert_part,
     upsert_result,
     upsert_taxonomy,
+    init_database
 )
 from cls_cad_backend.repository_builder import RepositoryBuilder, wrapped_counted_types
 from cls_cad_backend.responses import FastResponse
@@ -23,7 +24,7 @@ from cls_cad_backend.util.json_operations import (
     postprocess,
     suffix_and_merge_taxonomy,
 )
-from cls_cad_backend.util.BOStateMachine import BOStateMachine
+from cls_cad_backend.util.BOStateMachine import SkoptOptimizer
 from clsp import (
     Constructor,
     FiniteCombinatoryLogic,
@@ -38,6 +39,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.background import BackgroundTasks
 from starlette.staticfiles import StaticFiles
 
+
+init_database()
 
 origins = [
     "http://localhost:3000",
@@ -63,7 +66,11 @@ app.mount(
     name="static",
 )
 cache = {}
-state_machine = BOStateMachine()
+# anzahl motoren -> Dynamixel 0-7
+# axisrotaryjointintent -> 0-7
+# 40mm -> 0-5
+search_space = [(0,7),(0,7),(0,5)]
+state_machine = SkoptOptimizer(search_space)
 
 @app.post("/submit/part")
 async def save_part(
@@ -120,8 +127,8 @@ async def optimal_vector(
 
 @app.post("/bo/store-mp-files")
 async def store_mp_files(
-    files: any,
-    form: any
+    files: str,
+    form: str
 ):
     """
     Stores the motion planning files.
@@ -227,9 +234,6 @@ async def synthesize_assembly(
     """
     # state machine should transition to motion planning state after this is done
     # and IF flag is set
-    optimization_running = False
-    if payload.optimizeAssembly and state_machine.current_state == "performing_synthesis":
-        optimization_running = True
     take_time = timer()
     literals = {}
     part_count_type = Omega()
@@ -284,8 +288,6 @@ async def synthesize_assembly(
         },
     )
     print(f"Took: {timer() - take_time}")
-    if optimization_running:
-        state_machine.to_motion_planning()
     return {
         "_id": request_id,
         "forgeProjectId": payload.forgeProjectId,
