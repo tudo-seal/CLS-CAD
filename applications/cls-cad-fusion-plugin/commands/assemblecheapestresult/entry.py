@@ -18,7 +18,7 @@ app = adsk.core.Application.get()
 ui = app.userInterface
 
 CMD_ID = f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_assemble_cheapest_results"
-CMD_NAME = "Assemble"
+CMD_NAME = "Assemble cheapest result"
 CMD_Description = "Assembly the cheapest synthesized results."
 PALETTE_NAME = "Pick results for assembly" #NOT NEEDED
 IS_PROMOTED = True
@@ -41,7 +41,7 @@ progress_dialog: adsk.core.ProgressDialog = None
 
 def start():
     """
-    Creates the promoted "Assemble Result" command in the CLS-CAD tab.
+    Creates the promoted "Assemble cheapest Result" command in the CLS-CAD tab.
 
     Registers the commandCreated handler.
     :return:
@@ -224,11 +224,11 @@ def request_cheapest(request_id):
     payload = json.dumps(request_dict).encode("utf-8")
     req = urllib.request.Request(
         f"{config.SERVER_URL}/results/{active_id}/{request_id}/cheapest",
-        data=payload,
-        headers={"Content-Type": "application/json; charset=utf-8"})
+        headers={"Content-Type": "application/json; charset=utf-8"},
+        method="GET")
     response = urllib.request.urlopen(req, payload)
-    message_data: dict = json.loads(response)
-    print(response.read().decode())
+    response_data = response.read().decode()
+    message_data: dict = json.loads(response_data)
 
     (name, cancelled) = ui.inputBox(
             "Please pick a name to describe the result.",

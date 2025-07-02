@@ -104,15 +104,11 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     motor_count = cmd_inputs.addIntegerSpinnerCommandInput(
         "Dynamixel_parts", "Motor Count", 0, 7, 1, 1
     )
-    rotary_joints = cmd_inputs.addIntegerSpinnerCommandInput(
-        "AxisRotaryJoint_Intent_attributes", "Rotary Joint Count", 0, 7, 1, 1
-    )
     extrusions = cmd_inputs.addIntegerSpinnerCommandInput(
         "40mm_attributes", "Extrusion Count", 0, 5, 1, 1
     )
     requested_vector = [
         motor_count.value,
-        rotary_joints.value,
         extrusions.value
     ]
 
@@ -132,14 +128,12 @@ def command_execute(args: adsk.core.CommandEventArgs):
     inputs = cmd.commandInputs
 
     motor_count_input = inputs.itemById("Dynamixel_parts")
-    rotary_joints_input = inputs.itemById("AxisRotaryJoint_Intent_attributes")
     extrusions_input = inputs.itemById("40mm_attributes")
 
     motor_count = motor_count_input.value
-    rotary_joints = rotary_joints_input.value
     extrusions = extrusions_input.value
 
-    input_vector = [motor_count, rotary_joints, extrusions]
+    input_vector = [motor_count, extrusions]
 
     synthesize_with_vector(input_vector)
     print("DONE")
@@ -160,8 +154,7 @@ def synthesize_with_vector(input_vector):
     """
     This method requests a synthesis from the backend using a predicate vector.
     input_vector[0] = #of Dynamixel motors parts
-    input_vector[1] = #of AxisRotaryJoint_Intent attributes
-    input_vector[2] = #of 40mm attributes -> extrusions
+    input_vector[1] = #of 40mm attributes -> extrusions
     
     :param input_vector: The input vector to use for the synthesis.
     return:
@@ -176,11 +169,6 @@ def synthesize_with_vector(input_vector):
             },
             {
                 "partNumber": input_vector[1],
-                "partCountName": "AxisRotaryJoint_Intent_attributes",
-                "partType": ["AxisRotaryJoint_Intent_attributes"]
-            },
-            {
-                "partNumber": input_vector[2],
                 "partCountName": "40mm_attributes",
                 "partType": ["40mm_attributes"]
             }

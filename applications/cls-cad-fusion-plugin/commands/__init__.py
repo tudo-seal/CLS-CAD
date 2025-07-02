@@ -7,6 +7,7 @@ from .. import config
 from ..lib import fusion360utils as futil
 from ..lib.general_utils import load_project_taxonomy_to_config
 from .assembleresult import entry as assemble_result
+from .assemblecheapestresult import entry as assemble_cheapest_result
 from .attributestaxonomyediting import entry as attributes_taxonomy_editing
 from .checkandsubmit import entry as check_and_submit
 from .downloadtaxonomy import entry as download_taxonomy
@@ -49,6 +50,7 @@ commands = [
     request_synthesis,
     request_synthesis_optimizer,
     assemble_result,
+    assemble_cheapest_result,
 ]
 
 
