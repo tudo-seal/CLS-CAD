@@ -64,7 +64,7 @@ def setup_package_xml(save_dir, package_name):
 """
     
     # Define the file path
-    package_file_path = os.path.join(save_dir, "package.xml")
+    package_file_path = os.path.join(save_dir + "/my_robot", "package.xml")
     
     # Write the content to the file
     with open(package_file_path, "w") as f:
@@ -95,10 +95,10 @@ include_directories(
 """
     
     # Ensure the directory exists
-    os.makedirs(save_dir, exist_ok=True)
+    os.makedirs(save_dir + "/my_robot", exist_ok=True)
     
     # Define the file path
-    cmake_file_path = os.path.join(save_dir, "CMakeLists.txt")
+    cmake_file_path = os.path.join(save_dir + "/my_robot", "CMakeLists.txt")
     
     # Write the content to the file
     with open(cmake_file_path, "w") as f:
@@ -185,9 +185,9 @@ def export_stl(design, save_dir, root):
     # create a single exportManager instance
     exportMgr = design.exportManager
     # get the script location
-    try: os.mkdir(save_dir + '/meshes')
+    try: os.mkdir(save_dir + 'my_robot/meshes')
     except: pass
-    scriptDir = save_dir + '/meshes'  
+    scriptDir = save_dir + 'my_robot/meshes'  
     rootOccs = root.occurrences
     
     for occ in rootOccs:
@@ -304,6 +304,7 @@ def write_joint_urdf(joints_dict, repo, links_xyz_dict, file_name):
                 joint.make_transmission_xml()
                 f.write(joint.joint_xml)
                 f.write('\n')
+                
 
 def write_robot_endtag(file_name):
     """
@@ -366,10 +367,10 @@ def write_urdf(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_n
     # TODO: xyz in joint tags should not be zero everytime
     # TODO: double check axis calculation
     
-    try: os.mkdir(save_dir + '/urdf')
+    try: os.mkdir(save_dir + 'my_robot/urdf')
     except: pass 
 
-    file_name = save_dir + '/urdf/' + robot_name + '.urdf'  # the name of urdf file
+    file_name = save_dir + 'my_robot/urdf/' + robot_name + '.urdf'  # the name of urdf file
     repo = package_name + '/meshes/'  # the repository of binary stl files
     with open(file_name, mode='w') as f:
         f.write('<?xml version="1.0" ?>\n')
@@ -387,11 +388,11 @@ def write_urdf(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_n
 
 def write_xacro(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_name, save_dir):
 
-    try: os.mkdir(save_dir + '/urdf')
+    try: os.mkdir(save_dir + 'my_robot/urdf')
     except: pass 
 
 
-    file_name = save_dir + '/urdf/' + robot_name + '.xacro'  # the name of urdf file
+    file_name = save_dir + 'my_robot/urdf/' + robot_name + '.xacro'  # the name of urdf file
     repo = package_name + '/meshes/'  # the repository of binary stl files
     with open(file_name, mode='w') as f:
         f.write('<?xml version="1.0" ?>\n')
@@ -410,10 +411,10 @@ def write_xacro(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_
 
 # entry point materials xacro
 def write_materials_xacro(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_name, save_dir):
-    try: os.mkdir(save_dir + '/urdf')
+    try: os.mkdir(save_dir + 'my_robot/urdf')
     except: pass  
 
-    file_name = save_dir + '/urdf/materials.xacro'  # the name of urdf file
+    file_name = save_dir + 'my_robot/urdf/materials.xacro'  # the name of urdf file
     with open(file_name, mode='w') as f:
         f.write('<?xml version="1.0" ?>\n')
         f.write('<robot name="{}" xmlns:xacro="http://www.ros.org/wiki/xacro" >\n'.format(robot_name))
@@ -492,7 +493,7 @@ def write_transmissions_xacro(joints_dict, links_xyz_dict, inertial_dict, packag
         urdf full path
     """
     
-    file_name = save_dir + '/urdf/{}.trans'.format(robot_name)  # the name of urdf file
+    file_name = save_dir + 'my_robot/urdf/{}.trans'.format(robot_name)  # the name of urdf file
     with open(file_name, mode='w') as f:
         f.write('<?xml version="1.0" ?>\n')
         f.write('<robot name="{}" xmlns:xacro="http://www.ros.org/wiki/xacro" >\n'.format(robot_name))
@@ -531,10 +532,10 @@ def write_transmissions_xacro(joints_dict, links_xyz_dict, inertial_dict, packag
 
 # entry point gazebo xacro
 def write_gazebo_xacro(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_name, save_dir):
-    try: os.mkdir(save_dir + '/urdf')
+    try: os.mkdir(save_dir + 'my_robot/urdf')
     except: pass  
 
-    file_name = save_dir + '/urdf/' + robot_name + '.gazebo'  # the name of urdf file
+    file_name = save_dir + 'my_robot/urdf/' + robot_name + '.gazebo'  # the name of urdf file
     repo = robot_name + '/meshes/'  # the repository of binary stl files
     #repo = package_name + '/' + robot_name + '/bin_stl/'  # the repository of binary stl files
     with open(file_name, mode='w') as f:
@@ -588,7 +589,7 @@ def write_display_launch(package_name, robot_name, save_dir):
     save_dir: str
     path of the repository to save
     """   
-    try: os.mkdir(save_dir + '/launch')
+    try: os.mkdir(save_dir + 'my_robot/launch')
     except: pass     
 
     launch = Element('launch')     
@@ -619,7 +620,7 @@ def write_display_launch(package_name, robot_name, save_dir):
 
     launch_xml = "\n".join(prettify(launch).split("\n")[1:])        
 
-    file_name = save_dir + '/launch/display.launch'    
+    file_name = save_dir + 'my_robot/launch/display.launch'    
     with open(file_name, mode='w') as f:
         f.write(launch_xml)
 
@@ -637,7 +638,7 @@ def write_gazebo_launch(package_name, robot_name, save_dir):
         path of the repository to save
     """
     
-    try: os.mkdir(save_dir + '/launch')
+    try: os.mkdir(save_dir + 'my_robot/launch')
     except: pass     
     
     launch = Element('launch')
@@ -666,7 +667,7 @@ def write_gazebo_launch(package_name, robot_name, save_dir):
     
     launch_xml = "\n".join(prettify(launch).split("\n")[1:])        
     
-    file_name = save_dir + '/launch/' + 'gazebo.launch'    
+    file_name = save_dir + 'my_robot/launch/' + 'gazebo.launch'    
     with open(file_name, mode='w') as f:
         f.write(launch_xml)
 
@@ -686,7 +687,7 @@ def write_control_launch(package_name, robot_name, save_dir, joints_dict):
         information of the joints
     """
     
-    try: os.mkdir(save_dir + '/launch')
+    try: os.mkdir(save_dir + 'my_robot/launch')
     except: pass     
     
     #launch = Element('launch')
@@ -719,7 +720,7 @@ def write_control_launch(package_name, robot_name, save_dir, joints_dict):
     launch_xml  = "\n".join(prettify(node_controller).split("\n")[1:])   
     launch_xml += "\n".join(prettify(node_publisher).split("\n")[1:])   
 
-    file_name = save_dir + '/launch/controller.launch'    
+    file_name = save_dir + 'my_robot/launch/controller.launch'    
     with open(file_name, mode='w') as f:
         f.write('<launch>\n')
         f.write('\n')
@@ -741,10 +742,10 @@ def write_cartesian_limits_yaml(save_dir):
     save_dir: str
         path of the repository to save
     """
-    try: os.mkdir(save_dir + '/config')
+    try: os.mkdir(save_dir + 'moveit_configs/config')
     except: pass 
 
-    file_name = save_dir + '/config/cartesian_limits.yaml'
+    file_name = save_dir + '/moveit_configs/config/cartesian_limits.yaml'
     with open(file_name, 'w') as f:
         f.write('cartesian_limits:\n')
         f.write('  max_trans_vel: 1\n')
@@ -752,7 +753,341 @@ def write_cartesian_limits_yaml(save_dir):
         f.write('  max_trans_dev: -5\n')
         f.write('  max_rot_vel: 1.57\n')
 
-def write_chomp_planning_yaml
+def write_chomp_planning_yaml(save_dir):
+    """
+    write yaml file "save_dir/moveit_configs/config/chomp_planning.yaml"
+    Parameter
+    ---------
+    save_dir: str
+        path of the repository to save
+    """
+    try: os.mkdir(save_dir + '/moveit_configs/config')
+    except: pass 
+
+    file_name = save_dir + '/moveit_configs/config/chomp_planning.yaml'
+    with open(file_name, 'w') as f:
+        f.write('planning_time_limit: 10.0\n')
+        f.write('max_iterations: 200\n')
+        f.write('max_iterations_after_collision_free: 5\n')
+        f.write('smoothness_cost_weight: 0.1\n')
+        f.write('obstacle_cost_weight: 1.0\n')
+        f.write('learning_rate: 0.01\n')
+        f.write('smoothness_cost_velocity: 0.0\n')
+        f.write('smoothness_cost_acceleration: 1.0\n')
+        f.write('smoothness_cost_jerk: 0.0\n')
+        f.write('ridge_factor: 0.0\n')
+        f.write('use_pseudo_inverse: false\n')
+        f.write('pseudo_inverse_ridge_factor: 1e-4\n')
+        f.write('joint_update_limit: 0.1\n')
+        f.write('collision_clearance: 0.2\n')
+        f.write('collision_threshold: 0.07\n')
+        f.write('use_stochastic_descent: true\n')
+        f.write('enable_failure_recovery: false\n')
+        f.write('max_recovery_attempts: 5\n')
+
+def write_fake_controllers_yaml(package_name, robot_name, save_dir, joints_dict):
+    """
+    write yaml file "save_dir/moveit_configs/config/fake_controllers.yaml"
+    Parameter
+    ---------
+    robot_name: str
+        name of the robot
+    save_dir: str
+        path of the repository to save
+    joints_dict: dict
+        information of the joints
+    """
+    try: os.mkdir(save_dir + '/moveit_configs/config')
+    except: pass 
+
+    file_name = save_dir + 'moveit_configs/config/fake_controllers.yaml'
+    with open(file_name, 'w') as f:
+        f.write('controller_list:\n')
+        # my_arm
+        f.write("   - name: fake_my_arm_controller\n")
+        f.write("     type: $(arg fake_execution_type)\n")
+        f.write("     joints:\n")
+        for joint in joints_dict[:-1]:
+            parent = joints_dict[joint]['parent']
+            if(parent == "base_link"):
+                continue
+            else:
+                child = joints_dict[joint]['child']
+            f.write("       - " + joint.name + "\n")
+
+        # my_effector
+        f.write("   - name: fake_my_effector_controller\n")
+        f.write("     type: $(arg fake_execution_type)\n")
+        f.write("     joints:\n")
+        for joint in joints_dict[-1]:
+            parent = joints_dict[joint]['parent']
+            if(parent == "base_link"):
+                continue
+            else:
+                child = joints_dict[joint]['child']
+            f.write("       - " + joint.name + "\n")
+        # my_robot_top_group_controller
+        f.write("   - name: fake_my_robot_top_group_controller\n")
+        f.write("     type: $(arg fake_execution_type)\n")
+        f.write("     joints:\n")
+        for joint in joints_dict:
+            parent = joints_dict[joint]['parent']
+            if(parent == "base_link"):
+                continue
+            else:
+                child = joints_dict[joint]['child']
+            f.write("       - " + joint.name + "\n")
+        f.write("initial:\n")
+        f.write("   - group: my_effector\n")
+        f.write("     pose: open\n")
+
+def write_gazebo_controllers_yaml(save_dir):
+    """
+    write yaml file "save_dir/moveit_configs/config/gazebo_controllers.yaml"
+    Parameter
+    ---------
+    save_dir: str
+        path of the repository to save
+    """
+    try: os.mkdir(save_dir + '/moveit_configs/config')
+    except: pass 
+
+    file_name = save_dir + '/moveit_configs/config/gazebo_controllers.yaml'
+    with open(file_name, 'w') as f:
+        f.write("joint_state_controller:\n")
+        f.write("  type: joint_state_controller/JointStateController\n")
+        f.write("  publish_rate: 50\n")
+
+def write_joint_limits_yaml(package_name, robot_name, save_dir, joints_dict):
+    """
+    write yaml file "save_dir/moveit_configs/config/joint_limits.yaml"
+    
+    
+    Parameter
+    ---------
+    robot_name: str
+        name of the robot
+    save_dir: str
+        path of the repository to save
+    joints_dict: dict
+        information of the joints
+    """
+    
+    try: os.mkdir(save_dir + '/moveit_configs/config')
+    except: pass
+    file_name = save_dir + '/moveit_configs/config/joint_limits.yaml'
+    with open(file_name, 'w') as f:
+        f.write('# joint_limits.yaml allows the dynamics properties specified in the URDF to be overwritten or augmented as needed\n\n')
+        f.write('# For beginners, we downscale velocity and acceleration limits.\n')
+        f.write('# You can always specify higher scaling factors (<= 1.0) in your motion requests.\n')
+        f.write('# Increase the values below to 1.0 to always move at maximum speed.\n\n')
+        f.write('default_velocity_scaling_factor: 0.1\n')
+        f.write('default_acceleration_scaling_factor: 0.1\n')
+        
+        f.write('\n# Specific joint properties can be changed with the keys [max_position, min_position, max_velocity, max_acceleration]\n')
+        f.write('# Joint limits can be turned off with [has_velocity_limits, has_acceleration_limits]\n')
+        f.write('joint_limits:\n')
+        
+        for joint in joints_dict[:-1]:  # last joint is gripper, so skip it
+            joint_type = joints_dict[joint]['type']
+            if joint_type != 'fixed':
+                f.write('  ' + joint.name + ':\n')
+                f.write('    has_velocity_limits: false\n')
+                f.write('    max_velocity: 0\n')
+                f.write('    has_acceleration_limits: false\n')
+                f.write('    max_acceleration: 0\n')
+        for joint in joints_dict[-1]:
+            f.write('  ' + joint.name + ':\n')
+            f.write('    has_velocity_limits: false\n')
+            f.write('    max_velocity: 0\n')
+            f.write('    has_acceleration_limits: false\n')
+            f.write('    max_acceleration: 0\n')
+            f.write('    max_position: 2.8\n')
+            f.write('    min_position: 0.98\n')  # TODO: gripper joint limits, can be changed later
+
+        
+
+def write_kinematics_yaml(save_dir):
+    """
+    write yaml file "save_dir/moveit_configs/config/kinematics.yaml"
+    
+    
+    Parameter
+    ---------
+    save_dir: str
+        path of the repository to save
+    """
+    try: os.mkdir(save_dir + '/moveit_configs/config')
+    except: pass
+    
+    file_name = save_dir + '/moveit_configs/config/kinematics.yaml'
+    with open(file_name, 'w') as f:
+        f.write('my_arm:\n')
+        f.write('  kinematics_solver: kdl_kinematics_plugin/KDLKinematicsPlugin\n')
+        f.write('  kinematics_solver_attempts: 100\n')
+        f.write('  kinematics_solver_search_resolution: 0.005\n')
+        f.write('  kinematics_solver_timeout: 0.1\n')
+        f.write('  position_only_ik: True\n')
+        
+        f.write('\nmy_robot_top_group:\n')
+        f.write('  kinematics_solver: kdl_kinematics_plugin/KDLKinematicsPlugin\n')
+        f.write('  kinematics_solver_attempts: 100\n')
+        f.write('  kinematics_solver_search_resolution: 0.005\n')
+        f.write('  kinematics_solver_timeout: 0.1\n')
+        f.write('  position_only_ik: True\n')
+
+        f.write('\nmy_effector:\n')
+        f.write('  kinematics_solver: kdl_kinematics_plugin/KDLKinematicsPlugin\n')
+        f.write('  kinematics_solver_attempts: 100\n')
+        f.write('  kinematics_solver_search_resolution: 0.005\n')
+        f.write('  kinematics_solver_timeout: 0.1\n')
+        f.write('  position_only_ik: True\n')
+
+def write_srdf(package_name, robot_name, save_dir, joints_dict, links_xyz_dict):
+    """
+    write srdf file "save_dir/moveit_configs/config/{}.srdf"
+    Parameter
+    ---------
+    package_name: str
+        name of the package
+    robot_name: str
+        name of the robot
+    save_dir: str
+        path of the repository to save
+    joints_dict: dict
+        information of the joints
+    links_xyz_dict: dict
+        xyz information of the links
+    """
+    
+    try: os.mkdir(save_dir + '/moveit_configs/config')
+    except: pass
+
+    file_name = save_dir + '/moveit_configs/config/' + robot_name + '.srdf'
+    """<?xml version="1.0" encoding="UTF-8"?>
+<!--This does not replace URDF, and is not an extension of URDF.
+    This is a format for representing semantic information about the robot structure.
+    A URDF file must exist for this robot as well, where the joints and the links that are referenced are defined
+-->
+<robot name="my_robot">
+    <!--GROUPS: Representation of a set of joints and links. This can be useful for specifying DOF to plan for, defining arms, end effectors, etc-->
+    <!--LINKS: When a link is specified, the parent joint of that link (if it exists) is automatically included-->
+    <!--JOINTS: When a joint is specified, the child link of that joint (which will always exist) is automatically included-->
+    <!--CHAINS: When a chain is specified, all the links along the chain (including endpoints) are included in the group. Additionally, all the joints that are parents to included links are also included. This means that joints along the chain and the parent joint of the base link are included in the group-->
+    <!--SUBGROUPS: Groups can also be formed by referencing to already defined group names-->
+    <group name="my_arm">
+        <link name="link_0_1"/>
+        <link name="link_1_1"/>
+        <link name="link_2_1"/>
+        <link name="link_3_1"/>
+        <link name="link_4_1"/>
+        <joint name="world_joint"/>
+        <joint name="Revolute_2"/>
+        <joint name="Revolute_3"/>
+        <joint name="Revolute_4"/>
+        <joint name="Revolute_5"/>
+    </group>
+    <group name="my_effector">
+        <link name="link_5_1"/>
+        <joint name="Revolute_6"/>
+    </group>
+    <group name="my_robot_top_group">
+        <link name="link_0_1"/>
+        <link name="link_1_1"/>
+        <link name="link_2_1"/>
+        <link name="link_3_1"/>
+        <link name="link_4_1"/>
+        <link name="link_5_1"/>
+        <joint name="world_joint"/>
+        <joint name="Revolute_2"/>
+        <joint name="Revolute_3"/>
+        <joint name="Revolute_4"/>
+        <joint name="Revolute_5"/>
+        <joint name="Revolute_6"/>
+        <group name="my_arm"/>
+        <group name="my_effector"/>
+    </group>
+    <!--GROUP STATES: Purpose: Define a named state for a particular group, in terms of joint values. This is useful to define states like 'folded arms'-->
+    <group_state name="open" group="my_effector">
+        <joint name="Revolute_6" value="1.8"/>
+    </group_state>
+    <group_state name="closed" group="my_effector">
+        <joint name="Revolute_6" value="0.9666"/>
+    </group_state>
+    <group_state name="home" group="my_robot_top_group">
+        <joint name="Revolute_2" value="0.03"/>
+        <joint name="Revolute_3" value="-0.34"/>
+        <joint name="Revolute_4" value="0.87"/>
+        <joint name="Revolute_5" value="-0,03"/>
+        <joint name="Revolute_6" value="1.29"/>
+    </group_state>
+      
+    <!--END EFFECTOR: Purpose: Represent information about an end effector.-->
+    <end_effector name="my_end_effector" parent_link="link_4_1" group="my_effector" parent_group="my_arm"/>
+    <!--VIRTUAL JOINT: Purpose: this element defines a virtual joint between a robot link and an external frame of reference (considered fixed with respect to the robot)-->
+    <virtual_joint name="world_joint" type="fixed" parent_frame="world" child_link="link_0_1"/>
+    <!--DISABLE COLLISIONS: By default it is assumed that any link of the robot could potentially come into collision with any other link in the robot. This tag disables collision checking between a specified pair of links. -->
+    <disable_collisions link1="link_0_1" link2="link_1_1" reason="Adjacent"/>
+    <disable_collisions link1="link_1_1" link2="link_2_1" reason="Adjacent"/>
+    <disable_collisions link1="link_2_1" link2="link_3_1" reason="Adjacent"/>
+    <disable_collisions link1="link_3_1" link2="link_4_1" reason="Adjacent"/>
+    <disable_collisions link1="link_3_1" link2="link_5_1" reason="Never"/>
+    <disable_collisions link1="link_4_1" link2="link_5_1" reason="Adjacent"/>
+</robot>"""
+    with open(file_name, 'w') as f:
+        f.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+        f.write('<!--This does not replace URDF, and is not an extension of URDF.\n')
+        f.write('    This is a format for representing semantic information about the robot structure.\n')
+        f.write('    A URDF file must exist for this robot as well, where the joints and the links that are referenced are defined\n')
+        f.write('-->\n')
+        f.write('<robot name="{}">\n'.format(robot_name))
+        f.write('    <!--GROUPS: Representation of a set of joints and links. This can be useful for specifying DOF to plan for, defining arms, end effectors, etc-->\n')
+        f.write('    <!--LINKS: When a link is specified, the parent joint of that link (if it exists) is automatically included-->\n')
+        f.write('    <!--JOINTS: When a joint is specified, the child link of that joint (which will always exist) is automatically included-->\n')
+        f.write('    <!--CHAINS: When a chain is specified, all the links along the chain (including endpoints) are included in the group. Additionally, all the joints that are parents to included links are also included. This means that joints along the chain and the parent joint of the base link are included in the group-->\n')
+        f.write('    <!--SUBGROUPS: Groups can also be formed by referencing to already defined group names-->\n')
+        f.write('    <group name="my_arm">\n')
+        for link in links_xyz_dict[:-1]:  # last link is gripper, so skip it
+            f.write('        <link name="{}"/>\n'.format(link))
+        f.write('        <joint name="world_joint"/>\n')
+        for joint in joints_dict[1:-1]:  # last joint is gripper, so skip it
+            f.write('        <joint name="{}"/>\n'.format(joint))
+        f.write('    </group>\n')
+        
+        f.write('    <group name="my_effector">\n')
+        f.write('        <link name="{}"/>\n'.format(links_xyz_dict[-1]))
+        f.write('        <joint name="{}"/>\n'.format(joints_dict[-1]))
+        f.write('    </group>\n')
+        
+        f.write('    <group name="my_robot_top_group">\n')
+        for link in links_xyz_dict:
+            f.write('        <link name="{}"/>\n'.format(link))
+        f.write('        <joint name="world_joint"/>\n')
+        for joint in joints_dict[1:]:
+            f.write('        <joint name="{}"/>\n'.format(joint))
+        f.write('        <group name="my_arm"/>\n')
+        f.write('        <group name="my_effector"/>\n')
+        f.write('    </group>\n')
+        
+        f.write('    <!--GROUP STATES: Purpose: Define a named state for a particular group, in terms of joint values. This is useful to define states like \'folded arms\'-->\n')
+        f.write('    <group_state name="open" group="my_effector">\n')
+        f.write('        <joint name="{}" value="1.8"/>\n'.format(joints_dict[-1]))
+        f.write('    </group_state>\n')
+        
+        f.write('    <group_state name="closed" group="my_effector">\n')
+        f.write('        <joint name="{}" value="0.9666"/>\n'.format(joints_dict[-1]))
+        f.write('    </group_state>\n')
+
+        f.write('    END_EFFECTOR: Purpose: Represent information about an end effector.-->\n')
+        f.write('    <end_effector name="my_end_effector" parent_link="{}" group="my_effector" parent_group="my_arm"/>\n'.format(links_xyz_dict[-2]))
+        
+        f.write('    <!--VIRTUAL JOINT: Purpose: this element defines a virtual joint between a robot link and an external frame of reference (considered fixed with respect to the robot)-->\n')
+        f.write('    <virtual_joint name="world_joint" type="fixed" parent_frame="world" child_link="{}"/>\n'.format(links_xyz_dict[0]))
+        f.write('    DISABLE COLLISIONS: By default it is assumed that any link of the robot could potentially come into collision with any other link in the robot. This tag disables collision checking between a specified pair of links.-->\n')
+        for i in range(len(links_xyz_dict) - 1):
+            f.write('    <disable_collisions link1="{}" link2="{}" reason="Adjacent"/>\n'.format(links_xyz_dict[i], links_xyz_dict[i + 1]))
+        f.write('</robot>\n')
+
 
 def write_yaml(package_name, robot_name, save_dir, joints_dict):
     """
@@ -768,11 +1103,11 @@ def write_yaml(package_name, robot_name, save_dir, joints_dict):
     joints_dict: dict
         information of the joints
     """
-    try: os.mkdir(save_dir + '/launch')
+    try: os.mkdir(save_dir + 'my_robot/launch')
     except: pass 
 
     controller_name = robot_name + '_controller'
-    file_name = save_dir + '/launch/controller.yaml'
+    file_name = save_dir + 'my_robot/launch/controller.yaml'
     with open(file_name, 'w') as f:
         f.write(controller_name + ':\n')
         # joint_state_controller
@@ -1352,12 +1687,12 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
     # create moveit_configs
     write_cartesian_limits_yaml(save_dir)
-    # chomp planning yaml GENERIC
-    # fake controllers yaml
-    # gazebo controllers yaml GENERIC
-    # joint limits yaml
-    # kinematics yaml
-    # my robot srdf
+    write_chomp_planning_yaml(save_dir)
+    write_fake_controllers_yaml(package_name, robot_name, save_dir, joints_dict)
+    write_gazebo_controllers_yaml(save_dir)
+    write_joint_limits_yaml(package_name, robot_name, save_dir, joints_dict)
+    write_kinematics_yaml(save_dir)
+    write_srdf(package_name, robot_name, save_dir, joints_dict, links_xyz_dict)
     # ompl planning yaml
     # ros_controllers yaml
     # sensors 3d yaml GENERIC
