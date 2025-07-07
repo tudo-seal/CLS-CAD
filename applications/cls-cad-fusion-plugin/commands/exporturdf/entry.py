@@ -1031,24 +1031,6 @@ def write_ompl_planning_yaml(save_dir):
     """
     try: os.mkdir(save_dir + '/moveit_configs/config')
     except: pass
-    """
-    planner_configs:
-        RRTstar:
-            type: geometric::RRTstar
-            range: 0.0  # Max motion added to tree. ==> maxDistance_ default: 0.0, if 0.0, set on setup()
-            goal_bias: 0.05  # When close to goal select goal, with this probability? default: 0.05
-            delay_collision_checking: 1  # Stop collision checking as soon as C-free parent found. default 1
-            optimization_objective: PathLengthOptimizationObjective
-            min_valid_path_fraction: 0.05
-    my_arm:
-        planner_configs:
-            - RRTstar
-    my_effector:
-        planner_configs:
-            - RRTstar
-    my_robot_top_group:
-        planner_configs:
-            - RRTstar"""
     file_name = save_dir + '/moveit_configs/config/ompl_planning.yaml'
     with open(file_name, 'w') as f:
         f.write('planner_configs:\n')
@@ -1217,6 +1199,906 @@ def write_simple_moveit_controllers_yaml(package_name, robot_name, save_dir, joi
             if joint_type != 'fixed':
                 f.write('      - {}\n'.format(joint.name))
 
+def write_chomp_planning_pipeline_launch_xml(save_dir):
+    try: os.makedirs(save_dir + '/moveit_configs/launch', exist_ok=True)
+    except: pass
+    file_name = save_dir + '/moveit_configs/launch/chomp_planning_pipeline.launch.xml'
+    
+    with open(file_name, 'w') as f:
+        f.write('<launch>\n')
+        f.write('  <arg name="start_state_max_bounds_error" default="0.1" />\n')
+        f.write('  <arg name="jiggle_fraction" default="0.05" />\n')
+        f.write('  <!-- The request adapters (plugins) used when planning. ORDER MATTERS! -->\n')
+        f.write('  <arg name="planning_adapters"\n')
+        f.write('       default="default_planner_request_adapters/LimitMaxCartesianLinkSpeed\n')
+        f.write('                default_planner_request_adapters/AddTimeParameterization\n')
+        f.write('                default_planner_request_adapters/ResolveConstraintFrames\n')
+        f.write('                default_planner_request_adapters/FixWorkspaceBounds\n')
+        f.write('                default_planner_request_adapters/FixStartStateBounds\n')
+        f.write('                default_planner_request_adapters/FixStartStateCollision\n')
+        f.write('                default_planner_request_adapters/FixStartStatePathConstraints"\n')
+        f.write('                />\n')
+        
+        f.write('  <param name="planning_plugin" value="chomp_interface/CHOMPPlanner" />\n')
+        f.write('  <param name="request_adapters" value="$(arg planning_adapters)" />\n')
+        f.write('  <param name="start_state_max_bounds_error" value="$(arg start_state_max_bounds_error)" />\n')
+        f.write('  <param name="jiggle_fraction" value="$(arg jiggle_fraction)" />\n')
+        
+        f.write('  <rosparam command="load" file="$(find moveit_configs)/config/chomp_planning.yaml" />\n')
+        f.write('</launch>\n')
+
+def write_default_warehouse_db_launch(save_dir):
+    try: os.makedirs(save_dir + '/moveit_configs/launch', exist_ok=True)
+    except: pass
+    file_name = save_dir + '/moveit_configs/launch/default_warehouse_db.launch'
+    
+    with open(file_name, 'w') as f:
+        f.write('<launch>\n')
+        f.write('  <arg name="reset" default="false"/>\n')
+        f.write('  <!-- If not specified, we\'ll use a default database location -->\n')
+        f.write('  <arg name="moveit_warehouse_database_path" default="$(find moveit_configs)/default_warehouse_mongo_db" />\n')
+        f.write('\n')
+        f.write('  <!-- Launch the warehouse with the configured database location -->\n')
+        f.write('  <include file="$(dirname)/warehouse.launch">\n')
+        f.write('    <arg name="moveit_warehouse_database_path" value="$(arg moveit_warehouse_database_path)" />\n')
+        f.write('  </include>\n')
+        f.write('\n')
+        f.write('  <!-- If we want to reset the database, run this node -->\n')
+        f.write('  <node if="$(arg reset)" name="$(anon moveit_default_db_reset)" type="moveit_init_demo_warehouse" pkg="moveit_ros_warehouse" respawn="false" output="screen" />\n')
+        f.write('</launch>\n')
+
+def write_demo_gazebo_launch(save_dir):
+    try: os.makedirs(save_dir + '/moveit_configs/launch', exist_ok=True)
+    except: pass
+    file_name = save_dir + '/moveit_configs/launch/demo_gazebo.launch'
+    
+    with open(file_name, 'w') as f:
+        f.write('<launch>\n')
+        f.write('  <!-- MoveIt options -->\n')
+        f.write('  <arg name="pipeline" default="ompl" doc="Planning pipeline to use with MoveIt"/>\n')
+        f.write('\n')
+        f.write('  <!-- Gazebo options -->\n')
+        f.write('  <arg name="gazebo_gui" default="true" doc="Start Gazebo GUI"/>\n')
+        f.write('  <arg name="paused" default="false" doc="Start Gazebo paused"/>\n')
+        f.write('  <arg name="world_name" default="worlds/empty.world" doc="Gazebo world file"/>\n')
+        f.write('  <arg name="world_pose" default="-x 0 -y 0 -z 0 -R 0 -P 0 -Y 0" doc="Pose to spawn the robot at"/>\n')
+        f.write('\n')
+        f.write('  <!-- Launch Gazebo and spawn the robot -->\n')
+        f.write('  <include file="$(dirname)/gazebo.launch" pass_all_args="true"/>\n')
+        f.write('\n')
+        f.write('  <!-- Launch MoveIt -->\n')
+        f.write('  <include file="$(dirname)/demo.launch" pass_all_args="true">\n')
+        f.write('    <!-- robot_description is loaded by gazebo.launch, to enable Gazebo features -->\n')
+        f.write('    <arg name="load_robot_description" value="false" />\n')
+        f.write('    <arg name="moveit_controller_manager" value="ros_control" />\n')
+        f.write('  </include>\n')
+        f.write('</launch>\n')
+
+def write_demo_launch(save_dir):
+    try: os.makedirs(save_dir + '/moveit_configs/launch', exist_ok=True)
+    except: pass
+    file_name = save_dir + '/moveit_configs/launch/demo.launch'
+    
+    with open(file_name, 'w') as f:
+        f.write('<launch>\n')
+        f.write('  <!-- specify the planning pipeline -->\n')
+        f.write('  <arg name="pipeline" default="ompl" />\n')
+        f.write('\n')
+        f.write('  <!-- By default, we do not start a database (it can be large) -->\n')
+        f.write('  <arg name="db" default="false" />\n')
+        f.write('  <!-- Allow user to specify database location -->\n')
+        f.write('  <arg name="db_path" default="$(find moveit_configs)/default_warehouse_mongo_db" />\n')
+        f.write('\n')
+        f.write('  <!-- By default, we are not in debug mode -->\n')
+        f.write('  <arg name="debug" default="false" />\n')
+        f.write('\n')
+        f.write('  <!-- By default, we will load or override the robot_description -->\n')
+        f.write('  <arg name="load_robot_description" default="true"/>\n')
+        f.write('\n')
+        f.write('  <!-- Choose controller manager: fake, simple, or ros_control -->\n')
+        f.write('  <arg name="moveit_controller_manager" default="fake" />\n')
+        f.write('  <!-- Set execution mode for fake execution controllers -->\n')
+        f.write('  <arg name="fake_execution_type" default="interpolate" />\n')
+        f.write('\n')
+        f.write('  <!-- By default, hide joint_state_publisher\'s GUI in \'fake\' controller_manager mode -->\n')
+        f.write('  <arg name="use_gui" default="true" />\n')
+        f.write('  <arg name="use_rviz" default="true" />\n')
+        f.write('\n')
+        f.write('  <!-- If needed, broadcast static tf for robot root -->\n')
+        f.write('  <node pkg="tf2_ros" type="static_transform_publisher" name="virtual_joint_broadcaster_0" args="0 0 0 0 0 0 world link_0_1" />\n')
+        f.write('\n')
+        f.write('  <group if="$(eval arg(\'moveit_controller_manager\') == \'fake\')">\n')
+        f.write('    <!-- We do not have a real robot connected, so publish fake joint states via a joint_state_publisher\n')
+        f.write('         MoveIt\'s fake controller\'s joint states are considered via the \'source_list\' parameter -->\n')
+        f.write('    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher" unless="$(arg use_gui)">\n')
+        f.write('      <rosparam param="source_list">[move_group/fake_controller_joint_states]</rosparam>\n')
+        f.write('    </node>\n')
+        f.write('    <!-- If desired, a GUI version is available allowing to move the simulated robot around manually\n')
+        f.write('         This corresponds to moving around the real robot without the use of MoveIt. -->\n')
+        f.write('    <node name="joint_state_publisher" pkg="joint_state_publisher_gui" type="joint_state_publisher_gui" if="$(arg use_gui)">\n')
+        f.write('      <rosparam param="source_list">[move_group/fake_controller_joint_states]</rosparam>\n')
+        f.write('    </node>\n')
+        f.write('\n')
+        f.write('    <!-- Given the published joint states, publish tf for the robot links -->\n')
+        f.write('    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true" output="screen" />\n')
+        f.write('  </group>\n')
+        f.write('\n')
+        f.write('  <!-- Run the main MoveIt executable without trajectory execution (we do not have controllers configured by default) -->\n')
+        f.write('  <include file="$(dirname)/move_group.launch">\n')
+        f.write('    <arg name="allow_trajectory_execution" value="true"/>\n')
+        f.write('    <arg name="moveit_controller_manager" value="$(arg moveit_controller_manager)" />\n')
+        f.write('    <arg name="fake_execution_type" value="$(arg fake_execution_type)"/>\n')
+        f.write('    <arg name="info" value="true"/>\n')
+        f.write('    <arg name="debug" value="$(arg debug)"/>\n')
+        f.write('    <arg name="pipeline" value="$(arg pipeline)"/>\n')
+        f.write('    <arg name="load_robot_description" value="$(arg load_robot_description)"/>\n')
+        f.write('  </include>\n')
+        f.write('\n')
+        f.write('  <!-- Run Rviz and load the default config to see the state of the move_group node -->\n')
+        f.write('  <include file="$(dirname)/moveit_rviz.launch" if="$(arg use_rviz)">\n')
+        f.write('    <arg name="rviz_config" value="$(dirname)/moveit.rviz"/>\n')
+        f.write('    <arg name="debug" value="$(arg debug)"/>\n')
+        f.write('  </include>\n')
+        f.write('\n')
+        f.write('  <!-- If database loading was enabled, start mongodb as well -->\n')
+        f.write('  <include file="$(dirname)/default_warehouse_db.launch" if="$(arg db)">\n')
+        f.write('    <arg name="moveit_warehouse_database_path" value="$(arg db_path)"/>\n')
+        f.write('  </include>\n')
+        f.write('</launch>\n')
+
+def write_fake_moveit_controller_manager_launch_xml(save_dir):
+    try: os.makedirs(save_dir + '/moveit_configs/launch', exist_ok=True)
+    except: pass
+    file_name = save_dir + '/moveit_configs/launch/fake_moveit_controller_manager.launch.xml'
+    
+    with open(file_name, 'w') as f:
+        f.write('<launch>\n')
+        f.write('  <!-- execute the trajectory in \'interpolate\' mode or jump to goal position in \'last point\' mode -->\n')
+        f.write('  <arg name="fake_execution_type" default="interpolate" />\n')
+        f.write('\n')
+        f.write('  <!-- Set the param that trajectory_execution_manager needs to find the controller plugin -->\n')
+        f.write('  <param name="moveit_controller_manager" value="moveit_fake_controller_manager/MoveItFakeControllerManager"/>\n')
+        f.write('\n')
+        f.write('  <!-- The rest of the params are specific to this plugin -->\n')
+        f.write('  <rosparam subst_value="true" file="$(find moveit_configs)/config/fake_controllers.yaml"/>\n')
+        f.write('</launch>\n')
+
+def write_gazebo_launch(save_dir):
+    try: os.makedirs(save_dir + '/moveit_configs/launch', exist_ok=True)
+    except: pass
+    file_name = save_dir + '/moveit_configs/launch/gazebo.launch'
+    
+    with open(file_name, 'w') as f:
+        f.write('<?xml version="1.0"?>\n')
+        f.write('<launch>\n')
+        f.write('  <!-- Gazebo options -->\n')
+        f.write('  <arg name="gazebo_gui" default="true" doc="Start Gazebo GUI"/>\n')
+        f.write('  <arg name="paused" default="false" doc="Start Gazebo paused"/>\n')
+        f.write('  <arg name="world_name" default="worlds/empty.world" doc="Gazebo world file"/>\n')
+        f.write('  <arg name="world_pose" default="-x 0 -y 0 -z 0 -R 0 -P 0 -Y 0" doc="Pose to spawn the robot at"/>\n')
+        f.write('  <arg name="initial_joint_positions" default="-J Revolute_6 1.8" doc="Initial joint configuration of the robot"/>\n')
+        f.write('\n')
+        f.write('  <!-- Start Gazebo paused to allow the controllers to pickup the initial pose -->\n')
+        f.write('  <include file="$(find gazebo_ros)/launch/empty_world.launch" pass_all_args="true">\n')
+        f.write('    <arg name="paused" value="true"/>\n')
+        f.write('  </include>\n')
+        f.write('\n')
+        f.write('  <!-- Set the robot urdf on the parameter server -->\n')
+        f.write('  <param name="robot_description" textfile="$(find my_robot)/urdf/my_robot.urdf" />\n')
+        f.write('\n')
+        f.write('  <!-- Unpause the simulation after loading the robot model -->\n')
+        f.write('  <arg name="unpause" value="$(eval \'\' if arg(\'paused\') else \'-unpause\')" />\n')
+        f.write('\n')
+        f.write('  <!-- Spawn the robot in Gazebo -->\n')
+        f.write('  <node name="spawn_gazebo_model" pkg="gazebo_ros" type="spawn_model" args="-urdf -param robot_description -model robot $(arg unpause) $(arg world_pose) $(arg initial_joint_positions)" respawn="false" output="screen" />\n')
+        f.write('\n')
+        f.write('  <!-- Load the controller parameters onto the parameter server -->\n')
+        f.write('  <rosparam file="$(find moveit_configs)/config/gazebo_controllers.yaml" />\n')
+        f.write('  <include file="$(dirname)/ros_controllers.launch"/>\n')
+        f.write('\n')
+        f.write('  <!-- Spawn the Gazebo ROS controllers -->\n')
+        f.write('  <node name="gazebo_controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen" args="joint_state_controller" />\n')
+        f.write('\n')
+        f.write('  <!-- Given the published joint states, publish tf for the robot links -->\n')
+        f.write('  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true" output="screen" />\n')
+        f.write('</launch>\n')
+
+def write_joystick_control_launch(save_dir):
+    try: os.makedirs(save_dir + '/moveit_configs/launch', exist_ok=True)
+    except: pass
+    file_name = save_dir + '/moveit_configs/launch/joystick_control.launch'
+    
+    with open(file_name, 'w') as f:
+        f.write('<launch>\n')
+        f.write('  <!-- See moveit_ros/visualization/doc/joystick.rst for documentation -->\n')
+        f.write('  <arg name="dev" default="/dev/input/js0" />\n')
+        f.write('\n')
+        f.write('  <!-- Launch joy node -->\n')
+        f.write('  <node pkg="joy" type="joy_node" name="joy">\n')
+        f.write('    <param name="dev" value="$(arg dev)" /> <!-- Customize this to match the location your joystick is plugged in on-->\n')
+        f.write('    <param name="deadzone" value="0.2" />\n')
+        f.write('    <param name="autorepeat_rate" value="40" />\n')
+        f.write('    <param name="coalesce_interval" value="0.025" />\n')
+        f.write('  </node>\n')
+        f.write('\n')
+        f.write('  <!-- Launch python interface -->\n')
+        f.write('  <node pkg="moveit_ros_visualization" type="moveit_joy.py" output="screen" name="moveit_joy"/>\n')
+        f.write('</launch>\n')
+
+def write_movegroup_launch(save_dir):
+    try: os.makedirs(save_dir + '/moveit_configs/launch', exist_ok=True)
+    except: pass
+    file_name = save_dir + '/moveit_configs/launch/move_group.launch'
+    
+    with open(file_name, 'w') as f:
+        f.write('<launch>\n')
+        f.write('  <!-- GDB Debug Option -->\n')
+        f.write('  <arg name="debug" default="false" />\n')
+        f.write('  <arg unless="$(arg debug)" name="launch_prefix" value="" />\n')
+        f.write('  <arg if="$(arg debug)" name="launch_prefix" value="gdb -x $(dirname)/gdb_settings.gdb --ex run --args" />\n')
+        f.write('\n')
+        
+        f.write('  <!-- Verbose Mode Option -->\n')
+        f.write('  <arg name="info" default="$(arg debug)" />\n')
+        f.write('  <arg unless="$(arg info)" name="command_args" value="" />\n')
+        f.write('  <arg if="$(arg info)" name="command_args" value="--debug" />\n')
+        f.write('\n')
+        
+        f.write('  <!-- move_group settings -->\n')
+        f.write('  <arg name="pipeline" default="ompl" />\n')
+        f.write('  <arg name="allow_trajectory_execution" default="true"/>\n')
+        f.write('  <arg name="moveit_controller_manager" default="simple" />\n')
+        f.write('  <arg name="fake_execution_type" default="interpolate"/>\n')
+        f.write('  <arg name="max_safe_path_cost" default="1"/>\n')
+        f.write('  <arg name="publish_monitored_planning_scene" default="true"/>\n')
+        
+        f.write('  <arg name="capabilities" default="" />\n')
+        f.write('  <arg name="disable_capabilities" default="" />\n')
+        f.write('  <!-- load these non-default MoveGroup capabilities (space separated) -->\n')
+        f.write('  <!--\n')
+        f.write('  <arg name="capabilities" value="\n')
+        f.write('                a_package/AwsomeMotionPlanningCapability\n')
+        f.write('                another_package/GraspPlanningPipeline\n')
+        f.write('                " />\n')
+        f.write('  -->\n')
+        
+        f.write('  <!-- inhibit these default MoveGroup capabilities (space separated) -->\n')
+        f.write('  <!--\n')
+        f.write('  <arg name="disable_capabilities" value="\n')
+        f.write('                move_group/MoveGroupKinematicsService\n')
+        f.write('                move_group/ClearOctomapService\n')
+        f.write('                " />\n')
+        f.write('  -->\n')
+        
+        f.write('  <arg name="load_robot_description" default="false" />\n')
+        f.write('  <!-- load URDF, SRDF and joint_limits configuration -->\n')
+        f.write('  <include file="$(dirname)/planning_context.launch">\n')
+        f.write('    <arg name="load_robot_description" value="$(arg load_robot_description)" />\n')
+        f.write('  </include>\n')
+        f.write('\n')
+        
+        f.write('  <!-- Planning Pipelines -->\n')
+        f.write('  <group ns="move_group/planning_pipelines">\n')
+        
+        # OMPL
+        f.write('    <include file="$(dirname)/planning_pipeline.launch.xml">\n')
+        f.write('      <arg name="pipeline" value="ompl" />\n')
+        f.write('    </include>\n')
+        
+        # CHOMP        f.write('    <include file="$(dirname)/planning_pipeline.launch.xml">\n')
+        f.write('      <arg name="pipeline" value="chomp" />\n')
+        f.write('    </include>\n')
+        
+        # Pilz Industrial Motion
+        f.write('    <include file="$(dirname)/planning_pipeline.launch.xml">\n')
+        f.write('      <arg name="pipeline" value="pilz_industrial_motion_planner" />\n')
+        f.write('    </include>\n')
+        
+        # Support custom planning pipeline
+        f.write('    <include if="$(eval arg(\'pipeline\') not in [\'ompl\', \'chomp\', \'pilz_industrial_motion_planner\'])"\n')
+        f.write('             file="$(dirname)/planning_pipeline.launch.xml">\n')
+        f.write('      <arg name="pipeline" value="$(arg pipeline)" />\n')
+        f.write('    </include>\n')
+        
+        f.write('  </group>\n')
+        f.write('\n')
+        
+        f.write('  <!-- Trajectory Execution Functionality -->\n')
+        f.write('  <include ns="move_group" file="$(dirname)/trajectory_execution.launch.xml" if="$(arg allow_trajectory_execution)">\n')
+        f.write('    <arg name="moveit_manage_controllers" value="true" />\n')
+        f.write('    <arg name="moveit_controller_manager" value="$(arg moveit_controller_manager)" />\n')
+        f.write('    <arg name="fake_execution_type" value="$(arg fake_execution_type)" />\n')
+        f.write('  </include>\n')
+        f.write('\n')
+        
+        f.write('  <!-- Sensors Functionality -->\n')
+        f.write('  <include ns="move_group" file="$(dirname)/sensor_manager.launch.xml" if="$(arg allow_trajectory_execution)">\n')
+        f.write('    <arg name="moveit_sensor_manager" value="my_robot" />\n')
+        f.write('  </include>\n')
+        f.write('\n')
+        
+        f.write('  <!-- Start the actual move_group node/action server -->\n')
+        f.write('  <node name="move_group" launch-prefix="$(arg launch_prefix)" pkg="moveit_ros_move_group" type="move_group" respawn="false" output="screen" args="$(arg command_args)">\n')
+        f.write('    <!-- Set the display variable, in case OpenGL code is used internally -->\n')
+        f.write('    <env name="DISPLAY" value="$(optenv DISPLAY :0)" />\n')
+        
+        f.write('    <param name="allow_trajectory_execution" value="$(arg allow_trajectory_execution)"/>\n')
+        f.write('    <param name="sense_for_plan/max_safe_path_cost" value="$(arg max_safe_path_cost)"/>\n')
+        f.write('    <param name="default_planning_pipeline" value="$(arg pipeline)" />\n')
+        f.write('    <param name="capabilities" value="$(arg capabilities)" />\n')
+        f.write('    <param name="disable_capabilities" value="$(arg disable_capabilities)" />\n')
+        
+        f.write('    <!-- do not copy dynamics information from /joint_states to internal robot monitoring\n')
+        f.write('         default to false, because almost nothing in move_group relies on this information -->\n')
+        f.write('    <param name="monitor_dynamics" value="false" />\n')
+        
+        f.write('    <!-- Publish the planning scene of the physical robot so that rviz plugin can know actual robot -->\n')
+        f.write('    <param name="planning_scene_monitor/publish_planning_scene" value="$(arg publish_monitored_planning_scene)" />\n')
+        f.write('    <param name="planning_scene_monitor/publish_geometry_updates" value="$(arg publish_monitored_planning_scene)" />\n')
+        f.write('    <param name="planning_scene_monitor/publish_state_updates" value="$(arg publish_monitored_planning_scene)" />\n')
+        f.write('    <param name="planning_scene_monitor/publish_transforms_updates" value="$(arg publish_monitored_planning_scene)" />\n')
+        f.write('  </node>\n')
+        
+        f.write('</launch>\n')
+
+def write_moveit_rviz_launch(save_dir):
+    try: os.makedirs(save_dir + '/moveit_configs/launch', exist_ok=True)
+    except: pass
+    file_name = save_dir + '/moveit_configs/launch/moveit_rviz.launch'
+    
+    with open(file_name, 'w') as f:
+        f.write('<launch>\n')
+        f.write('  <arg name="debug" default="false" />\n')
+        f.write('  <arg unless="$(arg debug)" name="launch_prefix" value="" />\n')
+        f.write('  <arg if="$(arg debug)" name="launch_prefix" value="gdb --ex run --args" />\n')
+        f.write('\n')
+        
+        f.write('  <arg name="rviz_config" default="$(find moveit_configs)/config/moveit.rviz" />\n')
+        f.write('  <arg if="$(eval arg(\'rviz_config\') == \'\')" name="command_args" value="" />\n')
+        f.write('  <arg unless="$(eval arg(\'rviz_config\') == \'\')" name="command_args" value="-d $(arg rviz_config)" />\n')
+        f.write('\n')
+        
+        f.write('  <node name="$(anon rviz)" launch-prefix="$(arg launch_prefix)" pkg="rviz" type="rviz" respawn="false"\n')
+        f.write('        args="$(arg command_args)" output="screen">\n')
+        f.write('  </node>\n')
+        
+        f.write('</launch>\n')
+
+def write_moveit_rviz(save_dir):
+    try: os.makedirs(save_dir + '/moveit_configs/config', exist_ok=True)
+    except: pass
+    file_name = save_dir + '/moveit_configs/config/moveit.rviz'
+    
+    with open(file_name, 'w') as f:
+        f.write('# This is a default RViz configuration file for MoveIt!\n')
+        f.write('# It is automatically generated by the MoveIt configuration generator.\n')
+        f.write('# You can customize it to your needs.\n')
+        f.write('\n')
+        f.write('Panels:\n')
+        f.write('  - Class: rviz/Displays\n')
+        f.write('    Help Height: 84\n')
+        f.write('    Name: Displays\n')
+        f.write('    Property Tree Widget:\n')
+        f.write('      Expanded:\n')
+        f.write('        - /MotionPlanning1\n')
+        f.write('      Splitter Ratio: 0.5\n')
+        f.write('    Tree Height: 226\n')
+        f.write('  - Class: rviz/Help\n')
+        f.write('    Name: Help\n')
+        f.write('  - Class: rviz/Views\n')
+        f.write('    Expanded:\n')
+        f.write('      - /Current View1\n')
+        f.write('    Name: Views\n')
+        f.write('    Splitter Ratio: 0.5\n')
+        f.write('Visualization Manager:\n')
+        f.write('  Class: ""\n')
+        f.write('  Displays:\n')
+        f.write('    - Alpha: 0.5\n')
+        f.write('      Cell Size: 1\n')
+        f.write('      Class: rviz/Grid\n')
+        f.write('      Color: 160; 160; 164\n')
+        f.write('      Enabled: true\n')
+        f.write('      Line Style:\n')
+        f.write('        Line Width: 0.03\n')
+        f.write('        Value: Lines\n')
+        f.write('      Name: Grid\n')
+        f.write('      Normal Cell Count: 0\n')
+        f.write('      Offset:\n')
+        f.write('        X: 0\n')
+        f.write('        Y: 0\n')
+        f.write('        Z: 0\n')
+        f.write('      Plane: XY\n')
+        f.write('      Plane Cell Count: 10\n')
+        f.write('      Reference Frame: <Fixed Frame>\n')
+        f.write('      Value: true\n')
+        f.write('    - Class: moveit_rviz_plugin/MotionPlanning\n')
+        f.write('      Enabled: true\n')
+        f.write('      Name: MotionPlanning\n')
+        f.write('      Planned Path:\n')
+        f.write('        Links: ~\n')
+        f.write('        Loop Animation: true\n')
+        f.write('        Robot Alpha: 0.5\n')
+        f.write('        Show Robot Collision: false\n')
+        f.write('        Show Robot Visual: true\n')
+        f.write('        Show Trail: false\n')
+        f.write('        State Display Time: 0.05 s\n')
+        f.write('        Trajectory Topic: move_group/display_planned_path\n')
+        f.write('      Planning Metrics:\n')
+        f.write('        Payload: 1\n')
+        f.write('        Show Joint Torques: false\n')
+        f.write('        Show Manipulability: false\n')
+        f.write('        Show Manipulability Index: false\n')
+        f.write('        Show Weight Limit: false\n')
+        f.write('      Planning Request:\n')
+        f.write('        Colliding Link Color: 255; 0; 0\n')
+        f.write('        Goal State Alpha: 1\n')
+        f.write('        Goal State Color: 250; 128; 0\n')
+        f.write('        Interactive Marker Size: 0\n')
+        f.write('        Joint Violation Color: 255; 0; 255\n')
+        f.write('        Query Goal State: true\n')
+        f.write('        Query Start State: false\n')
+        f.write('        Show Workspace: false\n')
+        f.write('        Start State Alpha: 1\n')
+        f.write('        Start State Color: 0; 255; 0\n')
+        f.write('      Planning Scene Topic: move_group/monitored_planning_scene\n')
+        f.write('      Robot Description: robot_description\n')
+        f.write('      Scene Geometry:\n')
+        f.write('        Scene Alpha: 1\n')
+        f.write('        Show Scene Geometry: true\n')
+        f.write('        Voxel Coloring: Z-Axis\n')
+        f.write('        Voxel Rendering: Occupied Voxels\n')
+        f.write('      Scene Robot:\n')
+        f.write('        Attached Body Color: 150; 50; 150\n')
+        f.write('        Links: ~\n')
+        f.write('        Robot Alpha: 0.5\n')
+        f.write('        Show Scene Robot: true\n')
+        f.write('      Value: true\n')
+        f.write('  Enabled: true\n')
+        f.write('  Global Options:\n')
+        f.write('    Background Color: 48; 48; 48\n')
+        f.write('    Fixed Frame: link_0_1\n')
+        f.write('  Name: root\n')
+        f.write('  Tools:\n')
+        f.write('    - Class: rviz/Interact\n')
+        f.write('      Hide Inactive Objects: true\n')
+        f.write('    - Class: rviz/MoveCamera\n')
+        f.write('    - Class: rviz/Select\n')
+        f.write('  Value: true\n')
+        f.write('  Views:\n')
+        f.write('    Current:\n')
+        f.write('      Class: rviz/Orbit\n')
+        f.write('      Distance: 2.0\n')
+        f.write('      Enable Stereo Rendering:\n')
+        f.write('        Stereo Eye Separation: 0.06\n')
+        f.write('        Stereo Focal Distance: 1\n')
+        f.write('        Swap Stereo Eyes: false\n')
+        f.write('        Value: false\n')
+        f.write('      Field of View: 0.75\n')
+        f.write('      Focal Point:\n')
+        f.write('        X: -0.1\n')
+        f.write('        Y: 0.25\n')
+        f.write('        Z: 0.30\n')
+        f.write('      Focal Shape Fixed Size: true\n')
+        f.write('      Focal Shape Size: 0.05\n')
+        f.write('      Invert Z Axis: false\n')
+        f.write('      Name: Current View\n')
+        f.write('      Near Clip Distance: 0.01\n')
+        f.write('      Pitch: 0.5\n')
+        f.write('      Target Frame: link_0_1\n')
+        f.write('      Yaw: -0.6232355833053589\n')
+        f.write('    Saved: ~\n')
+        f.write('Window Geometry:\n')
+        f.write('  Displays:\n')
+        f.write('    collapsed: false\n')
+        f.write('  Height: 848\n')
+        f.write('  Help:\n')
+        f.write('    collapsed: false\n')
+        f.write('  Hide Left Dock: false\n')
+        f.write('  Hide Right Dock: false\n')
+        f.write('  MotionPlanning:\n')
+        f.write('    collapsed: false\n')
+        f.write('  MotionPlanning - Trajectory Slider:\n')
+        f.write('    collapsed: false\n')
+        f.write('  QMainWindow State: 000000ff00000000fd0000000100000000000001f0000002f6fc0200000007fb000000100044006900730070006c006100790073010000003d00000173000000c900fffffffb0000000800480065006c00700000000342000000bb0000006e00fffffffb0000000a00560069006500770073000000010c000000a4000000a400fffffffb0000000c00430061006d00650072006100000002ff000001610000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e00670100000374000001890000000000000000fb00000044004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720000000000ffffffff0000001600000016fb0000001c004d006f00740069006f006e0050006c0061006e006e0069006e006701000001b60000017d0000017d00ffffff00000315000002f600000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff00000000000000\n')
+        f.write('  Views:\n')
+        f.write('    collapsed: false\n')
+        f.write('  Width: 1291\n')
+        f.write('  X: 454\n')
+        f.write('  Y: 25\n')
+
+def write_myrobot_moveit_sensor_manager_launch_xml(save_dir):
+    try: os.makedirs(save_dir + '/moveit_configs/launch', exist_ok=True)
+    except: pass
+    file_name = save_dir + '/moveit_configs/launch/myrobot_moveit_sensor_manager.launch.xml'
+    
+    with open(file_name, 'w') as f:
+        f.write('<launch>\n\n')
+        f.write('</launch>\n')
+
+def write_ompl_planning_pipeline_launch_xml(save_dir):
+    try: os.makedirs(save_dir + '/moveit_configs/launch', exist_ok=True)
+    except: pass
+    file_name = save_dir + '/moveit_configs/launch/ompl_planning_pipeline.launch.xml'
+    
+    with open(file_name, 'w') as f:
+        f.write('<launch>\n')
+        f.write('  <!-- The request adapters (plugins) used when planning with OMPL. ORDER MATTERS! -->\n')
+        f.write('  <arg name="planning_adapters"\n')
+        f.write('       default="default_planner_request_adapters/LimitMaxCartesianLinkSpeed\n')
+        f.write('                default_planner_request_adapters/AddTimeParameterization\n')
+        f.write('                default_planner_request_adapters/ResolveConstraintFrames\n')
+        f.write('                default_planner_request_adapters/FixWorkspaceBounds\n')
+        f.write('                default_planner_request_adapters/FixStartStateBounds\n')
+        f.write('                default_planner_request_adapters/FixStartStateCollision\n')
+        f.write('                default_planner_request_adapters/FixStartStatePathConstraints" />\n')
+        f.write('\n')
+        f.write('  <arg name="start_state_max_bounds_error" default="0.1" />\n')
+        f.write('  <arg name="jiggle_fraction" default="0.05" />\n')
+        f.write('\n')
+        f.write('  <param name="planning_plugin" value="ompl_interface/OMPLPlanner" />\n')
+        f.write('  <param name="request_adapters" value="$(arg planning_adapters)" />\n')
+        f.write('  <param name="start_state_max_bounds_error" value="$(arg start_state_max_bounds_error)" />\n')
+        f.write('  <param name="jiggle_fraction" value="$(arg jiggle_fraction)" />\n')
+        f.write('\n')
+        f.write('  <rosparam command="load" file="$(find moveit_configs)/config/ompl_planning.yaml"/>\n')
+        f.write('</launch>\n')
+
+def write_ompl_chomp_planning_pipeline_launch_xml(save_dir):
+    try: os.makedirs(save_dir + '/moveit_configs/launch', exist_ok=True)
+    except: pass
+    file_name = save_dir + '/moveit_configs/launch/ompl_chomp_planning_pipeline.launch.xml'
+   
+    with open(file_name, 'w') as f:
+        f.write('<launch>\n')
+        f.write('  <!-- load OMPL planning pipeline, but add the CHOMP planning adapter. -->\n')
+        f.write('  <include file="$(find moveit_configs)/launch/ompl_planning_pipeline.launch.xml">\n')
+        f.write('    <arg name="planning_adapters"\n')
+        f.write('         default="default_planner_request_adapters/LimitMaxCartesianLinkSpeed\n')
+        f.write('                  default_planner_request_adapters/AddTimeParameterization\n')
+        f.write('                  default_planner_request_adapters/FixWorkspaceBounds\n')
+        f.write('                  default_planner_request_adapters/FixStartStateBounds\n')
+        f.write('                  default_planner_request_adapters/FixStartStateCollision\n')
+        f.write('                  default_planner_request_adapters/FixStartStatePathConstraints\n')
+        f.write('                  chomp/OptimizerAdapter"\n')
+        f.write('    />\n')
+        f.write('  </include>\n')
+        f.write('\n')
+        f.write('  <!-- load chomp config -->\n')
+        f.write('  <rosparam command="load" file="$(find moveit_configs)/config/chomp_planning.yaml" />\n')
+        f.write('\n')
+        f.write('  <!-- override trajectory_initialization_method: Use OMPL-generated trajectory -->\n')
+        f.write('  <param name="trajectory_initialization_method" value="fillTrajectory"/>\n')
+        f.write('</launch>\n')
+
+def write_pilz_industrial_motion_planning_pipeline_launch_xml(save_dir):
+    try: os.makedirs(save_dir + '/moveit_configs/launch', exist_ok=True)
+    except: pass
+    file_name = save_dir + '/moveit_configs/launch/pilz_industrial_motion_planning_pipeline.launch.xml'
+    
+    with open(file_name, 'w') as f:
+        f.write('<launch>\n')
+        f.write('  <!-- The request adapters (plugins) used when planning. ORDER MATTERS! -->\n')
+        f.write('  <arg name="planning_adapters" default="" />\n')
+        f.write('\n')
+        f.write('  <param name="planning_plugin" value="pilz_industrial_motion_planner::CommandPlanner" />\n')
+        f.write('  <param name="request_adapters" value="$(arg planning_adapters)" />\n')
+        f.write('\n')
+        f.write('  <!-- Define default planner (for all groups) -->\n')
+        f.write('  <param name="default_planner_config" value="PTP" />\n')
+        f.write('\n')
+        f.write('  <!-- MoveGroup capabilities to load for this pipeline, append sequence capability -->\n')
+        f.write('  <param name="capabilities" value="pilz_industrial_motion_planner/MoveGroupSequenceAction\n')
+        f.write('                                    pilz_industrial_motion_planner/MoveGroupSequenceService" />\n')
+        f.write('</launch>\n')
+
+def write_planning_context_launch(save_dir):
+    try: os.makedirs(save_dir + '/moveit_configs/launch', exist_ok=True)
+    except: pass
+    file_name = save_dir + '/moveit_configs/launch/planning_context.launch'
+    
+    with open(file_name, 'w') as f:
+        f.write('<launch>\n')
+        f.write('  <!-- By default we do not overwrite the URDF. Change the following to true to change the default behavior -->\n')
+        f.write('  <arg name="load_robot_description" default="false"/>\n')
+        f.write('\n')
+        f.write('  <!-- The name of the parameter under which the URDF is loaded -->\n')
+        f.write('  <arg name="robot_description" default="robot_description"/>\n')
+        f.write('\n')
+        f.write('  <!-- Load universal robot description format (URDF) -->\n')
+        f.write('  <param if="$(arg load_robot_description)" name="$(arg robot_description)" textfile="$(find my_robot)/urdf/my_robot.urdf"/>\n')
+        f.write('\n')
+        f.write('  <!-- The semantic description that corresponds to the URDF -->\n')
+        f.write('  <param name="$(arg robot_description)_semantic" textfile="$(find moveit_configs)/config/my_robot.srdf" />\n')
+        f.write('\n')
+        f.write('  <!-- Load updated joint limits (override information from URDF) -->\n')
+        f.write('  <group ns="$(arg robot_description)_planning">\n')
+        f.write('    <rosparam command="load" file="$(find moveit_configs)/config/joint_limits.yaml"/>\n')
+        f.write('    <rosparam command="load" file="$(find moveit_configs)/config/cartesian_limits.yaml"/>\n')
+        f.write('  </group>\n')
+        f.write('\n')
+        f.write('  <!-- Load default settings for kinematics; these settings are overridden by settings in a node\'s namespace -->\n')
+        f.write('  <group ns="$(arg robot_description)_kinematics">\n')
+        f.write('    <rosparam command="load" file="$(find moveit_configs)/config/kinematics.yaml"/>\n')
+        f.write('  </group>\n')
+        f.write('</launch>\n')
+
+def write_planning_pipeline_launch_xml(save_dir):
+    try: os.makedirs(save_dir + '/moveit_configs/launch', exist_ok=True)
+    except: pass
+    file_name = save_dir + '/moveit_configs/launch/planning_pipeline.launch.xml'
+    """<launch>
+
+  <!-- This file makes it easy to include different planning pipelines;
+       It is assumed that all planning pipelines are named XXX_planning_pipeline.launch  -->
+
+  <arg name="pipeline" default="ompl" />
+
+  <include ns="$(arg pipeline)" file="$(dirname)/$(arg pipeline)_planning_pipeline.launch.xml" />
+
+</launch>
+"""
+    with open(file_name, 'w') as f:
+        f.write('<launch>\n')
+        f.write('  <!-- This file makes it easy to include different planning pipelines; -->\n')
+        f.write('  <arg name="pipeline" default="ompl" />\n')
+        f.write('\n')
+        f.write('  <include ns="$(arg pipeline)" file="$(dirname)/$(arg pipeline)_planning_pipeline.launch.xml" />\n')
+        f.write('</launch>\n')
+
+def write_ros_control_moveit_controller_manager_launch_xml(save_dir):
+    try: os.makedirs(save_dir + '/moveit_configs/launch', exist_ok=True)
+    except: pass
+    file_name = save_dir + '/moveit_configs/launch/ros_control_moveit_controller_manager.launch.xml'
+    with open(file_name, 'w') as f:
+        f.write('<launch>\n')
+        f.write('  <!-- Define MoveIt controller manager plugin -->\n')
+        f.write('  <param name="moveit_controller_manager" value="moveit_ros_control_interface::MoveItControllerManager" />\n')
+        f.write('</launch>\n')
+
+def write_ros_controllers_launch(save_dir):
+    try: os.makedirs(save_dir + '/moveit_configs/launch', exist_ok=True)
+    except: pass
+    file_name = save_dir + '/moveit_configs/launch/ros_controllers.launch'
+    with open(file_name, 'w') as f:
+        f.write('<?xml version="1.0"?>\n')
+        f.write('<launch>\n\n')
+        f.write('  <!-- Load joint controller configurations from YAML file to parameter server -->\n')
+        f.write('  <rosparam file="$(find moveit_configs)/config/ros_controllers.yaml" command="load"/>\n\n')
+        f.write('  <!-- Load the controllers -->\n')
+        f.write('  <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false"\n')
+        f.write('    output="screen" args="my_arm_controller my_effector_controller my_robot_top_group_controller "/>\n\n')
+        f.write('</launch>\n')
+
+def write_run_benchmark_ompl_launch(save_dir):
+    try: os.makedirs(save_dir + '/moveit_configs/launch', exist_ok=True)
+    except: pass
+    file_name = save_dir + '/moveit_configs/launch/run_benchmark_ompl.launch'
+    with open(file_name, 'w') as f:
+        f.write('<launch>\n\n')
+        f.write('  <!-- This argument must specify the list of .cfg files to process for benchmarking -->\n')
+        f.write('  <arg name="cfg" />\n\n')
+        f.write('  <!-- Load URDF -->\n')
+        f.write('  <include file="$(dirname)/planning_context.launch">\n')
+        f.write('    <arg name="load_robot_description" value="true"/>\n')
+        f.write('  </include>\n\n')
+        f.write('  <!-- Start the database -->\n')
+        f.write('  <include file="$(dirname)/warehouse.launch">\n')
+        f.write('    <arg name="moveit_warehouse_database_path" value="moveit_ompl_benchmark_warehouse"/>\n')
+        f.write('  </include>\n\n')
+        f.write('  <!-- Start Benchmark Executable -->\n')
+        f.write('  <node name="$(anon moveit_benchmark)" pkg="moveit_ros_benchmarks" type="moveit_run_benchmark" args="$(arg cfg) --benchmark-planners" respawn="false" output="screen">\n')
+        f.write('    <rosparam command="load" file="$(find moveit_configs)/config/ompl_planning.yaml"/>\n')
+        f.write('  </node>\n\n')
+        f.write('</launch>\n')
+
+def write_sensor_manager_launch_xml(save_dir):
+    try: os.makedirs(save_dir + '/moveit_configs/launch', exist_ok=True)
+    except: pass
+    file_name = save_dir + '/moveit_configs/launch/sensor_manager.launch.xml'
+    with open(file_name, 'w') as f:
+        f.write('<launch>\n\n')
+        f.write('  <!-- This file makes it easy to include the settings for sensor managers -->\n\n')
+        f.write('  <!-- Params for 3D sensors config -->\n')
+        f.write('  <rosparam command="load" file="$(find moveit_configs)/config/sensors_3d.yaml" />\n\n')
+        f.write('  <!-- Params for the octomap monitor -->\n')
+        f.write('  <!--  <param name="octomap_frame" type="string" value="some frame in which the robot moves" /> -->\n')
+        f.write('  <param name="octomap_resolution" type="double" value="0.025" />\n')
+        f.write('  <param name="max_range" type="double" value="5.0" />\n\n')
+        f.write('  <!-- Load the robot specific sensor manager; this sets the moveit_sensor_manager ROS parameter -->\n')
+        f.write('  <arg name="moveit_sensor_manager" default="my_robot" />\n')
+        f.write('  <include file="$(dirname)/$(arg moveit_sensor_manager)_moveit_sensor_manager.launch.xml" />\n\n')
+        f.write('</launch>\n')
+
+def write_setup_assistant_launch(save_dir):
+    try: os.makedirs(save_dir + '/moveit_configs/launch', exist_ok=True)
+    except: pass
+    file_name = save_dir + '/moveit_configs/launch/setup_assistant.launch'
+    with open(file_name, 'w') as f:
+        f.write('<!-- Re-launch the MoveIt Setup Assistant with this configuration package already loaded -->\n')
+        f.write('<launch>\n\n')
+        f.write('  <!-- Debug Info -->\n')
+        f.write('  <arg name="debug" default="false" />\n')
+        f.write('  <arg unless="$(arg debug)" name="launch_prefix" value="" />\n')
+        f.write('  <arg     if="$(arg debug)" name="launch_prefix" value="gdb --ex run --args" />\n\n')
+        f.write('  <!-- Run -->\n')
+        f.write('  <node pkg="moveit_setup_assistant" type="moveit_setup_assistant" name="moveit_setup_assistant"\n')
+        f.write('        args="--config_pkg=moveit_configs"\n')
+        f.write('        launch-prefix="$(arg launch_prefix)"\n')
+        f.write('        required="true"\n')
+        f.write('        output="screen" />\n\n')
+        f.write('</launch>\n')
+
+def write_simple_moveit_controller_manager_launch_xml(save_dir):
+    try: os.makedirs(save_dir + '/moveit_configs/launch', exist_ok=True)
+    except: pass
+    file_name = save_dir + '/moveit_configs/launch/simple_moveit_controller_manager.launch.xml'
+    with open(file_name, 'w') as f:
+        f.write('<launch>\n')
+        f.write('  <!-- Define the MoveIt controller manager plugin to use for trajectory execution -->\n')
+        f.write('  <param name="moveit_controller_manager" value="moveit_simple_controller_manager/MoveItSimpleControllerManager" />\n\n')
+        f.write('  <!-- Load controller list to the parameter server -->\n')
+        f.write('  <rosparam file="$(find moveit_configs)/config/simple_moveit_controllers.yaml" />\n')
+        f.write('  <rosparam file="$(find moveit_configs)/config/ros_controllers.yaml" />\n')
+        f.write('</launch>\n')
+
+def write_stomp_planning_pipeline_launch_xml(save_dir):
+    try: os.makedirs(save_dir + '/moveit_configs/launch', exist_ok=True)
+    except: pass
+    file_name = save_dir + '/moveit_configs/launch/stomp_planning_pipeline.launch.xml'
+    with open(file_name, 'w') as f:
+        f.write('<launch>\n')
+        f.write('  <!-- Stomp Plugin for MoveIt -->\n')
+        f.write('  <arg name="planning_plugin" value="stomp_moveit/StompPlannerManager" />\n\n')
+        f.write('  <arg name="start_state_max_bounds_error" value="0.1" />\n')
+        f.write('  <arg name="jiggle_fraction" value="0.05" />\n')
+        f.write('  <!-- The request adapters (plugins) used when planning. ORDER MATTERS! -->\n')
+        f.write('  <arg name="planning_adapters"\n')
+        f.write('       default="default_planner_request_adapters/LimitMaxCartesianLinkSpeed\n')
+        f.write('                default_planner_request_adapters/AddTimeParameterization\n')
+        f.write('                default_planner_request_adapters/FixWorkspaceBounds\n')
+        f.write('                default_planner_request_adapters/FixStartStateBounds\n')
+        f.write('                default_planner_request_adapters/FixStartStateCollision\n')
+        f.write('                default_planner_request_adapters/FixStartStatePathConstraints" />\n\n')
+        f.write('  <param name="planning_plugin" value="$(arg planning_plugin)" />\n')
+        f.write('  <param name="request_adapters" value="$(arg planning_adapters)" />\n')
+        f.write('  <param name="start_state_max_bounds_error" value="$(arg start_state_max_bounds_error)" />\n')
+        f.write('  <param name="jiggle_fraction" value="$(arg jiggle_fraction)" />\n\n')
+        f.write('  <rosparam command="load" file="$(find moveit_configs)/config/stomp_planning.yaml"/>\n')
+        f.write('</launch>\n')
+
+def write_trajectory_execution_launch_xml(save_dir):
+    try: os.makedirs(save_dir + '/moveit_configs/launch', exist_ok=True)
+    except: pass
+    file_name = save_dir + '/moveit_configs/launch/trajectory_execution.launch.xml'
+    with open(file_name, 'w') as f:
+        f.write('<launch>\n')
+        f.write('  <!-- This file summarizes all settings required for trajectory execution  -->\n\n')
+        f.write('  <!-- Define moveit controller manager plugin: fake, simple, or ros_control -->\n')
+        f.write('  <arg name="moveit_controller_manager" />\n')
+        f.write('  <arg name="fake_execution_type" default="interpolate" />\n\n')
+        f.write('  <!-- Flag indicating whether MoveIt is allowed to load/unload  or switch controllers -->\n')
+        f.write('  <arg name="moveit_manage_controllers" default="true"/>\n')
+        f.write('  <param name="moveit_manage_controllers" value="$(arg moveit_manage_controllers)"/>\n\n')
+        f.write('  <!-- When determining the expected duration of a trajectory, this multiplicative factor is applied to get the allowed duration of execution -->\n')
+        f.write('  <param name="trajectory_execution/allowed_execution_duration_scaling" value="1.2"/> <!-- default 1.2 -->\n')
+        f.write('  <!-- Allow more than the expected execution time before triggering a trajectory cancel (applied after scaling) -->\n')
+        f.write('  <param name="trajectory_execution/allowed_goal_duration_margin" value="0.5"/> <!-- default 0.5 -->\n')
+        f.write('  <!-- Allowed joint-value tolerance for validation that trajectory\'s first point matches current robot state -->\n')
+        f.write('  <param name="trajectory_execution/allowed_start_tolerance" value="0.01"/> <!-- default 0.01 -->\n\n')
+        f.write('  <!-- We use pass_all_args=true here to pass fake_execution_type, which is required by fake controllers, but not by real-robot controllers.\n')
+        f.write('       As real-robot controller_manager.launch files shouldn\'t be required to define this argument, we use the trick of passing all args. -->\n')
+        f.write('  <include file="$(dirname)/$(arg moveit_controller_manager)_moveit_controller_manager.launch.xml" pass_all_args="true" />\n\n')
+        f.write('</launch>\n')
+
+def write_warehouse_settings_launch_xml(save_dir):
+    try: os.makedirs(save_dir + '/moveit_configs/launch', exist_ok=True)
+    except: pass
+    file_name = save_dir + '/moveit_configs/launch/warehouse_settings.launch.xml'
+    with open(file_name, 'w') as f:
+        f.write('<launch>\n')
+        f.write('  <!-- Set the parameters for the warehouse and run the mongodb server. -->\n\n')
+        f.write('  <!-- The default DB port for moveit (not default MongoDB port to avoid potential conflicts) -->\n')
+        f.write('  <arg name="moveit_warehouse_port" default="33829" />\n\n')
+        f.write('  <!-- The default DB host for moveit -->\n')
+        f.write('  <arg name="moveit_warehouse_host" default="localhost" />\n\n')
+        f.write('  <!-- Set parameters for the warehouse -->\n')
+        f.write('  <param name="warehouse_port" value="$(arg moveit_warehouse_port)"/>\n')
+        f.write('  <param name="warehouse_host" value="$(arg moveit_warehouse_host)"/>\n')
+        f.write('  <param name="warehouse_exec" value="mongod" />\n')
+        f.write('  <param name="warehouse_plugin" value="warehouse_ros_mongo::MongoDatabaseConnection" />\n\n')
+        f.write('</launch>\n')
+
+def write_warehouse_launch(save_dir):
+    try: os.makedirs(save_dir + '/moveit_configs/launch', exist_ok=True)
+    except: pass
+    file_name = save_dir + '/moveit_configs/launch/warehouse.launch'
+    with open(file_name, 'w') as f:
+        f.write('<launch>\n\n')
+        f.write('  <!-- The path to the database must be specified -->\n')
+        f.write('  <arg name="moveit_warehouse_database_path" />\n\n')
+        f.write('  <!-- Load warehouse parameters -->\n')
+        f.write('  <include file="$(dirname)/warehouse_settings.launch.xml" />\n\n')
+        f.write('  <!-- Run the DB server -->\n')
+        f.write('  <node name="$(anon mongo_wrapper_ros)" cwd="ROS_HOME" type="mongo_wrapper_ros.py" pkg="warehouse_ros_mongo">\n')
+        f.write('    <param name="overwrite" value="false"/>\n')
+        f.write('    <param name="database_path" value="$(arg moveit_warehouse_database_path)" />\n')
+        f.write('  </node>\n\n')
+        f.write('</launch>\n')
+
+def write_moveit_config_cmake(save_dir):
+    """
+    write CMakeLists.txt file "save_dir/moveit_configs/CMakeLists.txt"
+    
+    
+    Parameter
+    ---------
+    save_dir: str
+        path of the repository to save
+    """
+    try: os.makedirs(save_dir + '/moveit_configs', exist_ok=True)
+    except: pass
+    
+    file_name = save_dir + '/moveit_configs/CMakeLists.txt'
+    
+    with open(file_name, 'w') as f:
+        f.write('cmake_minimum_required(VERSION 3.5)\n')
+        f.write('project(moveit_configs)\n\n')
+        f.write('find_package(catkin REQUIRED)\n\n')
+        f.write('catkin_package()\n\n')
+        f.write('install(DIRECTORY launch DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}\n')
+        f.write('  PATTERN "setup_assistant.launch" EXCLUDE)\n')
+        f.write('install(DIRECTORY config DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})\n')
+
+def write_moveit_config_package_xml(save_dir, robot_name):
+    """
+    write package.xml file "save_dir/moveit_configs/package.xml"
+    Parameter
+    ---------
+    save_dir: str
+        path of the repository to save
+    robot_name: str
+        name of the robot
+    """
+    try: os.makedirs(save_dir + '/moveit_configs', exist_ok=True)
+    except: pass
+    
+    file_name = save_dir + '/moveit_configs/package.xml'
+    
+    with open(file_name, 'w') as f:
+        f.write('<?xml version="1.0"?>\n')
+        f.write('<package>\n\n')
+        f.write('  <name>moveit_configs</name>\n')
+        f.write('  <version>0.3.0</version>\n')
+        f.write('  <description>An automatically generated package with all the configuration and launch files for using the {} with the MoveIt Motion Planning Framework</description>\n'.format(robot_name))
+        f.write('  <author email="felix.wolff@tu-dortmund.de">Felix Wolff</author>\n')
+        f.write('  <maintainer email="felix.wolff@tu-dortmund.de">Felix Wolff</maintainer>\n\n')
+        f.write('  <license>BSD</license>\n\n')
+        f.write('  <url type="website">http://moveit.ros.org/</url>\n')
+        f.write('  <url type="bugtracker">https://github.com/moveit/moveit/issues</url>\n')
+        f.write('  <url type="repository">https://github.com/moveit/moveit</url>\n\n')
+        f.write('  <buildtool_depend>catkin</buildtool_depend>\n\n')
+        f.write('  <run_depend>moveit_ros_move_group</run_depend>\n')
+        f.write('  <run_depend>moveit_fake_controller_manager</run_depend>\n')
+        f.write('  <run_depend>moveit_kinematics</run_depend>\n')
+        f.write('  <run_depend>moveit_planners</run_depend>\n')
+        f.write('  <run_depend>moveit_ros_visualization</run_depend>\n')
+        f.write('  <run_depend>moveit_setup_assistant</run_depend>\n')
+        f.write('  <run_depend>moveit_simple_controller_manager</run_depend>\n')
+        f.write('  <run_depend>joint_state_publisher</run_depend>\n')
+        f.write('  <run_depend>joint_state_publisher_gui</run_depend>\n')
+        f.write('  <run_depend>robot_state_publisher</run_depend>\n')
+        f.write('  <run_depend>rviz</run_depend>\n')
+        f.write('  <run_depend>tf2_ros</run_depend>\n')
+        f.write('  <run_depend>xacro</run_depend>\n')
+        # The next 2 packages are required for the gazebo simulation.
+        # We don't include them by default to prevent installing gazebo and all its dependencies.
+        # f.write('  <run_depend>joint_trajectory_controller</run_depend>\n')
+        # f.write('  <run_depend>gazebo_ros_control</run_depend>\n')
+        # This package is referenced in the warehouse launch files, but does not build out of the box at the moment. Commented the dependency until this works.
+        # f.write('  <run_depend>warehouse_ros_mongo</run_depend>\n')
+        f.write('  <run_depend>my_robot</run_depend>\n\n')
+        f.write('</package>\n')
+
 def write_yaml(package_name, robot_name, save_dir, joints_dict):
     """
     write yaml file "save_dir/launch/controller.yaml"
@@ -1373,7 +2255,7 @@ def make_joints_dict(root, msg):
         joint_type = joint_type_list[joint.jointMotion.jointType]
         joint_dict['type'] = joint_type
         
-        # swhich by the type of the joint
+        # switch by the type of the joint
         joint_dict['axis'] = [0, 0, 0]
         joint_dict['upper_limit'] = 0.0
         joint_dict['lower_limit'] = 0.0
@@ -1697,6 +2579,8 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     Called when the user clicks the command in CLS-CAD tab. Registers execute and
     destroy handlers.
 
+   
+
     :param args: adsk.core.CommandCreatedEventArgs: and inputs.
     :return:
     """
@@ -1828,35 +2712,35 @@ def command_execute(args: adsk.core.CommandEventArgs):
     # stomp planning yaml IGNORE STOMP PLANNING PIPELINE FOR NOW
 
     # write launch files
-    # chomp planning pipeline GENERIC
-    # default warehouse db GENERIC
-    # demo gazebo launch GENERIC
-    # demo launch GENERIC
-    # fake moveit controller manager GENERIC
-    # gazebo launch GENERIC
-    # joystick control launch GENERIC
-    # movegroup launch GENERIC
-    # moveit rviz launch GENERIC
-    # moveit rviz GENERIC
-    # myrobot moveit sensor GENERIC
-    # ompl planning pipeline GENERIC
-    # ompl chomp planning pipeline GENERIC
-    # pilz industrial motion planning pipeline GENERIC
-    # planning context launch
-    # planning pipeline launch xml GENERIC
-    # ros controllers launch GENERIC
-    # run benchmark ompl launch GENERIC
-    # sensor manager launch xml
-    # setup assistant launch GENERIC
-    # simple moveit controller manager GENERIC
-    # stomp planning pipeline GENERIC
-    # trajectory execution launch GENERIC
-    # warehouse settings launch GENERIC
-    # warehouse launch GENERIC
-    # write cmakelists GENERIC
-    # write package xml GENERIC except for robot name
+    write_chomp_planning_pipeline_launch_xml(save_dir)
+    write_default_warehouse_db_launch(save_dir)
+    write_demo_gazebo_launch(save_dir)
+    write_demo_launch(save_dir)
+    write_fake_moveit_controller_manager_launch_xml(save_dir)
+    write_gazebo_launch(save_dir)
+    write_joystick_control_launch(save_dir)
+    write_movegroup_launch(save_dir)
+    write_moveit_rviz_launch(save_dir)
+    write_moveit_rviz(save_dir)
+    write_myrobot_moveit_sensor_manager_launch_xml(save_dir)
+    write_ompl_planning_pipeline_launch_xml(save_dir)
+    write_ompl_chomp_planning_pipeline_launch_xml(save_dir)
+    write_pilz_industrial_motion_planning_pipeline_launch_xml(save_dir)
+    write_planning_context_launch(save_dir)
+    write_planning_pipeline_launch_xml(save_dir)
+    write_ros_control_moveit_controller_manager_launch_xml(save_dir)
+    write_ros_controllers_launch(save_dir)
+    write_run_benchmark_ompl_launch(save_dir)
+    write_sensor_manager_launch_xml(save_dir)
+    write_setup_assistant_launch(save_dir)
+    write_simple_moveit_controller_manager_launch_xml(save_dir)
+    write_stomp_planning_pipeline_launch_xml(save_dir)
+    write_trajectory_execution_launch_xml(save_dir)
+    write_warehouse_settings_launch_xml(save_dir)
+    write_warehouse_launch(save_dir)
+    write_moveit_config_cmake(save_dir)
+    write_moveit_config_package_xml(save_dir, robot_name)
         
-
 
 def command_destroy(args: adsk.core.CommandEventArgs):
     """
@@ -1869,3 +2753,6 @@ def command_destroy(args: adsk.core.CommandEventArgs):
     global local_handlers
     local_handlers = []
     futil.log(f"{CMD_NAME} Command Destroy Event")
+
+
+
