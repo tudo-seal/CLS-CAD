@@ -32,17 +32,6 @@ progress_dialog: adsk.core.ProgressDialog = None
 export_path = ""
 # TODO: send files to backend
 # TODO: also create moveit_configs
-#cartesian_limits.yaml
-#fake_controllers.yaml
-#gazebo_controllers.yaml
-#joint_limits.yaml
-#kinematics.yaml
-#.srdf
-#ompl_planning.yaml
-#ros_controllers.yaml
-#sensors_3d.yaml
-#simple_moveit_controllers.yaml
-#stomp
 
 def setup_package_xml(save_dir, package_name):
     """
@@ -742,6 +731,29 @@ def write_control_launch(package_name, robot_name, save_dir, joints_dict):
         f.write('</launch>')
         
 
+def write_cartesian_limits_yaml(save_dir):
+    """
+    write yaml file "save_dir/launch/cartesian_limits.yaml"
+    
+    
+    Parameter
+    ---------
+    save_dir: str
+        path of the repository to save
+    """
+    try: os.mkdir(save_dir + '/config')
+    except: pass 
+
+    file_name = save_dir + '/config/cartesian_limits.yaml'
+    with open(file_name, 'w') as f:
+        f.write('cartesian_limits:\n')
+        f.write('  max_trans_vel: 1\n')
+        f.write('  max_trans_acc: 2.25\n')
+        f.write('  max_trans_dev: -5\n')
+        f.write('  max_rot_vel: 1.57\n')
+
+def write_chomp_planning_yaml
+
 def write_yaml(package_name, robot_name, save_dir, joints_dict):
     """
     write yaml file "save_dir/launch/controller.yaml"
@@ -1339,7 +1351,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
     export_stl(design, save_dir, root)
 
     # create moveit_configs
-    # cartesian_limits yaml GENERIC
+    write_cartesian_limits_yaml(save_dir)
     # chomp planning yaml GENERIC
     # fake controllers yaml
     # gazebo controllers yaml GENERIC
