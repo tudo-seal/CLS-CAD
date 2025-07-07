@@ -1336,7 +1336,51 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
     # Generate STl files        
     # copy_occs(root)
-    export_stl(design, save_dir, root) 
+    export_stl(design, save_dir, root)
+
+    # create moveit_configs
+    # cartesian_limits yaml GENERIC
+    # chomp planning yaml GENERIC
+    # fake controllers yaml
+    # gazebo controllers yaml GENERIC
+    # joint limits yaml
+    # kinematics yaml
+    # my robot srdf
+    # ompl planning yaml
+    # ros_controllers yaml
+    # sensors 3d yaml GENERIC
+    # simple moveit controllers yaml
+    # stomp planning yaml
+
+    # write configs
+    # write launch files
+    # chomp planning pipeline GENERIC
+    # default warehouse db GENERIC
+    # demo gazebo launch GENERIC
+    # demo launch GENERIC
+    # fake moveit controller manager GENERIC
+    # gazebo launch GENERIC
+    # joystick control launch GENERIC
+    # movegroup launch GENERIC
+    # moveit rviz launch GENERIC
+    # moveit rviz GENERIC
+    # myrobot moveit sensor GENERIC
+    # ompl planning pipeline GENERIC
+    # ompl chomp planning pipeline GENERIC
+    # pilz industrial motion planning pipeline GENERIC
+    # planning context launch
+    # planning pipeline launch xml GENERIC
+    # ros controllers launch GENERIC
+    # run benchmark ompl launch GENERIC
+    # sensor manager launch xml
+    # setup assistant launch GENERIC
+    # simple moveit controller manager GENERIC
+    # stomp planning pipeline GENERIC
+    # trajectory execution launch GENERIC
+    # warehouse settings launch GENERIC
+    # warehouse launch GENERIC
+    # write cmakelists GENERIC
+    # write package xml GENERIC except for robot name
         
 
 
