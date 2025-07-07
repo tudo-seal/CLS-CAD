@@ -964,76 +964,7 @@ def write_srdf(package_name, robot_name, save_dir, joints_dict, links_xyz_dict):
     except: pass
 
     file_name = save_dir + '/moveit_configs/config/' + robot_name + '.srdf'
-    """<?xml version="1.0" encoding="UTF-8"?>
-<!--This does not replace URDF, and is not an extension of URDF.
-    This is a format for representing semantic information about the robot structure.
-    A URDF file must exist for this robot as well, where the joints and the links that are referenced are defined
--->
-<robot name="my_robot">
-    <!--GROUPS: Representation of a set of joints and links. This can be useful for specifying DOF to plan for, defining arms, end effectors, etc-->
-    <!--LINKS: When a link is specified, the parent joint of that link (if it exists) is automatically included-->
-    <!--JOINTS: When a joint is specified, the child link of that joint (which will always exist) is automatically included-->
-    <!--CHAINS: When a chain is specified, all the links along the chain (including endpoints) are included in the group. Additionally, all the joints that are parents to included links are also included. This means that joints along the chain and the parent joint of the base link are included in the group-->
-    <!--SUBGROUPS: Groups can also be formed by referencing to already defined group names-->
-    <group name="my_arm">
-        <link name="link_0_1"/>
-        <link name="link_1_1"/>
-        <link name="link_2_1"/>
-        <link name="link_3_1"/>
-        <link name="link_4_1"/>
-        <joint name="world_joint"/>
-        <joint name="Revolute_2"/>
-        <joint name="Revolute_3"/>
-        <joint name="Revolute_4"/>
-        <joint name="Revolute_5"/>
-    </group>
-    <group name="my_effector">
-        <link name="link_5_1"/>
-        <joint name="Revolute_6"/>
-    </group>
-    <group name="my_robot_top_group">
-        <link name="link_0_1"/>
-        <link name="link_1_1"/>
-        <link name="link_2_1"/>
-        <link name="link_3_1"/>
-        <link name="link_4_1"/>
-        <link name="link_5_1"/>
-        <joint name="world_joint"/>
-        <joint name="Revolute_2"/>
-        <joint name="Revolute_3"/>
-        <joint name="Revolute_4"/>
-        <joint name="Revolute_5"/>
-        <joint name="Revolute_6"/>
-        <group name="my_arm"/>
-        <group name="my_effector"/>
-    </group>
-    <!--GROUP STATES: Purpose: Define a named state for a particular group, in terms of joint values. This is useful to define states like 'folded arms'-->
-    <group_state name="open" group="my_effector">
-        <joint name="Revolute_6" value="1.8"/>
-    </group_state>
-    <group_state name="closed" group="my_effector">
-        <joint name="Revolute_6" value="0.9666"/>
-    </group_state>
-    <group_state name="home" group="my_robot_top_group">
-        <joint name="Revolute_2" value="0.03"/>
-        <joint name="Revolute_3" value="-0.34"/>
-        <joint name="Revolute_4" value="0.87"/>
-        <joint name="Revolute_5" value="-0,03"/>
-        <joint name="Revolute_6" value="1.29"/>
-    </group_state>
-      
-    <!--END EFFECTOR: Purpose: Represent information about an end effector.-->
-    <end_effector name="my_end_effector" parent_link="link_4_1" group="my_effector" parent_group="my_arm"/>
-    <!--VIRTUAL JOINT: Purpose: this element defines a virtual joint between a robot link and an external frame of reference (considered fixed with respect to the robot)-->
-    <virtual_joint name="world_joint" type="fixed" parent_frame="world" child_link="link_0_1"/>
-    <!--DISABLE COLLISIONS: By default it is assumed that any link of the robot could potentially come into collision with any other link in the robot. This tag disables collision checking between a specified pair of links. -->
-    <disable_collisions link1="link_0_1" link2="link_1_1" reason="Adjacent"/>
-    <disable_collisions link1="link_1_1" link2="link_2_1" reason="Adjacent"/>
-    <disable_collisions link1="link_2_1" link2="link_3_1" reason="Adjacent"/>
-    <disable_collisions link1="link_3_1" link2="link_4_1" reason="Adjacent"/>
-    <disable_collisions link1="link_3_1" link2="link_5_1" reason="Never"/>
-    <disable_collisions link1="link_4_1" link2="link_5_1" reason="Adjacent"/>
-</robot>"""
+    
     with open(file_name, 'w') as f:
         f.write('<?xml version="1.0" encoding="UTF-8"?>\n')
         f.write('<!--This does not replace URDF, and is not an extension of URDF.\n')
@@ -1088,6 +1019,203 @@ def write_srdf(package_name, robot_name, save_dir, joints_dict, links_xyz_dict):
             f.write('    <disable_collisions link1="{}" link2="{}" reason="Adjacent"/>\n'.format(links_xyz_dict[i], links_xyz_dict[i + 1]))
         f.write('</robot>\n')
 
+def write_ompl_planning_yaml(save_dir):
+    """
+    write yaml file "save_dir/moveit_configs/config/ompl_planning.yaml"
+    
+    
+    Parameter
+    ---------
+    save_dir: str
+        path of the repository to save
+    """
+    try: os.mkdir(save_dir + '/moveit_configs/config')
+    except: pass
+    """
+    planner_configs:
+        RRTstar:
+            type: geometric::RRTstar
+            range: 0.0  # Max motion added to tree. ==> maxDistance_ default: 0.0, if 0.0, set on setup()
+            goal_bias: 0.05  # When close to goal select goal, with this probability? default: 0.05
+            delay_collision_checking: 1  # Stop collision checking as soon as C-free parent found. default 1
+            optimization_objective: PathLengthOptimizationObjective
+            min_valid_path_fraction: 0.05
+    my_arm:
+        planner_configs:
+            - RRTstar
+    my_effector:
+        planner_configs:
+            - RRTstar
+    my_robot_top_group:
+        planner_configs:
+            - RRTstar"""
+    file_name = save_dir + '/moveit_configs/config/ompl_planning.yaml'
+    with open(file_name, 'w') as f:
+        f.write('planner_configs:\n')
+        f.write('  RRTstar:\n')
+        f.write('    type: geometric::RRTstar\n')
+        f.write('    range: 0.0  # Max motion added to tree. ==> maxDistance_ default: 0.0, if 0.0, set on setup()\n')
+        f.write('    goal_bias: 0.05  # When close to goal select goal, with this probability? default: 0.05\n')
+        f.write('    delay_collision_checking: 1  # Stop collision checking as soon as C-free parent found. default 1\n')
+        f.write('    optimization_objective: PathLengthOptimizationObjective\n')
+        f.write('    min_valid_path_fraction: 0.05\n')
+    
+        f.write('my_arm:\n')
+        f.write('  planner_configs:\n')
+        f.write('    - RRTstar\n')
+        
+        f.write('my_effector:\n')
+        f.write('  planner_configs:\n')
+        f.write('    - RRTstar\n')
+        
+        f.write('my_robot_top_group:\n')
+        f.write('  planner_configs:\n')
+        f.write('    - RRTstar\n')
+
+def write_ros_controllers_yaml(package_name, robot_name, save_dir, joints_dict):
+    """
+    write yaml file "save_dir/moveit_configs/config/ros_controllers.yaml"
+    Parameter
+    ---------
+    robot_name: str
+        name of the robot
+    save_dir: str
+        path of the repository to save
+    joints_dict: dict
+        information of the joints
+    """
+    try: os.mkdir(save_dir + '/moveit_configs/config')
+    except: pass
+
+    file_name = save_dir + '/moveit_configs/config/ros_controllers.yaml'
+    
+    with open(file_name, 'w') as f:
+        # my arm
+        f.write("my_arm_controller:\n")
+        f.write("  type: effort_controllers/JointTrajectoryController\n")
+        f.write("  joints:\n")
+        for joint in joints_dict[1:-1]:  # last joint is gripper, so skip it
+            joint_type = joints_dict[joint]['type']
+            if joint_type != 'fixed':
+                f.write("    - {}\n".format(joint.name))
+        f.write("  gains:\n")
+        for joint in joints_dict[1:-1]:  # last joint is gripper, so skip it
+            joint_type = joints_dict[joint]['type']
+            if joint_type != 'fixed':
+                f.write("    {}:\n".format(joint.name))
+                f.write("      p: 100\n")
+                f.write("      d: 1\n")
+                f.write("      i: 1\n")
+                f.write("      i_clamp: 1\n")
+        
+        # my effector
+        f.write("\nmy_effector_controller:\n")
+        f.write("  type: effort_controllers/JointTrajectoryController\n")
+        f.write("  joints:\n")
+        for joint in joints_dict[-1]:
+            joint_type = joints_dict[joint]['type']
+            if joint_type != 'fixed':
+                f.write("    - {}\n".format(joint.name))
+        f.write("  gains:\n")
+        for joint in joints_dict[-1]:
+            joint_type = joints_dict[joint]['type']
+            if joint_type != 'fixed':
+                f.write("    {}:\n".format(joint.name))
+                f.write("      p: 100\n")
+                f.write("      d: 1\n")
+                f.write("      i: 1\n")
+                f.write("      i_clamp: 1\n")
+
+        # my robot top group
+        f.write("\nmy_robot_top_group_controller:\n")
+        f.write("  type: effort_controllers/JointTrajectoryController\n")
+        f.write("  joints:\n")
+        for joint in joints_dict[1:]:
+            joint_type = joints_dict[joint]['type']
+            if joint_type != 'fixed':
+                f.write("    - {}\n".format(joint.name))
+        f.write("  gains:\n")
+        for joint in joints_dict[1:]:
+            joint_type = joints_dict[joint]['type']
+            if joint_type != 'fixed':
+                f.write("    {}:\n".format(joint.name))
+                f.write("      p: 100\n")
+                f.write("      d: 1\n")
+                f.write("      i: 1\n")
+                f.write("      i_clamp: 1\n")
+
+def write_sensors_3d_yaml(save_dir):
+    """
+    write yaml file "save_dir/moveit_configs/config/sensors_3d.yaml"
+    
+    
+    Parameter
+    ---------
+    save_dir: str
+        path of the repository to save
+    """
+    try: os.mkdir(save_dir + '/moveit_configs/config')
+    except: pass
+
+    file_name = save_dir + '/moveit_configs/config/sensors_3d.yaml'
+    with open(file_name, 'w') as f:
+        f.write('sensors:\n')
+        f.write('  []\n')
+
+def write_simple_moveit_controllers_yaml(package_name, robot_name, save_dir, joints_dict):
+    """
+    write yaml file "save_dir/moveit_configs/config/simple_moveit_controllers.yaml"
+    
+    
+    Parameter
+    ---------
+    robot_name: str
+        name of the robot
+    save_dir: str
+        path of the repository to save
+    joints_dict: dict
+        information of the joints
+    """
+    try: os.mkdir(save_dir + '/moveit_configs/config')
+    except: pass
+
+    file_name = save_dir + '/moveit_configs/config/simple_moveit_controllers.yaml'
+    
+    with open(file_name, 'w') as f:
+        f.write('controller_list:\n')
+        
+        # my arm controller
+        f.write('  - name: my_arm_controller\n')
+        f.write('    action_ns: follow_joint_trajectory\n')
+        f.write('    type: FollowJointTrajectory\n')
+        f.write('    default: True\n')
+        f.write('    joints:\n')
+        for joint in joints_dict[1:-1]:  # last joint is gripper, so skip it
+            joint_type = joints_dict[joint]['type']
+            if joint_type != 'fixed':
+                f.write('      - {}\n'.format(joint.name))
+        
+        # my effector controller
+        f.write('  - name: my_effector_controller\n')
+        f.write('    action_ns: follow_joint_trajectory\n')
+        f.write('    type: FollowJointTrajectory\n')
+        f.write('    default: True\n')
+        f.write('    joints:\n')
+        for joint in joints_dict[-1]:
+            joint_type = joints_dict[joint]['type']
+            if joint_type != 'fixed':
+                f.write('      - {}\n'.format(joint.name))
+        
+        # my robot top group controller
+        f.write('  - name: my_robot_top_group_controller\n')
+        f.write('    action_ns: follow_joint_trajectory\n')
+        f.write('    type: FollowJointTrajectory\n')
+        f.write('    default: True\n')
+        f.write('    joints:\n')
+        for joint in joints_dict[1:]:
+            joint_type = joints_dict[joint]['type']
+            if joint_type != 'fixed':
+                f.write('      - {}\n'.format(joint.name))
 
 def write_yaml(package_name, robot_name, save_dir, joints_dict):
     """
@@ -1693,13 +1821,12 @@ def command_execute(args: adsk.core.CommandEventArgs):
     write_joint_limits_yaml(package_name, robot_name, save_dir, joints_dict)
     write_kinematics_yaml(save_dir)
     write_srdf(package_name, robot_name, save_dir, joints_dict, links_xyz_dict)
-    # ompl planning yaml
-    # ros_controllers yaml
-    # sensors 3d yaml GENERIC
-    # simple moveit controllers yaml
-    # stomp planning yaml
+    write_ompl_planning_yaml(save_dir)
+    write_ros_controllers_yaml(package_name, robot_name, save_dir, joints_dict)
+    write_sensors_3d_yaml(save_dir)
+    write_simple_moveit_controllers_yaml(package_name, robot_name, save_dir, joints_dict)
+    # stomp planning yaml IGNORE STOMP PLANNING PIPELINE FOR NOW
 
-    # write configs
     # write launch files
     # chomp planning pipeline GENERIC
     # default warehouse db GENERIC
