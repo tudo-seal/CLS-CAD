@@ -3,6 +3,8 @@ import shutil
 import unicodedata
 import fileinput
 import sys
+import shutil
+import urllib
 
 import adsk.core
 
@@ -2098,6 +2100,34 @@ def write_moveit_config_package_xml(save_dir, robot_name):
         # f.write('  <run_depend>warehouse_ros_mongo</run_depend>\n')
         f.write('  <run_depend>my_robot</run_depend>\n\n')
         f.write('</package>\n')
+
+def post_files_to_backend(save_dir, robot_name):
+    """ Post the files in the save_dir to the backend server.
+    
+    Parameters
+    ----------
+    save_dir: str
+        path of folder containing the files to be posted.
+    """
+    
+    zipped_files = shutil.make_archive(f'{robot_name}_files', 'zip', save_dir)
+    with open(zipped_files, 'rb') as f:
+        files = {'file': (f'{robot_name}_files', f, 'application/zip')}
+        response = urllib.request.Request('http://127.0.1:8000/bo/store-mp-files', files)
+
+    
+def remove_temporary_files(save_dir):
+    """ Remove the temporary files created during the export process.
+    
+    Parameters
+    ----------
+    save_dir: str
+        path of folder containing the files to be removed.
+    """
+    try:
+        shutil.rmtree(save_dir)
+    except Exception as e:
+        print(f"Error removing temporary files: {e}")
 
 def write_yaml(package_name, robot_name, save_dir, joints_dict):
     """
