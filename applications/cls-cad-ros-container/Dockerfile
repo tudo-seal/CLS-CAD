@@ -19,7 +19,7 @@ RUN rosdep init && rosdep update
 RUN mkdir -p /ros_ws/src
 WORKDIR /ros_ws
 
-# Copy over the unzipped motion planning files and python scripts
+# Copy over the python scripts for motion planning
 COPY ./src /ros_ws/src
 
 # Build workspace

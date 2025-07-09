@@ -1,5 +1,7 @@
 import mimetypes
 import os
+import zipfile
+import subprocess
 import sys
 from collections import defaultdict
 from datetime import datetime
@@ -104,7 +106,6 @@ async def initialize_bo(
     :return: Returns "OK" when successful, else returns a 422 response code if payload
         didn't pass validation.
     """
-    #TODO placeholder logic
     return "OK"
 
 @app.get("/bo/{project_id}/{experiment_id}/optimal-vector")
@@ -122,13 +123,40 @@ async def optimal_vector(
     :return: Returns "OK" when successful, else returns a 422 response code if payload
         didn't pass validation.
     """
-    #TODO placeholder logic
     return "OK"
+
+def docker_build(image_name, dockerfile_dir='.'):
+    cmd = ['docker', 'build', '-t', image_name, dockerfile_dir]
+    print(f"Running build command: {' '.join(cmd)}")
+    subprocess.run(cmd, check=True)
+
+def docker_run(image_name, local_src_path, container_src_path='/ros_ws/src'):
+    cmd = [
+        'docker', 'run', '--rm',
+        '-v', f'{local_src_path}:{container_src_path}',
+        image_name
+    ]
+    print(f"Running container command: {' '.join(cmd)}")
+    subprocess.run(cmd, check=True)
+
+def exec_commands(container_name_or_id, commands):
+    cmd = [
+        'docker', 'exec', container_name_or_id, *commands.split()
+    ]
+    print(f"Executing commands inside container: {' '.join(cmd)}")
+    subprocess.run(cmd, check=True)
+
+def exec_and_capture(container_name_or_id, commands):
+    cmd = [
+        'docker', 'exec', container_name_or_id, *commands.split()
+    ]
+    print(f"Executing and capturing output: {' '.join(cmd)}")
+    result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+    return result.stdout.strip()
 
 @app.post("/bo/store-mp-files")
 async def store_mp_files(
-    files: str,
-    form: str
+    files: str
 ):
     """
     Stores the motion planning files.
@@ -138,8 +166,31 @@ async def store_mp_files(
     :return: Returns "OK" when successful, else returns a 422 response code if payload
         didn't pass validation.
     """
-    #TODO placeholder logic
-    return "OK"
+    """Code in frontend: zipped_files = shutil.make_archive(f'{robot_name}_files', 'zip', save_dir)
+    with open(zipped_files, 'rb') as f:
+        files = {'file': (f'{robot_name}_files', f, 'application/zip')}
+        response = urllib.request.Request('http://127.0.1:8000/bo/store-mp-files', files)"""
+    # unpack the zipped files and store them in /tmp
+    if not os.path.exists("./database/tmp/"):
+        os.makedirs("./database/tmp/")
+    with zipfile.ZipFile(files, 'r') as zip_ref:
+        zip_ref.extractall("./database/tmp/")
+
+    # mount the files inside tmp directory to the ros container using sys calls
+    docker_image_name = "my_ros_noetic_image:latest"
+    local_src_path = "./database/tmp/"
+    container_src_path = "/ros_ws/src"
+    docker_build(docker_image_name, dockerfile_dir='../../cls-cad-ros-container/')
+    docker_run(docker_image_name, local_src_path, container_src_path)
+    exec_commands('docker_container_name', 'roslaunch moveit_configs demo.launch')
+    exec_commands('docker_container_name', 'cd /src/motion_planning')
+    exec_commands('docker_container_name', 'python3 add_box.py')
+    exec_commands('docker_container_name', 'python3 move_group_2.py')
+    result = exec_and_capture('docker_container_name', 'cat total_time.txt')
+
+    
+
+    return {"total_time": result}
 
 @app.post("/bo/perform-motion-planning")
 async def motion_planning(
@@ -156,7 +207,6 @@ async def motion_planning(
     :return: Returns "OK" when successful, else returns a 422 response code if payload
         didn't pass validation.
     """
-    #TODO placeholder logic
     return "OK"
 
 @app.get("/bo/results/{project_id}/{experiment_id}/{request_id}/motion-planning")
@@ -177,7 +227,6 @@ async def motion_planning_results(
     :return: Returns motion planning stats when successful, else returns a 422 response code if payload
         didn't pass validation.
     """
-    #TODO placeholder logic
     data = {}
     return data
 
@@ -194,7 +243,6 @@ async def update_with_result(
     :return: Returns "OK" when successful, else returns a 422 response code if payload
         didn't pass validation.
     """
-    #TODO placeholder logic
     return "OK"
 
 @app.post("/submit/taxonomy")

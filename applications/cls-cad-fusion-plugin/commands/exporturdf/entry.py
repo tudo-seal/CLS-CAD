@@ -35,7 +35,7 @@ export_path = ""
 # TODO: send files to backend
 # TODO: also create moveit_configs
 
-def setup_package_xml(save_dir, package_name):
+def setup_package_xml(save_dir, package_name, robot_name):
     """
     Creates a package.xml file in the specified directory with predefined content.
     
@@ -66,14 +66,14 @@ def setup_package_xml(save_dir, package_name):
 """
     
     # Define the file path
-    package_file_path = os.path.join(save_dir + "/my_robot", "package.xml")
+    package_file_path = os.path.join(save_dir + f"/{robot_name}", "package.xml")
     
     # Write the content to the file
     with open(package_file_path, "w") as f:
         f.write(package_content)
 
 
-def setup_cmakelists(save_dir, package_name):
+def setup_cmakelists(save_dir, package_name, robot_name):
     """
     Creates a CMakeLists.txt file in the specified directory with predefined content.
     
@@ -97,10 +97,10 @@ include_directories(
 """
     
     # Ensure the directory exists
-    os.makedirs(save_dir + "/my_robot", exist_ok=True)
+    os.makedirs(save_dir + f"/{robot_name}", exist_ok=True)
     
     # Define the file path
-    cmake_file_path = os.path.join(save_dir + "/my_robot", "CMakeLists.txt")
+    cmake_file_path = os.path.join(save_dir + f"/{robot_name}", "CMakeLists.txt")
     
     # Write the content to the file
     with open(cmake_file_path, "w") as f:
@@ -171,7 +171,7 @@ def copy_occs(root):
         occs.component.name = 'old_component'
 
 
-def export_stl(design, save_dir, root):  
+def export_stl(design, save_dir, root, robot_name):  
     """
     export stl files into "sace_dir/"
     
@@ -187,9 +187,9 @@ def export_stl(design, save_dir, root):
     # create a single exportManager instance
     exportMgr = design.exportManager
     # get the script location
-    try: os.mkdir(save_dir + 'my_robot/meshes')
+    try: os.mkdir(save_dir + f'{robot_name}/meshes')
     except: pass
-    scriptDir = save_dir + 'my_robot/meshes'  
+    scriptDir = save_dir + f'{robot_name}/meshes'  
     rootOccs = root.occurrences
     
     for occ in rootOccs:
@@ -368,13 +368,13 @@ def write_urdf(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_n
     # TODO: check why limit tag is missing
     # TODO: xyz in joint tags should not be zero everytime
     # TODO: double check axis calculation
-    
-    try: os.mkdir(save_dir + 'my_robot/urdf')
+    file_dir = os.path.join(save_dir, 'urdf')
+    file_path = os.path.join(file_dir, robot_name + '.urdf')
+    try: os.makedirs(file_dir)
     except: pass 
 
-    file_name = save_dir + 'my_robot/urdf/' + robot_name + '.urdf'  # the name of urdf file
     repo = package_name + '/meshes/'  # the repository of binary stl files
-    with open(file_name, mode='w') as f:
+    with open(file_path, mode='w') as f:
         f.write('<?xml version="1.0" ?>\n')
         f.write('<robot name="{}" xmlns:xacro="http://www.ros.org/wiki/xacro">\n'.format(robot_name))
         f.write('\n')
@@ -383,18 +383,18 @@ def write_urdf(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_n
         f.write('</material>\n')
         f.write('\n')
 
-    write_link_urdf(joints_dict, repo, links_xyz_dict, file_name, inertial_dict)
-    write_joint_urdf(joints_dict, repo, links_xyz_dict, file_name)
+    write_link_urdf(joints_dict, repo, links_xyz_dict, file_path, inertial_dict)
+    write_joint_urdf(joints_dict, repo, links_xyz_dict, file_path)
     write_transmissions_urdf(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_name, save_dir)  
-    write_gazebo_endtag(joints_dict, file_name)
+    write_gazebo_endtag(joints_dict, file_path)
 
 def write_xacro(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_name, save_dir):
 
-    try: os.mkdir(save_dir + 'my_robot/urdf')
+    try: os.mkdir(save_dir + '/urdf')
     except: pass 
 
 
-    file_name = save_dir + 'my_robot/urdf/' + robot_name + '.xacro'  # the name of urdf file
+    file_name = save_dir + '/urdf/' + robot_name + '.xacro'  # the name of urdf file
     repo = package_name + '/meshes/'  # the repository of binary stl files
     with open(file_name, mode='w') as f:
         f.write('<?xml version="1.0" ?>\n')
@@ -413,10 +413,10 @@ def write_xacro(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_
 
 # entry point materials xacro
 def write_materials_xacro(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_name, save_dir):
-    try: os.mkdir(save_dir + 'my_robot/urdf')
+    try: os.mkdir(save_dir + '/urdf')
     except: pass  
 
-    file_name = save_dir + 'my_robot/urdf/materials.xacro'  # the name of urdf file
+    file_name = save_dir + '/urdf/materials.xacro'  # the name of urdf file
     with open(file_name, mode='w') as f:
         f.write('<?xml version="1.0" ?>\n')
         f.write('<robot name="{}" xmlns:xacro="http://www.ros.org/wiki/xacro" >\n'.format(robot_name))
@@ -495,7 +495,7 @@ def write_transmissions_xacro(joints_dict, links_xyz_dict, inertial_dict, packag
         urdf full path
     """
     
-    file_name = save_dir + 'my_robot/urdf/{}.trans'.format(robot_name)  # the name of urdf file
+    file_name = save_dir + '/urdf/{}.trans'.format(robot_name)  # the name of urdf file
     with open(file_name, mode='w') as f:
         f.write('<?xml version="1.0" ?>\n')
         f.write('<robot name="{}" xmlns:xacro="http://www.ros.org/wiki/xacro" >\n'.format(robot_name))
@@ -534,10 +534,10 @@ def write_transmissions_xacro(joints_dict, links_xyz_dict, inertial_dict, packag
 
 # entry point gazebo xacro
 def write_gazebo_xacro(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_name, save_dir):
-    try: os.mkdir(save_dir + 'my_robot/urdf')
+    try: os.mkdir(save_dir + '/urdf')
     except: pass  
 
-    file_name = save_dir + 'my_robot/urdf/' + robot_name + '.gazebo'  # the name of urdf file
+    file_name = save_dir + '/urdf/' + robot_name + '.gazebo'  # the name of urdf file
     repo = robot_name + '/meshes/'  # the repository of binary stl files
     #repo = package_name + '/' + robot_name + '/bin_stl/'  # the repository of binary stl files
     with open(file_name, mode='w') as f:
@@ -591,7 +591,7 @@ def write_display_launch(package_name, robot_name, save_dir):
     save_dir: str
     path of the repository to save
     """   
-    try: os.mkdir(save_dir + 'my_robot/launch')
+    try: os.mkdir(save_dir + '/launch')
     except: pass     
 
     launch = Element('launch')     
@@ -622,7 +622,7 @@ def write_display_launch(package_name, robot_name, save_dir):
 
     launch_xml = "\n".join(prettify(launch).split("\n")[1:])        
 
-    file_name = save_dir + 'my_robot/launch/display.launch'    
+    file_name = save_dir + '/launch/display.launch'    
     with open(file_name, mode='w') as f:
         f.write(launch_xml)
 
@@ -640,7 +640,7 @@ def write_gazebo_launch(package_name, robot_name, save_dir):
         path of the repository to save
     """
     
-    try: os.mkdir(save_dir + 'my_robot/launch')
+    try: os.mkdir(save_dir + '/launch')
     except: pass     
     
     launch = Element('launch')
@@ -669,7 +669,7 @@ def write_gazebo_launch(package_name, robot_name, save_dir):
     
     launch_xml = "\n".join(prettify(launch).split("\n")[1:])        
     
-    file_name = save_dir + 'my_robot/launch/' + 'gazebo.launch'    
+    file_name = save_dir + '/launch/' + 'gazebo.launch'    
     with open(file_name, mode='w') as f:
         f.write(launch_xml)
 
@@ -689,7 +689,7 @@ def write_control_launch(package_name, robot_name, save_dir, joints_dict):
         information of the joints
     """
     
-    try: os.mkdir(save_dir + 'my_robot/launch')
+    try: os.mkdir(save_dir + '/launch')
     except: pass     
     
     #launch = Element('launch')
@@ -722,7 +722,7 @@ def write_control_launch(package_name, robot_name, save_dir, joints_dict):
     launch_xml  = "\n".join(prettify(node_controller).split("\n")[1:])   
     launch_xml += "\n".join(prettify(node_publisher).split("\n")[1:])   
 
-    file_name = save_dir + 'my_robot/launch/controller.launch'    
+    file_name = save_dir + '/launch/controller.launch'    
     with open(file_name, mode='w') as f:
         f.write('<launch>\n')
         f.write('\n')
@@ -1365,7 +1365,7 @@ def write_fake_moveit_controller_manager_launch_xml(save_dir):
         f.write('  <rosparam subst_value="true" file="$(find moveit_configs)/config/fake_controllers.yaml"/>\n')
         f.write('</launch>\n')
 
-def write_gazebo_launch(save_dir):
+def write_moveit_gazebo_launch(save_dir, robot_name):
     try: os.makedirs(save_dir + '/moveit_configs/launch', exist_ok=True)
     except: pass
     file_name = save_dir + '/moveit_configs/launch/gazebo.launch'
@@ -1386,7 +1386,7 @@ def write_gazebo_launch(save_dir):
         f.write('  </include>\n')
         f.write('\n')
         f.write('  <!-- Set the robot urdf on the parameter server -->\n')
-        f.write('  <param name="robot_description" textfile="$(find my_robot)/urdf/my_robot.urdf" />\n')
+        f.write(f'  <param name="robot_description" textfile="$(find {robot_name})/urdf/{robot_name}.urdf" />\n')
         f.write('\n')
         f.write('  <!-- Unpause the simulation after loading the robot model -->\n')
         f.write('  <arg name="unpause" value="$(eval \'\' if arg(\'paused\') else \'-unpause\')" />\n')
@@ -1427,7 +1427,7 @@ def write_joystick_control_launch(save_dir):
         f.write('  <node pkg="moveit_ros_visualization" type="moveit_joy.py" output="screen" name="moveit_joy"/>\n')
         f.write('</launch>\n')
 
-def write_movegroup_launch(save_dir):
+def write_movegroup_launch(save_dir, robot_name):
     try: os.makedirs(save_dir + '/moveit_configs/launch', exist_ok=True)
     except: pass
     file_name = save_dir + '/moveit_configs/launch/move_group.launch'
@@ -1515,7 +1515,7 @@ def write_movegroup_launch(save_dir):
         
         f.write('  <!-- Sensors Functionality -->\n')
         f.write('  <include ns="move_group" file="$(dirname)/sensor_manager.launch.xml" if="$(arg allow_trajectory_execution)">\n')
-        f.write('    <arg name="moveit_sensor_manager" value="my_robot" />\n')
+        f.write(f'    <arg name="moveit_sensor_manager" value="{robot_name}" />\n')
         f.write('  </include>\n')
         f.write('\n')
         
@@ -1793,7 +1793,7 @@ def write_pilz_industrial_motion_planning_pipeline_launch_xml(save_dir):
         f.write('                                    pilz_industrial_motion_planner/MoveGroupSequenceService" />\n')
         f.write('</launch>\n')
 
-def write_planning_context_launch(save_dir):
+def write_planning_context_launch(save_dir, robot_name):
     try: os.makedirs(save_dir + '/moveit_configs/launch', exist_ok=True)
     except: pass
     file_name = save_dir + '/moveit_configs/launch/planning_context.launch'
@@ -1807,10 +1807,10 @@ def write_planning_context_launch(save_dir):
         f.write('  <arg name="robot_description" default="robot_description"/>\n')
         f.write('\n')
         f.write('  <!-- Load universal robot description format (URDF) -->\n')
-        f.write('  <param if="$(arg load_robot_description)" name="$(arg robot_description)" textfile="$(find my_robot)/urdf/my_robot.urdf"/>\n')
+        f.write(f'  <param if="$(arg load_robot_description)" name="$(arg robot_description)" textfile="$(find {robot_name})/urdf/{robot_name}.urdf"/>\n')
         f.write('\n')
         f.write('  <!-- The semantic description that corresponds to the URDF -->\n')
-        f.write('  <param name="$(arg robot_description)_semantic" textfile="$(find moveit_configs)/config/my_robot.srdf" />\n')
+        f.write(f'  <param name="$(arg robot_description)_semantic" textfile="$(find moveit_configs)/config/{robot_name}.srdf" />\n')
         f.write('\n')
         f.write('  <!-- Load updated joint limits (override information from URDF) -->\n')
         f.write('  <group ns="$(arg robot_description)_planning">\n')
@@ -1893,7 +1893,7 @@ def write_run_benchmark_ompl_launch(save_dir):
         f.write('  </node>\n\n')
         f.write('</launch>\n')
 
-def write_sensor_manager_launch_xml(save_dir):
+def write_sensor_manager_launch_xml(save_dir, robot_name):
     try: os.makedirs(save_dir + '/moveit_configs/launch', exist_ok=True)
     except: pass
     file_name = save_dir + '/moveit_configs/launch/sensor_manager.launch.xml'
@@ -1907,7 +1907,7 @@ def write_sensor_manager_launch_xml(save_dir):
         f.write('  <param name="octomap_resolution" type="double" value="0.025" />\n')
         f.write('  <param name="max_range" type="double" value="5.0" />\n\n')
         f.write('  <!-- Load the robot specific sensor manager; this sets the moveit_sensor_manager ROS parameter -->\n')
-        f.write('  <arg name="moveit_sensor_manager" default="my_robot" />\n')
+        f.write(f'  <arg name="moveit_sensor_manager" default="{robot_name}" />\n')
         f.write('  <include file="$(dirname)/$(arg moveit_sensor_manager)_moveit_sensor_manager.launch.xml" />\n\n')
         f.write('</launch>\n')
 
@@ -2098,7 +2098,7 @@ def write_moveit_config_package_xml(save_dir, robot_name):
         # f.write('  <run_depend>gazebo_ros_control</run_depend>\n')
         # This package is referenced in the warehouse launch files, but does not build out of the box at the moment. Commented the dependency until this works.
         # f.write('  <run_depend>warehouse_ros_mongo</run_depend>\n')
-        f.write('  <run_depend>my_robot</run_depend>\n\n')
+        f.write(f'  <run_depend>{robot_name}</run_depend>\n\n')
         f.write('</package>\n')
 
 def post_files_to_backend(save_dir, robot_name):
@@ -2143,11 +2143,11 @@ def write_yaml(package_name, robot_name, save_dir, joints_dict):
     joints_dict: dict
         information of the joints
     """
-    try: os.mkdir(save_dir + 'my_robot/launch')
+    try: os.mkdir(save_dir + f'{robot_name}/launch')
     except: pass 
 
     controller_name = robot_name + '_controller'
-    file_name = save_dir + 'my_robot/launch/controller.yaml'
+    file_name = save_dir + f'{robot_name}/launch/controller.yaml'
     with open(file_name, 'w') as f:
         f.write(controller_name + ':\n')
         # joint_state_controller
@@ -2658,7 +2658,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
      # set the names        
     robot_name = root.name.split()[0]
-    package_name = robot_name + '_description'
+    package_name = robot_name
     
     folder_dlg = ui.createFolderDialog()
     folder_dlg.title = "Fusion Choose Folder Dialog"
@@ -2720,12 +2720,12 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
 
     # create package files
-    setup_cmakelists(save_dir, package_name)
-    setup_package_xml(save_dir, package_name)
+    setup_cmakelists(save_dir, package_name, robot_name)
+    setup_package_xml(save_dir, package_name, robot_name)
 
     # Generate STl files        
     # copy_occs(root)
-    export_stl(design, save_dir, root)
+    export_stl(design, save_dir, root, robot_name)
 
     # create moveit_configs
     write_cartesian_limits_yaml(save_dir)
@@ -2747,21 +2747,21 @@ def command_execute(args: adsk.core.CommandEventArgs):
     write_demo_gazebo_launch(save_dir)
     write_demo_launch(save_dir)
     write_fake_moveit_controller_manager_launch_xml(save_dir)
-    write_gazebo_launch(save_dir)
+    write_moveit_gazebo_launch(save_dir, robot_name)
     write_joystick_control_launch(save_dir)
-    write_movegroup_launch(save_dir)
+    write_movegroup_launch(save_dir, robot_name)
     write_moveit_rviz_launch(save_dir)
     write_moveit_rviz(save_dir)
     write_myrobot_moveit_sensor_manager_launch_xml(save_dir)
     write_ompl_planning_pipeline_launch_xml(save_dir)
     write_ompl_chomp_planning_pipeline_launch_xml(save_dir)
     write_pilz_industrial_motion_planning_pipeline_launch_xml(save_dir)
-    write_planning_context_launch(save_dir)
+    write_planning_context_launch(save_dir, robot_name)
     write_planning_pipeline_launch_xml(save_dir)
     write_ros_control_moveit_controller_manager_launch_xml(save_dir)
     write_ros_controllers_launch(save_dir)
     write_run_benchmark_ompl_launch(save_dir)
-    write_sensor_manager_launch_xml(save_dir)
+    write_sensor_manager_launch_xml(save_dir, robot_name)
     write_setup_assistant_launch(save_dir)
     write_simple_moveit_controller_manager_launch_xml(save_dir)
     write_stomp_planning_pipeline_launch_xml(save_dir)
@@ -2770,6 +2770,14 @@ def command_execute(args: adsk.core.CommandEventArgs):
     write_warehouse_launch(save_dir)
     write_moveit_config_cmake(save_dir)
     write_moveit_config_package_xml(save_dir, robot_name)
+
+    
+    output = post_files_to_backend(save_dir, robot_name)
+    ui.messageBox(
+            output,
+            "RESULT",
+            adsk.core.MessageBoxButtonTypes.OKCancelButtonType
+        )
         
 
 def command_destroy(args: adsk.core.CommandEventArgs):
