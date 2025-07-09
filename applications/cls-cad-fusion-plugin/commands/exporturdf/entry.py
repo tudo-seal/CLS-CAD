@@ -66,7 +66,7 @@ def setup_package_xml(save_dir, package_name, robot_name):
 """
     
     # Define the file path
-    package_file_path = os.path.join(save_dir + f"/{robot_name}", "package.xml")
+    package_file_path = os.path.join(save_dir, "package.xml")
     
     # Write the content to the file
     with open(package_file_path, "w") as f:
@@ -96,20 +96,17 @@ include_directories(
 )
 """
     
-    # Ensure the directory exists
-    os.makedirs(save_dir + f"/{robot_name}", exist_ok=True)
-    
     # Define the file path
-    cmake_file_path = os.path.join(save_dir + f"/{robot_name}", "CMakeLists.txt")
+    cmake_file_path = os.path.join(save_dir, "CMakeLists.txt")
     
     # Write the content to the file
     with open(cmake_file_path, "w") as f:
         f.write(cmake_content)
 
 def copy_package(save_dir, package_dir):
-    try: os.mkdir(save_dir + '/launch')
+    try: os.makedirs(save_dir + '/launch')
     except: pass 
-    try: os.mkdir(save_dir + '/urdf')
+    try: os.makedirs(save_dir + '/urdf')
     except: pass 
     shutil.copytree(package_dir, save_dir)
 
@@ -187,9 +184,9 @@ def export_stl(design, save_dir, root, robot_name):
     # create a single exportManager instance
     exportMgr = design.exportManager
     # get the script location
-    try: os.mkdir(save_dir + f'{robot_name}/meshes')
+    try: os.makedirs(save_dir + '/meshes')
     except: pass
-    scriptDir = save_dir + f'{robot_name}/meshes'  
+    scriptDir = save_dir + '/meshes'  
     rootOccs = root.occurrences
     
     for occ in rootOccs:
@@ -390,7 +387,7 @@ def write_urdf(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_n
 
 def write_xacro(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_name, save_dir):
 
-    try: os.mkdir(save_dir + '/urdf')
+    try: os.makedirs(save_dir + '/urdf')
     except: pass 
 
 
@@ -413,7 +410,7 @@ def write_xacro(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_
 
 # entry point materials xacro
 def write_materials_xacro(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_name, save_dir):
-    try: os.mkdir(save_dir + '/urdf')
+    try: os.makedirs(save_dir + '/urdf')
     except: pass  
 
     file_name = save_dir + '/urdf/materials.xacro'  # the name of urdf file
@@ -534,7 +531,7 @@ def write_transmissions_xacro(joints_dict, links_xyz_dict, inertial_dict, packag
 
 # entry point gazebo xacro
 def write_gazebo_xacro(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_name, save_dir):
-    try: os.mkdir(save_dir + '/urdf')
+    try: os.makedirs(save_dir + '/urdf')
     except: pass  
 
     file_name = save_dir + '/urdf/' + robot_name + '.gazebo'  # the name of urdf file
@@ -591,7 +588,7 @@ def write_display_launch(package_name, robot_name, save_dir):
     save_dir: str
     path of the repository to save
     """   
-    try: os.mkdir(save_dir + '/launch')
+    try: os.makedirs(save_dir + '/launch')
     except: pass     
 
     launch = Element('launch')     
@@ -640,7 +637,7 @@ def write_gazebo_launch(package_name, robot_name, save_dir):
         path of the repository to save
     """
     
-    try: os.mkdir(save_dir + '/launch')
+    try: os.makedirs(save_dir + '/launch')
     except: pass     
     
     launch = Element('launch')
@@ -689,7 +686,7 @@ def write_control_launch(package_name, robot_name, save_dir, joints_dict):
         information of the joints
     """
     
-    try: os.mkdir(save_dir + '/launch')
+    try: os.makedirs(save_dir + '/launch')
     except: pass     
     
     #launch = Element('launch')
@@ -744,7 +741,7 @@ def write_cartesian_limits_yaml(save_dir):
     save_dir: str
         path of the repository to save
     """
-    try: os.mkdir(save_dir + 'moveit_configs/config')
+    try: os.makedirs(save_dir + '/moveit_configs/config')
     except: pass 
 
     file_name = save_dir + '/moveit_configs/config/cartesian_limits.yaml'
@@ -763,7 +760,7 @@ def write_chomp_planning_yaml(save_dir):
     save_dir: str
         path of the repository to save
     """
-    try: os.mkdir(save_dir + '/moveit_configs/config')
+    try: os.makedirs(save_dir + '/moveit_configs/config')
     except: pass 
 
     file_name = save_dir + '/moveit_configs/config/chomp_planning.yaml'
@@ -799,35 +796,35 @@ def write_fake_controllers_yaml(package_name, robot_name, save_dir, joints_dict)
     joints_dict: dict
         information of the joints
     """
-    try: os.mkdir(save_dir + '/moveit_configs/config')
+    try: os.makedirs(save_dir + '/moveit_configs/config')
     except: pass 
 
-    file_name = save_dir + 'moveit_configs/config/fake_controllers.yaml'
+    file_name = save_dir + '/moveit_configs/config/fake_controllers.yaml'
     with open(file_name, 'w') as f:
         f.write('controller_list:\n')
         # my_arm
         f.write("   - name: fake_my_arm_controller\n")
         f.write("     type: $(arg fake_execution_type)\n")
         f.write("     joints:\n")
-        for joint in joints_dict[:-1]:
+        for joint in dict(list(joints_dict.items())[:-1]):
             parent = joints_dict[joint]['parent']
             if(parent == "base_link"):
                 continue
             else:
                 child = joints_dict[joint]['child']
-            f.write("       - " + joint.name + "\n")
+            f.write("       - " + joints_dict[joint]['name'] + "\n")
 
         # my_effector
         f.write("   - name: fake_my_effector_controller\n")
         f.write("     type: $(arg fake_execution_type)\n")
         f.write("     joints:\n")
-        for joint in joints_dict[-1]:
+        for joint in dict(list(joints_dict.items())[-1]):
             parent = joints_dict[joint]['parent']
             if(parent == "base_link"):
                 continue
             else:
                 child = joints_dict[joint]['child']
-            f.write("       - " + joint.name + "\n")
+            f.write("       - " + joints_dict[joint]['name'] + "\n")
         # my_robot_top_group_controller
         f.write("   - name: fake_my_robot_top_group_controller\n")
         f.write("     type: $(arg fake_execution_type)\n")
@@ -838,7 +835,7 @@ def write_fake_controllers_yaml(package_name, robot_name, save_dir, joints_dict)
                 continue
             else:
                 child = joints_dict[joint]['child']
-            f.write("       - " + joint.name + "\n")
+            f.write("       - " + joints_dict[joint]['name'] + "\n")
         f.write("initial:\n")
         f.write("   - group: my_effector\n")
         f.write("     pose: open\n")
@@ -851,7 +848,7 @@ def write_gazebo_controllers_yaml(save_dir):
     save_dir: str
         path of the repository to save
     """
-    try: os.mkdir(save_dir + '/moveit_configs/config')
+    try: os.makedirs(save_dir + '/moveit_configs/config')
     except: pass 
 
     file_name = save_dir + '/moveit_configs/config/gazebo_controllers.yaml'
@@ -875,7 +872,7 @@ def write_joint_limits_yaml(package_name, robot_name, save_dir, joints_dict):
         information of the joints
     """
     
-    try: os.mkdir(save_dir + '/moveit_configs/config')
+    try: os.makedirs(save_dir + '/moveit_configs/config')
     except: pass
     file_name = save_dir + '/moveit_configs/config/joint_limits.yaml'
     with open(file_name, 'w') as f:
@@ -890,16 +887,16 @@ def write_joint_limits_yaml(package_name, robot_name, save_dir, joints_dict):
         f.write('# Joint limits can be turned off with [has_velocity_limits, has_acceleration_limits]\n')
         f.write('joint_limits:\n')
         
-        for joint in joints_dict[:-1]:  # last joint is gripper, so skip it
+        for joint in dict(list(joints_dict.items())[:-1]):  # last joint is gripper, so skip it
             joint_type = joints_dict[joint]['type']
             if joint_type != 'fixed':
-                f.write('  ' + joint.name + ':\n')
+                f.write('  ' + joints_dict[joint]['name'] + ':\n')
                 f.write('    has_velocity_limits: false\n')
                 f.write('    max_velocity: 0\n')
                 f.write('    has_acceleration_limits: false\n')
                 f.write('    max_acceleration: 0\n')
-        for joint in joints_dict[-1]:
-            f.write('  ' + joint.name + ':\n')
+        for joint in dict(list(joints_dict.items())[-1]):
+            f.write('  ' + joints_dict[joint]['name'] + ':\n')
             f.write('    has_velocity_limits: false\n')
             f.write('    max_velocity: 0\n')
             f.write('    has_acceleration_limits: false\n')
@@ -919,7 +916,7 @@ def write_kinematics_yaml(save_dir):
     save_dir: str
         path of the repository to save
     """
-    try: os.mkdir(save_dir + '/moveit_configs/config')
+    try: os.makedirs(save_dir + '/moveit_configs/config')
     except: pass
     
     file_name = save_dir + '/moveit_configs/config/kinematics.yaml'
@@ -962,7 +959,7 @@ def write_srdf(package_name, robot_name, save_dir, joints_dict, links_xyz_dict):
         xyz information of the links
     """
     
-    try: os.mkdir(save_dir + '/moveit_configs/config')
+    try: os.makedirs(save_dir + '/moveit_configs/config')
     except: pass
 
     file_name = save_dir + '/moveit_configs/config/' + robot_name + '.srdf'
@@ -983,7 +980,7 @@ def write_srdf(package_name, robot_name, save_dir, joints_dict, links_xyz_dict):
         for link in links_xyz_dict[:-1]:  # last link is gripper, so skip it
             f.write('        <link name="{}"/>\n'.format(link))
         f.write('        <joint name="world_joint"/>\n')
-        for joint in joints_dict[1:-1]:  # last joint is gripper, so skip it
+        for joint in dict(list(joints_dict.items())[1:-1]):  # last joint is gripper, so skip it
             f.write('        <joint name="{}"/>\n'.format(joint))
         f.write('    </group>\n')
         
@@ -996,7 +993,7 @@ def write_srdf(package_name, robot_name, save_dir, joints_dict, links_xyz_dict):
         for link in links_xyz_dict:
             f.write('        <link name="{}"/>\n'.format(link))
         f.write('        <joint name="world_joint"/>\n')
-        for joint in joints_dict[1:]:
+        for joint in dict(list(joints_dict.items())[1:]):
             f.write('        <joint name="{}"/>\n'.format(joint))
         f.write('        <group name="my_arm"/>\n')
         f.write('        <group name="my_effector"/>\n')
@@ -1031,7 +1028,7 @@ def write_ompl_planning_yaml(save_dir):
     save_dir: str
         path of the repository to save
     """
-    try: os.mkdir(save_dir + '/moveit_configs/config')
+    try: os.makedirs(save_dir + '/moveit_configs/config')
     except: pass
     file_name = save_dir + '/moveit_configs/config/ompl_planning.yaml'
     with open(file_name, 'w') as f:
@@ -1068,7 +1065,7 @@ def write_ros_controllers_yaml(package_name, robot_name, save_dir, joints_dict):
     joints_dict: dict
         information of the joints
     """
-    try: os.mkdir(save_dir + '/moveit_configs/config')
+    try: os.makedirs(save_dir + '/moveit_configs/config')
     except: pass
 
     file_name = save_dir + '/moveit_configs/config/ros_controllers.yaml'
@@ -1078,15 +1075,15 @@ def write_ros_controllers_yaml(package_name, robot_name, save_dir, joints_dict):
         f.write("my_arm_controller:\n")
         f.write("  type: effort_controllers/JointTrajectoryController\n")
         f.write("  joints:\n")
-        for joint in joints_dict[1:-1]:  # last joint is gripper, so skip it
+        for joint in dict(list(joints_dict.items())[1:-1]):  # last joint is gripper, so skip it
             joint_type = joints_dict[joint]['type']
             if joint_type != 'fixed':
-                f.write("    - {}\n".format(joint.name))
+                f.write("    - {}\n".format(joints_dict[joint]['name']))
         f.write("  gains:\n")
-        for joint in joints_dict[1:-1]:  # last joint is gripper, so skip it
+        for joint in dict(list(joints_dict.items())[1:-1]):  # last joint is gripper, so skip it
             joint_type = joints_dict[joint]['type']
             if joint_type != 'fixed':
-                f.write("    {}:\n".format(joint.name))
+                f.write("    {}:\n".format(joints_dict[joint]['name']))
                 f.write("      p: 100\n")
                 f.write("      d: 1\n")
                 f.write("      i: 1\n")
@@ -1096,15 +1093,15 @@ def write_ros_controllers_yaml(package_name, robot_name, save_dir, joints_dict):
         f.write("\nmy_effector_controller:\n")
         f.write("  type: effort_controllers/JointTrajectoryController\n")
         f.write("  joints:\n")
-        for joint in joints_dict[-1]:
+        for joint in dict(list(joints_dict.items())[-1]):
             joint_type = joints_dict[joint]['type']
             if joint_type != 'fixed':
-                f.write("    - {}\n".format(joint.name))
+                f.write("    - {}\n".format(joints_dict[joint]['name']))
         f.write("  gains:\n")
-        for joint in joints_dict[-1]:
+        for joint in dict(list(joints_dict.items())[-1]):
             joint_type = joints_dict[joint]['type']
             if joint_type != 'fixed':
-                f.write("    {}:\n".format(joint.name))
+                f.write("    {}:\n".format(joints_dict[joint]['name']))
                 f.write("      p: 100\n")
                 f.write("      d: 1\n")
                 f.write("      i: 1\n")
@@ -1114,15 +1111,15 @@ def write_ros_controllers_yaml(package_name, robot_name, save_dir, joints_dict):
         f.write("\nmy_robot_top_group_controller:\n")
         f.write("  type: effort_controllers/JointTrajectoryController\n")
         f.write("  joints:\n")
-        for joint in joints_dict[1:]:
+        for joint in dict(list(joints_dict.items())[1:]):
             joint_type = joints_dict[joint]['type']
             if joint_type != 'fixed':
-                f.write("    - {}\n".format(joint.name))
+                f.write("    - {}\n".format(joints_dict[joint]['name']))
         f.write("  gains:\n")
-        for joint in joints_dict[1:]:
+        for joint in dict(list(joints_dict.items())[1:]):
             joint_type = joints_dict[joint]['type']
             if joint_type != 'fixed':
-                f.write("    {}:\n".format(joint.name))
+                f.write("    {}:\n".format(joints_dict[joint]['name']))
                 f.write("      p: 100\n")
                 f.write("      d: 1\n")
                 f.write("      i: 1\n")
@@ -1138,7 +1135,7 @@ def write_sensors_3d_yaml(save_dir):
     save_dir: str
         path of the repository to save
     """
-    try: os.mkdir(save_dir + '/moveit_configs/config')
+    try: os.makedirs(save_dir + '/moveit_configs/config')
     except: pass
 
     file_name = save_dir + '/moveit_configs/config/sensors_3d.yaml'
@@ -1160,7 +1157,7 @@ def write_simple_moveit_controllers_yaml(package_name, robot_name, save_dir, joi
     joints_dict: dict
         information of the joints
     """
-    try: os.mkdir(save_dir + '/moveit_configs/config')
+    try: os.makedirs(save_dir + '/moveit_configs/config')
     except: pass
 
     file_name = save_dir + '/moveit_configs/config/simple_moveit_controllers.yaml'
@@ -1174,10 +1171,10 @@ def write_simple_moveit_controllers_yaml(package_name, robot_name, save_dir, joi
         f.write('    type: FollowJointTrajectory\n')
         f.write('    default: True\n')
         f.write('    joints:\n')
-        for joint in joints_dict[1:-1]:  # last joint is gripper, so skip it
+        for joint in dict(list(joints_dict.items())[1:-1]):  # last joint is gripper, so skip it
             joint_type = joints_dict[joint]['type']
             if joint_type != 'fixed':
-                f.write('      - {}\n'.format(joint.name))
+                f.write('      - {}\n'.format(joints_dict[joint]['name']))
         
         # my effector controller
         f.write('  - name: my_effector_controller\n')
@@ -1185,10 +1182,10 @@ def write_simple_moveit_controllers_yaml(package_name, robot_name, save_dir, joi
         f.write('    type: FollowJointTrajectory\n')
         f.write('    default: True\n')
         f.write('    joints:\n')
-        for joint in joints_dict[-1]:
+        for joint in dict(list(joints_dict.items())[-1]):
             joint_type = joints_dict[joint]['type']
             if joint_type != 'fixed':
-                f.write('      - {}\n'.format(joint.name))
+                f.write('      - {}\n'.format(joints_dict[joint]['name']))
         
         # my robot top group controller
         f.write('  - name: my_robot_top_group_controller\n')
@@ -1196,10 +1193,10 @@ def write_simple_moveit_controllers_yaml(package_name, robot_name, save_dir, joi
         f.write('    type: FollowJointTrajectory\n')
         f.write('    default: True\n')
         f.write('    joints:\n')
-        for joint in joints_dict[1:]:
+        for joint in dict(list(joints_dict.items())[1:]):
             joint_type = joints_dict[joint]['type']
             if joint_type != 'fixed':
-                f.write('      - {}\n'.format(joint.name))
+                f.write('      - {}\n'.format(joints_dict[joint]['name']))
 
 def write_chomp_planning_pipeline_launch_xml(save_dir):
     try: os.makedirs(save_dir + '/moveit_configs/launch', exist_ok=True)
@@ -2143,11 +2140,11 @@ def write_yaml(package_name, robot_name, save_dir, joints_dict):
     joints_dict: dict
         information of the joints
     """
-    try: os.mkdir(save_dir + f'{robot_name}/launch')
+    try: os.makedirs(save_dir + '/launch')
     except: pass 
 
     controller_name = robot_name + '_controller'
-    file_name = save_dir + f'{robot_name}/launch/controller.yaml'
+    file_name = save_dir + '/launch/controller.yaml'
     with open(file_name, 'w') as f:
         f.write(controller_name + ':\n')
         # joint_state_controller
@@ -2674,7 +2671,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
     
     save_dir = export_path + '/' + package_name
     
-    try: os.mkdir(save_dir)
+    try: os.makedirs(save_dir)
     except: pass  
 
     package_dir = os.path.abspath(os.path.dirname(__file__)) + '/package/'
@@ -2726,6 +2723,8 @@ def command_execute(args: adsk.core.CommandEventArgs):
     # Generate STl files        
     # copy_occs(root)
     export_stl(design, save_dir, root, robot_name)
+
+    save_dir = export_path
 
     # create moveit_configs
     write_cartesian_limits_yaml(save_dir)
