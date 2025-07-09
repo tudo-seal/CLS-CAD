@@ -53,3 +53,12 @@ class SynthesisRequestInf(BaseModel, frozen=True):
     partCounts: list[CountNumOfPartTypeInf] | None = None
     sourceUuid: str | None = None
     optimizationRunning: str | None = None
+
+class StoreDataRequest(BaseModel, frozen=True):
+    joints_dict: dict
+    links_xyz_dict: dict
+    inertial_dict: dict
+    package_name: str
+    robot_name: str
+    save_dir: str
+    export_path: str

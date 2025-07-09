@@ -19,13 +19,14 @@ from cls_cad_backend.database.commands import (
 )
 from cls_cad_backend.repository_builder import RepositoryBuilder, wrapped_counted_types
 from cls_cad_backend.responses import FastResponse
-from cls_cad_backend.schemas import PartInf, SynthesisRequestInf, TaxonomyInf
+from cls_cad_backend.schemas import PartInf, SynthesisRequestInf, TaxonomyInf, StoreDataRequest
 from cls_cad_backend.util.hrid import generate_id
 from cls_cad_backend.util.json_operations import (
     invert_taxonomy,
     postprocess,
     suffix_and_merge_taxonomy,
 )
+from cls_cad_backend.util.mp_file_writers import *
 from cls_cad_backend.util.BOStateMachine import SkoptOptimizer
 from clsp import (
     Constructor,
@@ -128,7 +129,8 @@ async def optimal_vector(
 def docker_build(image_name, dockerfile_dir='.'):
     cmd = ['docker', 'build', '-t', image_name, dockerfile_dir]
     print(f"Running build command: {' '.join(cmd)}")
-    subprocess.run(cmd, check=True)
+    result = subprocess.check_output(cmd, shell=True, text=True)
+    return result.strip()
 
 def docker_run(image_name, local_src_path, container_src_path='/ros_ws/src'):
     cmd = [
@@ -137,26 +139,28 @@ def docker_run(image_name, local_src_path, container_src_path='/ros_ws/src'):
         image_name
     ]
     print(f"Running container command: {' '.join(cmd)}")
-    subprocess.run(cmd, check=True)
+    result = subprocess.check_output(cmd, shell=True, text=True)
+    return result.strip()
 
 def exec_commands(container_name_or_id, commands):
     cmd = [
         'docker', 'exec', container_name_or_id, *commands.split()
     ]
     print(f"Executing commands inside container: {' '.join(cmd)}")
-    subprocess.run(cmd, check=True)
+    result = subprocess.check_output(cmd, shell=True, text=True)
+    return result.strip()
 
 def exec_and_capture(container_name_or_id, commands):
     cmd = [
         'docker', 'exec', container_name_or_id, *commands.split()
     ]
     print(f"Executing and capturing output: {' '.join(cmd)}")
-    result = subprocess.run(cmd, check=True, capture_output=True, text=True)
-    return result.stdout.strip()
+    result = subprocess.check_output(cmd, shell=True, text=True)
+    return result.strip()
 
 @app.post("/bo/store-mp-files")
 async def store_mp_files(
-    files: str
+    payload: StoreDataRequest
 ):
     """
     Stores the motion planning files.
@@ -166,28 +170,89 @@ async def store_mp_files(
     :return: Returns "OK" when successful, else returns a 422 response code if payload
         didn't pass validation.
     """
-    """Code in frontend: zipped_files = shutil.make_archive(f'{robot_name}_files', 'zip', save_dir)
-    with open(zipped_files, 'rb') as f:
-        files = {'file': (f'{robot_name}_files', f, 'application/zip')}
-        response = urllib.request.Request('http://127.0.1:8000/bo/store-mp-files', files)"""
-    # unpack the zipped files and store them in /tmp
-    if not os.path.exists("./database/tmp/"):
-        os.makedirs("./database/tmp/")
-    with zipfile.ZipFile(files, 'r') as zip_ref:
-        zip_ref.extractall("./database/tmp/")
+    joints_dict = payload.joints_dict
+    links_xyz_dict = payload.links_xyz_dict
+    inertial_dict = payload.inertial_dict
+    package_name = payload.package_name
+    robot_name = payload.robot_name
+    save_dir = payload.save_dir
+    export_path = payload.export_path
+
+    write_urdf(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_name, save_dir)
+    write_xacro(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_name, save_dir)
+    write_materials_xacro(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_name, save_dir)
+    write_transmissions_xacro(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_name, save_dir)
+    write_gazebo_xacro(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_name, save_dir)
+    write_display_launch(package_name, robot_name, save_dir)
+    write_gazebo_launch(package_name, robot_name, save_dir)
+    write_control_launch(package_name, robot_name, save_dir, joints_dict)
+    write_yaml(package_name, robot_name, save_dir, joints_dict)
+
+
+    # create package files
+    setup_cmakelists(save_dir, package_name, robot_name)
+    setup_package_xml(save_dir, package_name, robot_name)
+
+    # Generate STl files        
+    # copy_occs(root)
+    # export_stl(design, save_dir, root, robot_name)
+
+    # create moveit_configs
+    write_cartesian_limits_yaml(export_path)
+    write_chomp_planning_yaml(export_path)
+    write_fake_controllers_yaml(package_name, robot_name, export_path, joints_dict)
+    write_gazebo_controllers_yaml(export_path)
+    write_joint_limits_yaml(package_name, robot_name, export_path, joints_dict)
+    write_kinematics_yaml(export_path)
+    write_srdf(package_name, robot_name, export_path, joints_dict, links_xyz_dict)
+    write_ompl_planning_yaml(export_path)
+    write_ros_controllers_yaml(package_name, robot_name, export_path, joints_dict)
+    write_sensors_3d_yaml(export_path)
+    write_simple_moveit_controllers_yaml(package_name, robot_name, export_path, joints_dict)
+    # stomp planning yaml IGNORE STOMP PLANNING PIPELINE FOR NOW
+
+    # write launch files
+    write_chomp_planning_pipeline_launch_xml(export_path)
+    write_default_warehouse_db_launch(export_path)
+    write_demo_gazebo_launch(export_path)
+    write_demo_launch(export_path)
+    write_fake_moveit_controller_manager_launch_xml(export_path)
+    write_moveit_gazebo_launch(export_path, robot_name)
+    write_joystick_control_launch(export_path)
+    write_movegroup_launch(export_path, robot_name)
+    write_moveit_rviz_launch(export_path)
+    write_moveit_rviz(export_path)
+    write_myrobot_moveit_sensor_manager_launch_xml(export_path)
+    write_ompl_planning_pipeline_launch_xml(export_path)
+    write_ompl_chomp_planning_pipeline_launch_xml(export_path)
+    write_pilz_industrial_motion_planning_pipeline_launch_xml(export_path)
+    write_planning_context_launch(export_path, robot_name)
+    write_planning_pipeline_launch_xml(export_path)
+    write_ros_control_moveit_controller_manager_launch_xml(export_path)
+    write_ros_controllers_launch(export_path)
+    write_run_benchmark_ompl_launch(export_path)
+    write_sensor_manager_launch_xml(export_path, robot_name)
+    write_setup_assistant_launch(export_path)
+    write_simple_moveit_controller_manager_launch_xml(export_path)
+    write_stomp_planning_pipeline_launch_xml(export_path)
+    write_trajectory_execution_launch_xml(export_path)
+    write_warehouse_settings_launch_xml(export_path)
+    write_warehouse_launch(export_path)
+    write_moveit_config_cmake(export_path)
+    write_moveit_config_package_xml(export_path, robot_name)
 
     # mount the files inside tmp directory to the ros container using sys calls
     docker_image_name = "my_ros_noetic_image:latest"
-    local_src_path = "./database/tmp/"
+    local_src_path = export_path
     container_src_path = "/ros_ws/src"
-    docker_build(docker_image_name, dockerfile_dir='../../cls-cad-ros-container/')
-    docker_run(docker_image_name, local_src_path, container_src_path)
-    exec_commands('docker_container_name', 'roslaunch moveit_configs demo.launch')
-    exec_commands('docker_container_name', 'cd /src/motion_planning')
-    exec_commands('docker_container_name', 'python3 add_box.py')
-    exec_commands('docker_container_name', 'python3 move_group_2.py')
-    result = exec_and_capture('docker_container_name', 'cat total_time.txt')
-
+    print(docker_build(docker_image_name, dockerfile_dir='../../cls-cad-ros-container'))
+    print(docker_run(docker_image_name, local_src_path, container_src_path))
+    print(exec_commands(docker_image_name, 'roslaunch moveit_configs demo.launch'))
+    print(exec_commands(docker_image_name, 'cd /src/motion_planning'))
+    print(exec_commands(docker_image_name, 'python3 add_box.py'))
+    print(exec_commands(docker_image_name, 'python3 move_group_2.py'))
+    result = exec_and_capture(docker_image_name, 'cat total_time.txt')
+    print(result)
     
 
     return {"total_time": result}
