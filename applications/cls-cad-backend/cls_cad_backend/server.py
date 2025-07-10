@@ -3,6 +3,7 @@ import os
 import zipfile
 import subprocess
 import sys
+import docker
 from collections import defaultdict
 from datetime import datetime
 from timeit import default_timer as timer
@@ -242,17 +243,74 @@ async def store_mp_files(
     write_moveit_config_package_xml(export_path, robot_name)
 
     # mount the files inside tmp directory to the ros container using sys calls
+    client = docker.from_env()
     docker_image_name = "my_ros_noetic_image:latest"
     local_src_path = export_path
     container_src_path = "/ros_ws/src"
-    print(docker_build(docker_image_name, dockerfile_dir='../../cls-cad-ros-container'))
+    try:
+        client.images.get("my_ros_noetic_image:latest")
+    except docker.errors.ImageNotFound:
+        print("Docker image not found, building...")
+        docker_image_name = "my_ros_noetic_image:latest"
+        client.images.build(
+            path='../../cls-cad-ros-container',
+            tag=docker_image_name,
+            rm=True,
+            dockerfile='Dockerfile'
+        )
+    docker_run_options = {
+        'name': 'motion_planning_container',
+        'mounts': [
+            {
+                'type': 'bind',
+                'source': local_src_path,
+                'target': container_src_path,
+                
+            }
+        ],
+        'detach': False,
+        'command': 'bash',
+        'tty': True,}
+    try:
+        container = client.containers.run(
+            "my_ros_noetic_image:latest",
+            **docker_run_options
+        )
+    except docker.errors.ContainerError as e:
+        print(f"Container error: {e}")
+        return {"error": str(e)}
+    roslaunch_command = 'roslaunch moveit_configs demo.launch'
+    cd_to_motion_planning_command = 'cd /src/motion_planning'
+    add_box_command = 'python3 add_box.py'
+    move_group_command = 'python3 move_group_2.py'
+    cat_result_command = 'cat total_time.txt'
+
+    try:
+        roslaunch_result = container.exec_run(roslaunch_command, tty=True)
+        print(f"Roslaunch result: {roslaunch_result.output.decode('utf-8')}")
+        cd_result = container.exec_run(cd_to_motion_planning_command, tty=True)
+        print(f"Change directory result: {cd_result.output.decode('utf-8')}")
+        add_box_result = container.exec_run(add_box_command, tty=True)
+        print(f"Add box result: {add_box_result.output.decode('utf-8')}")
+        move_group_result = container.exec_run(move_group_command, tty=True)
+        print(f"Move group result: {move_group_result.output.decode('utf-8')}")
+        cat_result = container.exec_run(cat_result_command, tty=True)
+        result = cat_result.output.decode('utf-8').strip()
+        print(f"Cat result: {result}")
+    except docker.errors.ContainerError as e:
+        print(f"Error executing command in container: {e}")
+        return {"error": str(e)}
+
+    container.stop()
+    container.remove()
+    
+    """print(docker_build(docker_image_name, dockerfile_dir='../../cls-cad-ros-container'))
     print(docker_run(docker_image_name, local_src_path, container_src_path))
     print(exec_commands(docker_image_name, 'roslaunch moveit_configs demo.launch'))
     print(exec_commands(docker_image_name, 'cd /src/motion_planning'))
     print(exec_commands(docker_image_name, 'python3 add_box.py'))
     print(exec_commands(docker_image_name, 'python3 move_group_2.py'))
-    result = exec_and_capture(docker_image_name, 'cat total_time.txt')
-    print(result)
+    result = exec_and_capture(docker_image_name, 'cat total_time.txt')"""
     
 
     return {"total_time": result}
