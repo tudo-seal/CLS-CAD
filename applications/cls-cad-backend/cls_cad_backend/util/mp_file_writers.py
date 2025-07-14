@@ -577,7 +577,7 @@ def write_display_launch(package_name, robot_name, save_dir):
     arg1.attrib = {'name':'model', 'default':'$(find {})/urdf/{}.xacro'.format(package_name, robot_name)}
 
     arg2 = SubElement(launch, 'arg')
-    arg2.attrib = {'name':'gui', 'default':'true'}
+    arg2.attrib = {'name':'gui', 'default':'false'}
 
     arg3 = SubElement(launch, 'arg')
     arg3.attrib = {'name':'rvizconfig', 'default':'$(find {})/launch/urdf.rviz'.format(package_name)}
@@ -1282,7 +1282,7 @@ def write_demo_launch(save_dir):
         f.write('  <arg name="fake_execution_type" default="interpolate" />\n')
         f.write('\n')
         f.write('  <!-- By default, hide joint_state_publisher\'s GUI in \'fake\' controller_manager mode -->\n')
-        f.write('  <arg name="use_gui" default="true" />\n')
+        f.write('  <arg name="use_gui" default="false" />\n')
         f.write('  <arg name="use_rviz" default="true" />\n')
         f.write('\n')
         f.write('  <!-- If needed, broadcast static tf for robot root -->\n')
@@ -1466,13 +1466,9 @@ def write_movegroup_launch(save_dir, robot_name):
         f.write('      <arg name="pipeline" value="ompl" />\n')
         f.write('    </include>\n')
         
-        # CHOMP        f.write('    <include file="$(dirname)/planning_pipeline.launch.xml">\n')
-        f.write('      <arg name="pipeline" value="chomp" />\n')
-        f.write('    </include>\n')
-        
-        # Pilz Industrial Motion
+        # CHOMP
         f.write('    <include file="$(dirname)/planning_pipeline.launch.xml">\n')
-        f.write('      <arg name="pipeline" value="pilz_industrial_motion_planner" />\n')
+        f.write('      <arg name="pipeline" value="chomp" />\n')
         f.write('    </include>\n')
         
         # Support custom planning pipeline
@@ -1687,10 +1683,10 @@ def write_moveit_rviz(save_dir):
         f.write('  X: 454\n')
         f.write('  Y: 25\n')
 
-def write_myrobot_moveit_sensor_manager_launch_xml(save_dir):
+def write_myrobot_moveit_sensor_manager_launch_xml(save_dir, robot_name):
     try: os.makedirs(save_dir + '/moveit_configs/launch', exist_ok=True)
     except: pass
-    file_name = save_dir + '/moveit_configs/launch/myrobot_moveit_sensor_manager.launch.xml'
+    file_name = save_dir + f'/moveit_configs/launch/{robot_name}_moveit_sensor_manager.launch.xml'
     
     with open(file_name, 'w') as f:
         f.write('<launch>\n\n')

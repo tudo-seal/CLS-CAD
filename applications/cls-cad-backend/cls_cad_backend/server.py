@@ -1,7 +1,6 @@
 import mimetypes
 import os
 import zipfile
-import subprocess
 import sys
 import docker
 from collections import defaultdict
@@ -127,38 +126,6 @@ async def optimal_vector(
     """
     return "OK"
 
-def docker_build(image_name, dockerfile_dir='.'):
-    cmd = ['docker', 'build', '-t', image_name, dockerfile_dir]
-    print(f"Running build command: {' '.join(cmd)}")
-    result = subprocess.check_output(cmd, shell=True, text=True)
-    return result.strip()
-
-def docker_run(image_name, local_src_path, container_src_path='/ros_ws/src'):
-    cmd = [
-        'docker', 'run', '--rm',
-        '-v', f'{local_src_path}:{container_src_path}',
-        image_name
-    ]
-    print(f"Running container command: {' '.join(cmd)}")
-    result = subprocess.check_output(cmd, shell=True, text=True)
-    return result.strip()
-
-def exec_commands(container_name_or_id, commands):
-    cmd = [
-        'docker', 'exec', container_name_or_id, *commands.split()
-    ]
-    print(f"Executing commands inside container: {' '.join(cmd)}")
-    result = subprocess.check_output(cmd, shell=True, text=True)
-    return result.strip()
-
-def exec_and_capture(container_name_or_id, commands):
-    cmd = [
-        'docker', 'exec', container_name_or_id, *commands.split()
-    ]
-    print(f"Executing and capturing output: {' '.join(cmd)}")
-    result = subprocess.check_output(cmd, shell=True, text=True)
-    return result.strip()
-
 @app.post("/bo/store-mp-files")
 async def store_mp_files(
     payload: StoreDataRequest
@@ -178,6 +145,11 @@ async def store_mp_files(
     robot_name = payload.robot_name
     save_dir = payload.save_dir
     export_path = payload.export_path
+
+    joints_dict = {
+        key.replace(" ", "_"): value
+        for key, value in joints_dict.items()
+    }
 
     write_urdf(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_name, save_dir)
     write_xacro(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_name, save_dir)
@@ -223,7 +195,7 @@ async def store_mp_files(
     write_movegroup_launch(export_path, robot_name)
     write_moveit_rviz_launch(export_path)
     write_moveit_rviz(export_path)
-    write_myrobot_moveit_sensor_manager_launch_xml(export_path)
+    write_myrobot_moveit_sensor_manager_launch_xml(export_path, robot_name)
     write_ompl_planning_pipeline_launch_xml(export_path)
     write_ompl_chomp_planning_pipeline_launch_xml(export_path)
     write_pilz_industrial_motion_planning_pipeline_launch_xml(export_path)
@@ -252,8 +224,9 @@ async def store_mp_files(
     except docker.errors.ImageNotFound:
         print("Docker image not found, building...")
         docker_image_name = "my_ros_noetic_image:latest"
+        build_context = os.path.abspath("./applications/cls-cad-ros-container")
         client.images.build(
-            path='../../cls-cad-ros-container',
+            path=build_context,
             tag=docker_image_name,
             rm=True,
             dockerfile='Dockerfile'
@@ -263,14 +236,24 @@ async def store_mp_files(
         'mounts': [
             {
                 'type': 'bind',
-                'source': local_src_path,
-                'target': container_src_path,
+                'source': local_src_path + "/moveit_configs",
+                'target': container_src_path + "/moveit_configs",
                 
+            },
+            {
+                'type': 'bind',
+                'source': local_src_path + f"/{robot_name}",
+                'target': container_src_path + f"/{robot_name}",
             }
         ],
-        'detach': False,
-        'command': 'bash',
+        'detach': True,
+        'command': 'bash -i',
         'tty': True,}
+    # docker build -t my_ros_noetic_image:latest ../../cls-cad-ros-container
+    # docker run -it --rm --name motion_planning_container my_ros_noetic_image:latest 
+    # -v /Users/felix.wolff/Desktop/ma-dump/export-new/moveit_configs:/ros_ws/src/moveit_configs
+    # -v /Users/felix.wolff/Desktop/ma-dump/export-new/my_robot:/ros_ws/src/my_robot
+    # docker cp /Users/felix.wolff/Desktop/ma-dump/export-new/moveit_configs motion_planning_container:/ros_ws/src/
     try:
         container = client.containers.run(
             "my_ros_noetic_image:latest",
@@ -279,22 +262,40 @@ async def store_mp_files(
     except docker.errors.ContainerError as e:
         print(f"Container error: {e}")
         return {"error": str(e)}
-    roslaunch_command = 'roslaunch moveit_configs demo.launch'
-    cd_to_motion_planning_command = 'cd /src/motion_planning'
+    bash_command = 'bash'
+    source_prefix = "source /opt/ros/noetic/setup.bash && source /ros_ws/devel/setup.bash"
+    catkin_make_command = "catkin_make"
+    roslaunch_command = "roslaunch moveit_configs demo.launch"
+    cd_to_motion_planning_command = "cd src/motion_planning && python3 add_box.py && python3 move_group_2.py && cat total_time.txt"
     add_box_command = 'python3 add_box.py'
     move_group_command = 'python3 move_group_2.py'
-    cat_result_command = 'cat total_time.txt'
+    cat_result_command = 'cd src/motion_planning && cat total_time.txt'
 
     try:
-        roslaunch_result = container.exec_run(roslaunch_command, tty=True)
-        print(f"Roslaunch result: {roslaunch_result.output.decode('utf-8')}")
-        cd_result = container.exec_run(cd_to_motion_planning_command, tty=True)
-        print(f"Change directory result: {cd_result.output.decode('utf-8')}")
-        add_box_result = container.exec_run(add_box_command, tty=True)
-        print(f"Add box result: {add_box_result.output.decode('utf-8')}")
-        move_group_result = container.exec_run(move_group_command, tty=True)
-        print(f"Move group result: {move_group_result.output.decode('utf-8')}")
-        cat_result = container.exec_run(cat_result_command, tty=True)
+        #bash_command_result = container.exec_run(bash_command,detach=True, tty=True)
+        #print(f"Bash command result: {bash_command_result.output.decode('utf-8')}")
+        catkin_make_result = container.exec_run(f"bash -c '{source_prefix} && {catkin_make_command}'", tty=True)
+        print(f"Catkin make result: {catkin_make_result.output.decode('utf-8')}")
+        roslaunch_result = container.exec_run(f"bash -c '{source_prefix} && {roslaunch_command}'", stream=True)
+        # check for "You can start planning now!" in next(roslaunch_result.output.decode('utf-8'))
+        while True:
+            try:
+                line = next(roslaunch_result.output)
+                if "You can start planning now!" in line.decode('utf-8'):
+                    print("ROS launch successful, starting motion planning commands...")
+                    break
+            except StopIteration:
+                break
+        cd_to_motion_planning_command_result = container.exec_run(f"bash -c '{source_prefix} && {cd_to_motion_planning_command}'", stream=True)
+        # check for StopIteration in next(cd_to_motion_planning_command_result.output.decode('utf-8'))
+        while True:
+            try:
+                line = next(cd_to_motion_planning_command_result.output)
+                print(line.decode('utf-8'))
+            except StopIteration:
+                break
+    
+        cat_result = container.exec_run(f"bash -c '{source_prefix} && {cat_result_command}'", tty=True)
         result = cat_result.output.decode('utf-8').strip()
         print(f"Cat result: {result}")
     except docker.errors.ContainerError as e:

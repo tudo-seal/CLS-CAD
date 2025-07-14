@@ -7,6 +7,7 @@ import moveit_commander
 import time
 
 from geometry_msgs.msg import Pose
+from geometry_msgs.msg import PoseStamped
 from moveit_msgs.msg import CollisionObject
 from shape_msgs.msg import SolidPrimitive
 
@@ -104,11 +105,15 @@ def reach_position(arm, position, tolerance=0.02):
 
 
 def open_gripper(gripper):
-    return gripper.move(OPEN, True)
-
+    # Replace with your specific joint value for open
+    joint_goal = gripper.get_current_joint_values()
+    joint_goal[0] = OPEN
+    return gripper.go(joint_goal, wait=True)
 
 def close_gripper(gripper):
-    return gripper.move(CLOSE, True)
+    joint_goal = gripper.get_current_joint_values()
+    joint_goal[0] = CLOSE
+    return gripper.go(joint_goal, wait=True)
 
 
 def pick_object(name, arm, gripper):
@@ -154,17 +159,31 @@ def main():
     arm = moveit_commander.MoveGroupCommander('my_robot_top_group',
                                               ns=rospy.get_namespace())
     robot = moveit_commander.RobotCommander('robot_description')
+
+    scene = moveit_commander.PlanningSceneInterface()
+    planning_frame = arm.get_planning_frame()
+
+    # Add BALL object
+    box_pose = PoseStamped()
+    box_pose.header.frame_id = planning_frame
+    box_pose.pose.position.x = 0.051961
+    box_pose.pose.position.y = -0.12341
+    box_pose.pose.position.z = 0.27082
+    box_pose.pose.orientation.w = 1.0
+
+    scene.add_box("box", box_pose, size=(0.02, 0.02, 0.01))
     
     arm.set_planning_time(100.0)
     arm.set_num_planning_attempts(1000)
-    gripper = robot.get_joint('Revolute_6')
+    gripper = moveit_commander.MoveGroupCommander('my_effector',
+                                              ns=rospy.get_namespace())
 
     #arm.set_num_planning_attempts(45)
     arm.set_start_state_to_current_state()
     success_list = []
     print("reach home")
     start_timer()
-    something, plan_success = reach_named_position(arm=arm, target='home')
+    plan_success = arm.go(wait=True)
     stop_timer()
     success_list.append(plan_success)
     print(f"Time to reach home: {get_total_time():.2f} seconds")
@@ -216,8 +235,9 @@ def main():
     print(f"Time to close gripper: {get_total_time():.2f} seconds")
     rospy.sleep(2)
     print("reach home")
+    arm.set_start_state_to_current_state()
     start_timer()
-    something, plan_success = reach_named_position(arm=arm, target='home')
+    plan_success = arm.go(wait=True)
     stop_timer()
     success_list.append(plan_success)
     print(f"Time to reach home: {get_total_time():.2f} seconds")

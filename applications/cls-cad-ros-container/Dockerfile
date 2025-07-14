@@ -10,6 +10,13 @@ RUN apt-get update && apt-get install -y \
     python3-rosinstall-generator \
     python3-wstool \
     build-essential \
+    ros-noetic-tf2-ros \
+    ros-noetic-robot-state-publisher \
+    ros-noetic-joint-state-publisher \
+    ros-noetic-joint-state-publisher-gui \
+    ros-noetic-rviz \
+    ros-noetic-moveit \
+    ros-noetic-rospy \
     && rm -rf /var/lib/apt/lists/*
 
 # Initialize rosdep
@@ -30,4 +37,6 @@ RUN . /opt/ros/noetic/setup.sh && \
 RUN echo "source /opt/ros/noetic/setup.bash" >> ~/.bashrc
 RUN echo "source /ros_ws/devel/setup.bash" >> ~/.bashrc
 
-CMD ["bash"]
+SHELL ["/bin/bash", "-c"]
+
+CMD ["bash", "-i"]
