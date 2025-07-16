@@ -245,9 +245,7 @@ def main():
     print("Total time: ", get_total_time())
     # save the total time to a file
     with open('total_time.txt', 'w') as f:
-        f.write(f"Total time: {get_total_time():.2f} seconds\n")
-        f.write(f"Success list: {success_list}\n")
-        f.write(f"Success rate: {sum(success_list) / len(success_list):.2f}\n")
+        f.write(f"{get_total_time():.2f},{[int(b) for b in success_list]}")
     
 
 

@@ -70,9 +70,9 @@ app.mount(
 )
 cache = {}
 # anzahl motoren -> Dynamixel 0-7
-# axisrotaryjointintent -> 0-7
+# axisrotaryjointintent -> 0-7 -> remove for now since its difficult to find valid configurations
 # 40mm -> 0-5
-search_space = [(0,7),(0,7),(0,5)]
+search_space = [(0,7),(0,5)]
 state_machine = SkoptOptimizer(search_space)
 
 @app.post("/submit/part")
@@ -213,8 +213,8 @@ async def store_mp_files(
     write_warehouse_launch(export_path)
     write_moveit_config_cmake(export_path)
     write_moveit_config_package_xml(export_path, robot_name)
-
-    # mount the files inside tmp directory to the ros container using sys calls
+    # EVERYTHING BELOW IS COMMENTED OUT FOR NOW
+    """# mount the files inside tmp directory to the ros container using sys calls
     client = docker.from_env()
     docker_image_name = "my_ros_noetic_image:latest"
     local_src_path = export_path
@@ -266,7 +266,7 @@ async def store_mp_files(
     source_prefix = "source /opt/ros/noetic/setup.bash && source /ros_ws/devel/setup.bash"
     catkin_make_command = "catkin_make"
     roslaunch_command = "roslaunch moveit_configs demo.launch"
-    cd_to_motion_planning_command = "cd src/motion_planning && python3 add_box.py && python3 move_group_2.py && cat total_time.txt"
+    cd_to_motion_planning_command = "cd src/motion_planning && python3 add_box.py && python3 move_group_2.py"
     add_box_command = 'python3 add_box.py'
     move_group_command = 'python3 move_group_2.py'
     cat_result_command = 'cd src/motion_planning && cat total_time.txt'
@@ -301,9 +301,14 @@ async def store_mp_files(
     except docker.errors.ContainerError as e:
         print(f"Error executing command in container: {e}")
         return {"error": str(e)}
-
     container.stop()
-    container.remove()
+    container.remove()"""
+    # EVERYTHING ABOVE IS COMMENTED OUT FOR NOW
+
+
+    # TODO: REMOVE THIS SIMULATION PART
+    result = "313.09,[1,0,1,1,0,0,1,0]"  # Simulated result for testing purposes
+    
     
     """print(docker_build(docker_image_name, dockerfile_dir='../../cls-cad-ros-container'))
     print(docker_run(docker_image_name, local_src_path, container_src_path))
@@ -312,9 +317,21 @@ async def store_mp_files(
     print(exec_commands(docker_image_name, 'python3 add_box.py'))
     print(exec_commands(docker_image_name, 'python3 move_group_2.py'))
     result = exec_and_capture(docker_image_name, 'cat total_time.txt')"""
+    total_time, success_list = result.split(',', 1)
+    total_time = float(total_time)
+    success_list = [int(b) for b in success_list.strip('[]').split(',')]
     
-
-    return {"total_time": result}
+    """# BO RELEVANT CODE
+    # asks for new parameters
+    state_machine.suggest()
+    # tells optimizer about result
+    state_machine.observe(params=(6,5),result=sum(success_list) / len(success_list))
+    state_machine.save_state(f"state_{project_id}_{experiment_id}.pkl")
+    state_machine.reset()
+    state_machine.load_state(f"state_{project_id}_{experiment_id}.pkl")
+    # END BO RELEVANT CODE"""
+    
+    return {"total_time": total_time, "success_list": success_list}
 
 @app.post("/bo/perform-motion-planning")
 async def motion_planning(
