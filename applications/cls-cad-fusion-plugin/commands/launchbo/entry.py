@@ -12,7 +12,7 @@ from ...lib.general_utils import (
 
 app = adsk.core.Application.get()
 ui = app.userInterface
-
+# TODO unused
 CMD_ID = f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_launch_bo"
 CMD_NAME = "Launch BO Backend"
 CMD_DESCRIPTION = "Launches the Bayesian Optimization Framework in Backend"

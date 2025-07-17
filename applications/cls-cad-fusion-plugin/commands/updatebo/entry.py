@@ -95,11 +95,15 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     vector_used = cmd_inputs.addStringValueInput(
         "Vector_used", "Vector used"
     )
+    experiment_id = cmd_inputs.addStringValueInput(
+        "Experiment_ID", "Experiment ID"
+    )
     # vector used looks like this: "1,0,1,1,0,0,1,0"
     vector_used = [int(x) for x in vector_used.value.split(",") if x.isdigit()]
     request_content = [
         result_score.value,
-        vector_used
+        vector_used,
+        experiment_id.value
     ]
 
 def command_execute(args: adsk.core.CommandEventArgs):
@@ -116,7 +120,8 @@ def command_execute(args: adsk.core.CommandEventArgs):
     global request_content
     request_dict = {
         "result": request_content[0],
-        "synthesis_vector": request_content[1]
+        "synthesis_vector": request_content[1],
+        "experiment_id": request_content[2],
     }
     payload = json.dumps(
         request_dict,

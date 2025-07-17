@@ -14,7 +14,7 @@ from ...lib.general_utils import (
 
 app = adsk.core.Application.get()
 ui = app.userInterface
-
+# TODO unused
 CMD_ID = f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_request_mp_result"
 CMD_NAME = "Request Motion Planning Result"
 CMD_DESCRIPTION = "Requests the result of motion planning from the backend"

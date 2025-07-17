@@ -112,9 +112,9 @@ async def initialize_bo(
     return "OK"
 
 
-# TODO frontend button + save state
-@app.get("/bo/optimal-vector")
+@app.get("/bo/{experiment_id}/optimal-vector")
 async def optimal_vector(
+    experiment_id: str
 ):
     """
     Retrieves the current optimal vector from the optimizer.
@@ -125,13 +125,17 @@ async def optimal_vector(
         new_suggestion = state_machine.suggest()
     except RuntimeError as e:
         return {"error": str(e)}
+    state_machine_class_data = state_machine.get_classdata()
+    bo_experiment = {
+        "_id": experiment_id,
+        "classdata": state_machine_class_data
+    }
+    upsert_bo_experiment(bo_experiment)
     return {"new_suggestion": new_suggestion}
 
 
-# TODO frontend button
-@app.post("/bo/{project_id}/{experiment_id}/load-bo-state")
+@app.post("/bo/{experiment_id}/load-bo-state")
 async def load_bo_state(
-    project_id: str,
     experiment_id: str
 ):
     """
@@ -395,7 +399,6 @@ async def motion_planning_results(
     data = {}
     return data
 
-# TODO save state
 @app.post("/bo/update-with-result")
 async def update_with_result(
     payload: TellResultRequestInf,
@@ -411,6 +414,12 @@ async def update_with_result(
     vector_used = payload_dict["synthesis_vector"]
     result = payload_dict["result"]
     state_machine.observe(params=vector_used, result=result)
+    state_machine_class_data = state_machine.get_classdata()
+    bo_experiment = {
+        "_id": payload.experiment_id,
+        "classdata": state_machine_class_data
+    }
+    upsert_bo_experiment(bo_experiment)
     return "OK"
 
 @app.post("/submit/taxonomy")

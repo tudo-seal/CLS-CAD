@@ -14,7 +14,7 @@ from ...lib.general_utils import (
 
 app = adsk.core.Application.get()
 ui = app.userInterface
-
+# TODO unused
 CMD_ID = f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_launch_mp"
 CMD_NAME = "Launch Motion Planning"
 CMD_DESCRIPTION = "Launch Motion Planning in ROS Container inside backend"

@@ -15,24 +15,19 @@ from ...lib.general_utils import (
 app = adsk.core.Application.get()
 ui = app.userInterface
 
-CMD_ID = f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_request_current_optimal_vector"
-CMD_NAME = "Request Current Optimal Vector"
-CMD_DESCRIPTION = "Requests the current optimal vector for synthesis from the backend"
+CMD_ID = f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_load_bo"
+CMD_NAME = "Load Optimizer"
+CMD_DESCRIPTION = "Loads the Bayesian Optimizer for specific experiment id"
 IS_PROMOTED = False
 WORKSPACE_ID = "FusionSolidEnvironment"
 PANEL_ID = "SYNTH_ASSEMBLY"
 COMMAND_BESIDE_ID = "ScriptsManagerCommand"
-PARTTYPES_ID = "partsTaxonomyBrowser_Part"
-ATTRIBUTETYPES_ID = "attributesTaxonomyBrowser_Part"
-PROP_FORMATS_ID = "propformatsTaxonomyBrowser_Part"
-PROP_PARTS_ID = "proppartsTaxonomyBrowser_Part"
-PROP_ATTRIBUTES_ID = "propattributesTaxonomyBrowser_Part"
-PALETTE_URL = f"{config.SERVER_URL}/static/unrolledTaxonomyDisplay/index.html"
-PALETTE_URL = PALETTE_URL.replace("\\", "/")
 ICON_FOLDER = os.path.join(os.path.dirname(__file__), "resources", "")
 ROOT_FOLDER = os.path.join(os.path.dirname(__file__), "..", "..")
 
 local_handlers = []
+request_content = []
+selected_text = adsk.core.StringValueCommandInput.cast(None)
 
 def start():
     """
@@ -72,11 +67,6 @@ def stop():
         command_definition.deleteMe()
 
 
-joint_origin = adsk.fusion.JointOrigin.cast(None)
-type_text_box_input = adsk.core.TextBoxCommandInput.cast(None)
-parts_type_selection_browser_input = adsk.core.BrowserCommandInput.cast(None)
-
-
 def command_created(args: adsk.core.CommandCreatedEventArgs):
     """
     Called when the user clicks the command in CLS-CAD tab. Registers all important
@@ -85,8 +75,7 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     :param args: adsk.core.CommandCreatedEventArgs:
     :return:
     """
-    global experiment_id_box_input
-
+    global request_content
     futil.log(f"{CMD_NAME} Command Created Event")
 
     futil.add_handler(
@@ -96,18 +85,13 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
         args.command.destroy, command_destroy, local_handlers=local_handlers
     )
 
-    app = adsk.core.Application.get()
-    design = adsk.fusion.Design.cast(app.activeProduct)
-    inputs = args.command.commandInputs
-    args.command.setDialogMinimumSize(1200, 800)
-    args.command.setDialogInitialSize(1200, 800)
+    # Register the command inputs
+    cmd_inputs = args.command.commandInputs
 
-    experiment_id_box_input = inputs.addValueInput(
-        "experimentId",
-        "Experiment Id",
-        "",
-        adsk.core.ValueInput.createByString("" + str(datetime.now().timestamp()) + "")
+    experiment_id = cmd_inputs.addStringValueInput(
+        "Experiment_ID", "Experiment ID"
     )
+    request_content = experiment_id.value
 
 def command_execute(args: adsk.core.CommandEventArgs):
     """
@@ -120,16 +104,12 @@ def command_execute(args: adsk.core.CommandEventArgs):
     """
     futil.log(f"{CMD_NAME} Command Execute Event")
 
-    global experiment_id_box_input
-    app = adsk.core.Application.get()
-    project_id = app.activeDocument.dataFile.parentProject.id if app.activeDocument.dataFile is not None else app.data.activeProject.id
-    experiment_id = experiment_id_box_input.value
+    global request_content
     print("Send request")
-    req = urllib.request.Request(f"http://127.0.0.1:8000/bo/{experiment_id}/optimal-vector")
+    req = urllib.request.Request(f"http://127.0.0.1:8000/bo/{request_content}/load-bo-state")
     req.add_header("Content-Type", "application/json; charset=utf-8")
     response = urllib.request.urlopen(req)
     print(response.read().decode())
-    futil.log(f"Request for optimal vector sent for experiment {experiment_id} returned: {response.read().decode()}")
 
 
 def command_destroy(args: adsk.core.CommandEventArgs):
@@ -139,5 +119,8 @@ def command_destroy(args: adsk.core.CommandEventArgs):
     :param args: adsk.core.CommandEventArgs:
     :return:
     """
+    global local_handlers, request_attributes, request_parts
+    request_parts = []
+    request_attributes = []
     local_handlers = []
     futil.log(f"{CMD_NAME} Command Destroy Event")
