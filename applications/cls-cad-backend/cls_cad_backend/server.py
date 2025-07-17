@@ -12,14 +12,16 @@ from cls_cad_backend.database.commands import (
     get_all_result_ids_for_project,
     get_result_for_id_in_project,
     get_taxonomy_for_project,
+    get_bo_experiment_for_experiment_id,
     upsert_part,
     upsert_result,
     upsert_taxonomy,
+    upsert_bo_experiment,
     init_database
 )
 from cls_cad_backend.repository_builder import RepositoryBuilder, wrapped_counted_types
 from cls_cad_backend.responses import FastResponse
-from cls_cad_backend.schemas import PartInf, SynthesisRequestInf, TaxonomyInf, StoreDataRequest
+from cls_cad_backend.schemas import PartInf, SynthesisRequestInf, TaxonomyInf, StoreDataRequest, TellResultRequestInf
 from cls_cad_backend.util.hrid import generate_id
 from cls_cad_backend.util.json_operations import (
     invert_taxonomy,
@@ -109,21 +111,42 @@ async def initialize_bo(
     """
     return "OK"
 
-@app.get("/bo/{project_id}/{experiment_id}/optimal-vector")
+
+# TODO frontend button + save state
+@app.get("/bo/optimal-vector")
 async def optimal_vector(
-    project_id: str,
-    experiment_id: str,
 ):
     """
-    Retrieves the current optimal vector from the optimizer for a specific project and
-    experiment id.
+    Retrieves the current optimal vector from the optimizer.
 
-    :param project_id: The project id for which the optimal vector should be retrieved.
-    :param experiment_id: The experiment id for which the optimal vector should be
-        retrieved.
+    :return: Returns new suggestion when successful.
+    """
+    try:
+        new_suggestion = state_machine.suggest()
+    except RuntimeError as e:
+        return {"error": str(e)}
+    return {"new_suggestion": new_suggestion}
+
+
+# TODO frontend button
+@app.post("/bo/{project_id}/{experiment_id}/load-bo-state")
+async def load_bo_state(
+    project_id: str,
+    experiment_id: str
+):
+    """
+    Loads the state machine from a specific experiment.
+
+    :param project_id: The project id for which the state machine should be loaded.
+    :param experiment_id: The experiment id for which the state machine should be loaded.
     :return: Returns "OK" when successful, else returns a 422 response code if payload
         didn't pass validation.
     """
+    
+    get_classdata = get_bo_experiment_for_experiment_id(experiment_id)
+    if get_classdata is None:
+        return {"error": "Experiment not found"}
+    state_machine = SkoptOptimizer.from_classdata(get_classdata)
     return "OK"
 
 @app.post("/bo/store-mp-files")
@@ -331,6 +354,7 @@ async def store_mp_files(
     state_machine.load_state(f"state_{project_id}_{experiment_id}.pkl")
     # END BO RELEVANT CODE"""
     
+    
     return {"total_time": total_time, "success_list": success_list}
 
 @app.post("/bo/perform-motion-planning")
@@ -371,19 +395,22 @@ async def motion_planning_results(
     data = {}
     return data
 
-@app.post("/bo/{project_id}/{experiment_id}/update-with-result")
+# TODO save state
+@app.post("/bo/update-with-result")
 async def update_with_result(
-    project_id: str,
-    experiment_id: str
+    payload: TellResultRequestInf,
 ):
     """
     Updates bo state machine from a specific experiment with the latest result.
     
-    :param project_id: The project id for which the state machine should be updated.
-    :param experiment_id: The experiment id for which the state machine should be updated.
+    :param payload: The payload containing the experiment id, synthesis vector and result.
     :return: Returns "OK" when successful, else returns a 422 response code if payload
         didn't pass validation.
     """
+    payload_dict = payload.model_dump(by_alias=True)
+    vector_used = payload_dict["synthesis_vector"]
+    result = payload_dict["result"]
+    state_machine.observe(params=vector_used, result=result)
     return "OK"
 
 @app.post("/submit/taxonomy")

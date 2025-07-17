@@ -28,7 +28,7 @@ def init_database():  # pragma: no cover
 
     :return:
     """
-    global database, parts, taxonomies, results
+    global database, parts, taxonomies, results, bo_experiments
     application_path = os.path.dirname(__file__)
     config_path = os.path.join(application_path, "config.ini")
     container_path = os.path.join(application_path, "container")
@@ -104,6 +104,7 @@ def init_database():  # pragma: no cover
     parts = database["parts"]
     taxonomies = database["taxonomies"]
     results = database["results"]
+    bo_experiments = database["bo_experiments"]
 
 
 def switch_to_test_database() -> None:
@@ -127,6 +128,18 @@ def switch_to_test_database() -> None:
     taxonomies = database["taxonomies"]
     results = database["results"]
 
+
+def upsert_bo_experiment(bo_experiment: dict) -> None:
+    """
+    Inserts a Bayesian optimization experiment into the database, indexed on its _id.
+
+    :param bo_experiment: The JSON of the experiment, containing an _id field.
+    :return:
+    """
+    global bo_experiments
+    bo_experiments.replace_one(
+        {"_id": bo_experiment["_id"]}, bo_experiment, upsert=True
+    )
 
 def upsert_part(part: dict) -> None:
     """
@@ -216,3 +229,13 @@ def get_taxonomy_for_project(forge_project_id: str):
     """
     global taxonomies
     return taxonomies.find_one({"_id": forge_project_id})
+
+def get_bo_experiment_for_experiment_id(experiment_id: str):
+    """
+    Retrieve the Bayesian optimization experiment associated with a specific experiment id.
+
+    :param experiment_id: The id of the experiment to get.
+    :return: The experiment or None, if it does not exist.
+    """
+    global bo_experiments
+    return bo_experiments.find_one({"_id": experiment_id})

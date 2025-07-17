@@ -18,24 +18,15 @@ ui = app.userInterface
 CMD_ID = f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_update_bo"
 CMD_NAME = "Update Optimizer"
 CMD_DESCRIPTION = "Updates the Bayesian Optimizer with the results from motion planning"
-IS_PROMOTED = True
+IS_PROMOTED = False
 WORKSPACE_ID = "FusionSolidEnvironment"
 PANEL_ID = "SYNTH_ASSEMBLY"
 COMMAND_BESIDE_ID = "ScriptsManagerCommand"
-PARTTYPES_ID = "partsTaxonomyBrowser_Part"
-ATTRIBUTETYPES_ID = "attributesTaxonomyBrowser_Part"
-PROP_FORMATS_ID = "propformatsTaxonomyBrowser_Part"
-PROP_PARTS_ID = "proppartsTaxonomyBrowser_Part"
-PROP_ATTRIBUTES_ID = "propattributesTaxonomyBrowser_Part"
-PALETTE_URL = f"{config.SERVER_URL}/static/unrolledTaxonomyDisplay/index.html"
-PALETTE_URL = PALETTE_URL.replace("\\", "/")
 ICON_FOLDER = os.path.join(os.path.dirname(__file__), "resources", "")
 ROOT_FOLDER = os.path.join(os.path.dirname(__file__), "..", "..")
 
 local_handlers = []
-request_parts, request_attributes = [], []
-counted_parts, counted_attributes, counted_formats = [], [], []
-counted_types = {}
+request_content = []
 selected_text = adsk.core.StringValueCommandInput.cast(None)
 
 def start():
@@ -76,12 +67,6 @@ def stop():
         command_definition.deleteMe()
 
 
-joint_origin = adsk.fusion.JointOrigin.cast(None)
-
-type_text_box_input = adsk.core.TextBoxCommandInput.cast(None)
-parts_type_selection_browser_input = adsk.core.BrowserCommandInput.cast(None)
-
-
 def command_created(args: adsk.core.CommandCreatedEventArgs):
     """
     Called when the user clicks the command in CLS-CAD tab. Registers all important
@@ -90,9 +75,32 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     :param args: adsk.core.CommandCreatedEventArgs:
     :return:
     """
-    global type_text_box_input, parts_type_selection_browser_input, request_parts, request_attributes, counted_parts, counted_attributes, counted_formats, selected_text
-
+    global request_content
     futil.log(f"{CMD_NAME} Command Created Event")
+
+    futil.add_handler(
+        args.command.execute, command_execute, local_handlers=local_handlers
+    )
+    futil.add_handler(
+        args.command.destroy, command_destroy, local_handlers=local_handlers
+    )
+
+    # Register the command inputs
+    cmd_inputs = args.command.commandInputs
+
+    
+    result_score = cmd_inputs.addFloatSpinnerCommandInput(
+        "Result", "Result"
+    )
+    vector_used = cmd_inputs.addStringValueInput(
+        "Vector_used", "Vector used"
+    )
+    # vector used looks like this: "1,0,1,1,0,0,1,0"
+    vector_used = [int(x) for x in vector_used.value.split(",") if x.isdigit()]
+    request_content = [
+        result_score.value,
+        vector_used
+    ]
 
 def command_execute(args: adsk.core.CommandEventArgs):
     """
@@ -105,25 +113,10 @@ def command_execute(args: adsk.core.CommandEventArgs):
     """
     futil.log(f"{CMD_NAME} Command Execute Event")
 
-    global request_attributes, request_parts
-    app = adsk.core.Application.get()
+    global request_content
     request_dict = {
-        "target": [f"{x}_parts" for x in request_parts]
-        + [f"{x}_attributes" for x in request_attributes]
-        + [f"Has_{x}_parts" for x in counted_parts]
-        + [f"Has_{x}_formats" for x in counted_formats]
-        + [f"Has_{x}_attributes" for x in counted_attributes],
-        "partCounts": [
-            {
-                "partNumber": counted_type[1].value,
-                "partCountName": "-".join(counted_type[0]),
-                "partType": counted_type[0],
-            }
-            for _, counted_type in counted_types.items()
-        ],
-        "forgeProjectId": app.activeDocument.dataFile.parentProject.id
-        if app.activeDocument.dataFile is not None
-        else app.data.activeProject.id,
+        "result": request_content[0],
+        "synthesis_vector": request_content[1]
     }
     payload = json.dumps(
         request_dict,
@@ -131,7 +124,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
     ).encode("utf-8")
     print("Send request")
     print(request_dict)
-    req = urllib.request.Request("http://127.0.0.1:8000/request/assembly")
+    req = urllib.request.Request("http://127.0.0.1:8000/bo/update-with-result")
     req.add_header("Content-Type", "application/json; charset=utf-8")
     req.add_header("Content-Length", len(payload))
     response = urllib.request.urlopen(req, payload)

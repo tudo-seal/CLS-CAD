@@ -72,6 +72,30 @@ class SkoptOptimizer:
         os.makedirs(os.path.dirname(path), exist_ok=True)
         joblib.dump(data, path)
 
+    def get_classdata(self):
+        """Get the current state of the optimizer."""
+        return {
+            'optimizer': self.optimizer,
+            'ask_queue': self._ask_queue,
+            'suggested': self._suggested,
+            'results': self._results,
+            'state': self.state,
+            'search_space': self.search_space
+        }
+    
+    @classmethod
+    def from_classdata(cls, classdata):
+        """Create an optimizer instance from class data."""
+        obj = cls(
+            search_space=classdata['search_space']
+        )
+        obj.optimizer = classdata['optimizer']
+        obj._ask_queue = classdata['ask_queue']
+        obj._suggested = classdata['suggested']
+        obj._results = classdata['results']
+        obj.state = classdata['state']
+        return obj
+
     @classmethod
     def load_state(cls, path):
         """Load optimizer from disk."""

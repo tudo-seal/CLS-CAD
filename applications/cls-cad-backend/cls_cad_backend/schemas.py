@@ -62,3 +62,8 @@ class StoreDataRequest(BaseModel, frozen=True):
     robot_name: str
     save_dir: str
     export_path: str
+
+class TellResultRequestInf(BaseModel, frozen=True):
+    experiment_id: str
+    synthesis_vector: list[float]
+    result: float
