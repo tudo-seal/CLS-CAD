@@ -75,7 +75,7 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     :param args: adsk.core.CommandCreatedEventArgs:
     :return:
     """
-    global request_content
+    global experiment_id
     futil.log(f"{CMD_NAME} Command Created Event")
 
     futil.add_handler(
@@ -88,10 +88,13 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     # Register the command inputs
     cmd_inputs = args.command.commandInputs
 
-    experiment_id = cmd_inputs.addStringValueInput(
-        "Experiment_ID", "Experiment ID"
+    (experiment_id, cancelled) = ui.inputBox(
+            "Please enter experiment id to load bo from database",
+            "Load Optimizer for experiment ID",
+            "",
     )
-    request_content = experiment_id.value
+    if cancelled:
+        return
 
 def command_execute(args: adsk.core.CommandEventArgs):
     """
@@ -104,9 +107,9 @@ def command_execute(args: adsk.core.CommandEventArgs):
     """
     futil.log(f"{CMD_NAME} Command Execute Event")
 
-    global request_content
+    global experiment_id
     print("Send request")
-    req = urllib.request.Request(f"http://127.0.0.1:8000/bo/{request_content}/load-bo-state")
+    req = urllib.request.Request(f"http://127.0.0.1:8000/bo/{experiment_id}/load-bo-state")
     req.add_header("Content-Type", "application/json; charset=utf-8")
     response = urllib.request.urlopen(req)
     print(response.read().decode())
@@ -119,8 +122,6 @@ def command_destroy(args: adsk.core.CommandEventArgs):
     :param args: adsk.core.CommandEventArgs:
     :return:
     """
-    global local_handlers, request_attributes, request_parts
-    request_parts = []
-    request_attributes = []
-    local_handlers = []
+    global experiment_id
+    experiment_id = None
     futil.log(f"{CMD_NAME} Command Destroy Event")

@@ -1,5 +1,8 @@
 import os
 import joblib
+import pickle
+import base64
+import json
 from skopt import Optimizer
 
 class SkoptOptimizer:
@@ -73,8 +76,8 @@ class SkoptOptimizer:
         joblib.dump(data, path)
 
     def get_classdata(self):
-        """Get the current state of the optimizer."""
-        return {
+        """Serialize state to a Base64-encoded string suitable for DB storage."""
+        raw = {
             'optimizer': self.optimizer,
             'ask_queue': self._ask_queue,
             'suggested': self._suggested,
@@ -82,22 +85,26 @@ class SkoptOptimizer:
             'state': self.state,
             'search_space': self.search_space
         }
+        pickled = pickle.dumps(raw)
+        encoded = base64.b64encode(pickled).decode('utf-8')
+        return encoded
     
     @classmethod
-    def from_classdata(cls, classdata):
-        """Create an optimizer instance from class data."""
-        obj = cls(
-            search_space=classdata['search_space']
-        )
-        obj.optimizer = classdata['optimizer']
-        obj._ask_queue = classdata['ask_queue']
-        obj._suggested = classdata['suggested']
-        obj._results = classdata['results']
-        obj.state = classdata['state']
+    def load_state(cls, encoded_str):
+        """Deserialize from Base64 string."""
+        pickled = base64.b64decode(encoded_str.encode('utf-8'))
+        data = pickle.loads(pickled)
+        
+        obj = cls(search_space=data['search_space'])
+        obj.optimizer = data['optimizer']
+        obj._ask_queue = data['ask_queue']
+        obj._suggested = data['suggested']
+        obj._results = data['results']
+        obj.state = data['state']
         return obj
 
     @classmethod
-    def load_state(cls, path):
+    def load_state_from_disk(cls, path):
         """Load optimizer from disk."""
         data = joblib.load(path)
         obj = cls(

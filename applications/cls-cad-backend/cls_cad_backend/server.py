@@ -131,10 +131,10 @@ async def optimal_vector(
         "classdata": state_machine_class_data
     }
     upsert_bo_experiment(bo_experiment)
-    return {"new_suggestion": new_suggestion}
+    return {"new_suggestion": [int(x) for x in new_suggestion]}
 
 
-@app.post("/bo/{experiment_id}/load-bo-state")
+@app.get("/bo/{experiment_id}/load-bo-state")
 async def load_bo_state(
     experiment_id: str
 ):
@@ -150,7 +150,7 @@ async def load_bo_state(
     get_classdata = get_bo_experiment_for_experiment_id(experiment_id)
     if get_classdata is None:
         return {"error": "Experiment not found"}
-    state_machine = SkoptOptimizer.from_classdata(get_classdata)
+    state_machine = SkoptOptimizer.load_state(get_classdata['classdata'])
     return "OK"
 
 @app.post("/bo/store-mp-files")
@@ -413,7 +413,10 @@ async def update_with_result(
     payload_dict = payload.model_dump(by_alias=True)
     vector_used = payload_dict["synthesis_vector"]
     result = payload_dict["result"]
-    state_machine.observe(params=vector_used, result=result)
+    try:
+        state_machine.observe(params=vector_used, result=result)
+    except RuntimeError as e:
+        return {"error": str(e)}
     state_machine_class_data = state_machine.get_classdata()
     bo_experiment = {
         "_id": payload.experiment_id,

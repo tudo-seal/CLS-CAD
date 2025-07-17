@@ -86,24 +86,40 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     )
 
     # Register the command inputs
-    cmd_inputs = args.command.commandInputs
 
-    
-    result_score = cmd_inputs.addFloatSpinnerCommandInput(
-        "Result", "Result"
+    request_content = []  # result, synthesis_vector, experiment_id
+
+    args.command.setDialogMinimumSize(1200, 800)
+    args.command.setDialogInitialSize(1200, 800)
+
+    (experiment_id, cancelled) = ui.inputBox(
+            "Please enter experiment id to update bo for",
+            "Update Optimizer for experiment ID",
+            "",
     )
-    vector_used = cmd_inputs.addStringValueInput(
-        "Vector_used", "Vector used"
+    if cancelled:
+        return
+
+    (vector_used, cancelled) = ui.inputBox(
+            "Please enter the vector used for the experiment (comma separated, e.g. 1,0,1,1,0,0,1,0)",
+            "Update Optimizer with vector used",
+            "",
     )
-    experiment_id = cmd_inputs.addStringValueInput(
-        "Experiment_ID", "Experiment ID"
+    vector_used = [int(x) for x in vector_used.split(",") if x.isdigit()]
+    if cancelled:
+        return
+
+    (result_score, cancelled) = ui.inputBox(
+            "Please enter the result score for the experiment",
+            "Update Optimizer with result score",
+            "",
     )
-    # vector used looks like this: "1,0,1,1,0,0,1,0"
-    vector_used = [int(x) for x in vector_used.value.split(",") if x.isdigit()]
+    if cancelled:
+        return
     request_content = [
-        result_score.value,
+        float(result_score),
         vector_used,
-        experiment_id.value
+        experiment_id
     ]
 
 def command_execute(args: adsk.core.CommandEventArgs):
@@ -143,8 +159,9 @@ def command_destroy(args: adsk.core.CommandEventArgs):
     :param args: adsk.core.CommandEventArgs:
     :return:
     """
-    global local_handlers, request_attributes, request_parts
+    global local_handlers, request_attributes, request_parts, request_content
     request_parts = []
     request_attributes = []
     local_handlers = []
+    request_content = []
     futil.log(f"{CMD_NAME} Command Destroy Event")

@@ -72,11 +72,6 @@ def stop():
         command_definition.deleteMe()
 
 
-joint_origin = adsk.fusion.JointOrigin.cast(None)
-type_text_box_input = adsk.core.TextBoxCommandInput.cast(None)
-parts_type_selection_browser_input = adsk.core.BrowserCommandInput.cast(None)
-
-
 def command_created(args: adsk.core.CommandCreatedEventArgs):
     """
     Called when the user clicks the command in CLS-CAD tab. Registers all important
@@ -85,7 +80,7 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     :param args: adsk.core.CommandCreatedEventArgs:
     :return:
     """
-    global experiment_id_box_input
+    global experiment_id
 
     futil.log(f"{CMD_NAME} Command Created Event")
 
@@ -102,12 +97,13 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     args.command.setDialogMinimumSize(1200, 800)
     args.command.setDialogInitialSize(1200, 800)
 
-    experiment_id_box_input = inputs.addValueInput(
-        "experimentId",
-        "Experiment Id",
-        "",
-        adsk.core.ValueInput.createByString("" + str(datetime.now().timestamp()) + "")
+    (experiment_id, cancelled) = ui.inputBox(
+            "Please enter experiment id to get new optimal vector for synthesis",
+            "Request Current Optimal Vector",
+            "",
     )
+    if cancelled:
+        return
 
 def command_execute(args: adsk.core.CommandEventArgs):
     """
@@ -120,10 +116,9 @@ def command_execute(args: adsk.core.CommandEventArgs):
     """
     futil.log(f"{CMD_NAME} Command Execute Event")
 
-    global experiment_id_box_input
+    global experiment_id
     app = adsk.core.Application.get()
     project_id = app.activeDocument.dataFile.parentProject.id if app.activeDocument.dataFile is not None else app.data.activeProject.id
-    experiment_id = experiment_id_box_input.value
     print("Send request")
     req = urllib.request.Request(f"http://127.0.0.1:8000/bo/{experiment_id}/optimal-vector")
     req.add_header("Content-Type", "application/json; charset=utf-8")
@@ -139,5 +134,6 @@ def command_destroy(args: adsk.core.CommandEventArgs):
     :param args: adsk.core.CommandEventArgs:
     :return:
     """
-    local_handlers = []
+    global experiment_id
+    experiment_id = None
     futil.log(f"{CMD_NAME} Command Destroy Event")
