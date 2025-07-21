@@ -12,8 +12,6 @@ from xml.dom import minidom
 from xml.etree import ElementTree
 joint = None
 export_path = ""
-# TODO: send files to backend
-# TODO: also create moveit_configs
 
 def setup_package_xml(save_dir, package_name, robot_name):
     """
@@ -343,8 +341,6 @@ def write_gazebo_endtag(joints_dict, file_name):
 # entry point urdf
 def write_urdf(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_name, save_dir):
     # TODO: check why limit tag is missing
-    # TODO: xyz in joint tags should not be zero everytime
-    # TODO: double check axis calculation
     file_dir = os.path.join(save_dir, 'urdf')
     file_path = os.path.join(file_dir, robot_name + '.urdf')
     try: os.makedirs(file_dir)

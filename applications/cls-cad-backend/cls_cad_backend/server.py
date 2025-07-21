@@ -241,7 +241,7 @@ async def store_mp_files(
     write_moveit_config_cmake(export_path)
     write_moveit_config_package_xml(export_path, robot_name)
     # EVERYTHING BELOW IS COMMENTED OUT FOR NOW
-    """# mount the files inside tmp directory to the ros container using sys calls
+    # mount the files inside tmp directory to the ros container using sys calls
     client = docker.from_env()
     docker_image_name = "my_ros_noetic_image:latest"
     local_src_path = export_path
@@ -329,12 +329,12 @@ async def store_mp_files(
         print(f"Error executing command in container: {e}")
         return {"error": str(e)}
     container.stop()
-    container.remove()"""
+    container.remove()
     # EVERYTHING ABOVE IS COMMENTED OUT FOR NOW
 
 
     # TODO: REMOVE THIS SIMULATION PART
-    result = "313.09,[1,0,1,1,0,0,1,0]"  # Simulated result for testing purposes
+    # result = "313.09,[1,0,1,1,0,0,1,0]"  # Simulated result for testing purposes
     
     
     """print(docker_build(docker_image_name, dockerfile_dir='../../cls-cad-ros-container'))
@@ -347,6 +347,7 @@ async def store_mp_files(
     total_time, success_list = result.split(',', 1)
     total_time = float(total_time)
     success_list = [int(b) for b in success_list.strip('[]').split(',')]
+    success_rate = sum(success_list) / len(success_list) if success_list else 0
     
     """# BO RELEVANT CODE
     # asks for new parameters
@@ -359,7 +360,7 @@ async def store_mp_files(
     # END BO RELEVANT CODE"""
     
     
-    return {"total_time": total_time, "success_list": success_list}
+    return {"total_time": total_time, "success_list": success_list, "success_rate": success_rate}
 
 @app.post("/bo/perform-motion-planning")
 async def motion_planning(

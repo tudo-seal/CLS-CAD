@@ -22,8 +22,8 @@ LOOP:
     synthesis request aus part list generieren (counts/bzw welche parts verwendet werden sind parameter)
     project_id und result_id weiterverwenden
     synthesize_with_vector does this
-3. Synthese Roboter Automatisch mit predicates (TODO predicates in synthese integrieren)
-4. Auswahl günstigers (TODO price per part list integrieren)
+3. Synthese Roboter Automatisch mit predicates
+4. Auswahl günstigers
     mit cached result günstigstes auswählen
     bei get("/results/{project_id}/{request_id}/cheapest assembly holen
 5. SRDF und alles was moveit setup assistant macht ersetzen durch code
@@ -34,6 +34,8 @@ LOOP:
 8. results in BO framework und nächste predicate configuration sollte output sein
 9. goto 3
 10. abbruch nach 10 steps oder so (wie in Konfig definiert)
+
+ist alles drin
 
 state machine im backend implementieren
 

@@ -12,14 +12,7 @@ from ...lib.general_utils import (
     update_taxonomy_in_backend,
 )
 
-# TODO: no command needed for this, only helper code -> move to util later
-# TODO: parse response from backend -> A send followup request to backend to pick cheapest synthesis OR
-# B -> parse response and pick cheapest synthesis directly.
-# request cheapest synthesis from backend function CURRENT
-# parse id from cheapest request response
-# assemble result with id
-# TODO: open cheapest synthesis as active design
-# TODO: export URDF AND SRDF AND everything else needed with moveit
+# TODO: open cheapest synthesis as active design -> still outstanding
 
 app = adsk.core.Application.get()
 ui = app.userInterface

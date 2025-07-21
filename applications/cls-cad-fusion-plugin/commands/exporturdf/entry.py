@@ -31,8 +31,6 @@ ICON_FOLDER = os.path.join(os.path.dirname(__file__), "resources", "")
 local_handlers = []
 progress_dialog: adsk.core.ProgressDialog = None
 export_path = ""
-# TODO: send files to backend
-# TODO: also create moveit_configs
 
 def setup_package_xml(save_dir, package_name, robot_name):
     """
@@ -362,8 +360,6 @@ def write_gazebo_endtag(joints_dict, file_name):
 # entry point urdf
 def write_urdf(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_name, save_dir):
     # TODO: check why limit tag is missing
-    # TODO: xyz in joint tags should not be zero everytime
-    # TODO: double check axis calculation
     file_dir = os.path.join(save_dir, 'urdf')
     file_path = os.path.join(file_dir, robot_name + '.urdf')
     try: os.makedirs(file_dir)
@@ -901,7 +897,7 @@ def write_joint_limits_yaml(package_name, robot_name, save_dir, joints_dict):
             f.write('    has_acceleration_limits: false\n')
             f.write('    max_acceleration: 0\n')
             f.write('    max_position: 2.8\n')
-            f.write('    min_position: 0.98\n')  # TODO: gripper joint limits, can be changed later
+            f.write('    min_position: 0.98\n')
 
         
 
@@ -2643,7 +2639,6 @@ def command_execute(args: adsk.core.CommandEventArgs):
             ui.messageBox('No active Fusion design', title)
             return
     
-    # TODO inject urdf exporter here
     success_msg = 'Started export to urdf'
     title = 'Fusion to urdf export'
     msg = success_msg
@@ -2707,10 +2702,9 @@ def command_execute(args: adsk.core.CommandEventArgs):
     links_xyz_dict = {}
     
     # --------------------
-    # Generate URDF
+    # Generate STL FILES
     export_stl(design, save_dir, root, robot_name)
 
-    # TODO MOVE ALL OF THIS TO THE BACKEND AND ONLY POST THE FOLLOWING DATA
     payload = json.dumps({
         "joints_dict": joints_dict,
         "links_xyz_dict": links_xyz_dict,
