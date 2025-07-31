@@ -165,8 +165,9 @@ async def get_task_status(
     :param task_id: The ID of the task for which the status should be retrieved.
     :return: Returns the status of the task if found, else returns a 404 response code.
     """
+    global task_list
     task = next((t for t in task_list if t["task_id"] == task_id), None)
-    if task is not None:
+    if task != None:
         if "result" in task:
             # clear task list
             task_list.clear()
@@ -380,6 +381,7 @@ def write_robot_description_files(data: dict) -> None:
     
 
     # write result into task list array
+    global task_list
     task_list = [
         {
             "task_id": task_id,
@@ -400,6 +402,7 @@ async def store_mp_files(
     :return: Returns "OK" when successful, else returns a 422 response code if payload
         didn't pass validation.
     """
+    global task_list
     joints_dict = payload.joints_dict
     links_xyz_dict = payload.links_xyz_dict
     inertial_dict = payload.inertial_dict
@@ -414,7 +417,7 @@ async def store_mp_files(
         for key, value in joints_dict.items()
     }
     # add task_id to task_list dict
-    if task_list is not None:
+    if task_list != []:
         #return http error for busy
         return {"error": "A task is already running, please wait until it is finished."}
     task_list.append({"task_id": task_id, "status": "Processing started"})

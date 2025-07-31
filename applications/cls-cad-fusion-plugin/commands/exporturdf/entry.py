@@ -13,6 +13,7 @@ from ...lib.general_utils import *
 from xml.etree.ElementTree import Element, SubElement
 from xml.dom import minidom
 from xml.etree import ElementTree
+from timeit import default_timer as timer
 
 app = adsk.core.Application.get()
 ui = app.userInterface
@@ -106,55 +107,6 @@ def export_stl(design, save_dir, root, robot_name):
             except:
                 print('Component ' + occ.name + 'has something wrong.')
 
-    
-def remove_temporary_files(save_dir):
-    """ Remove the temporary files created during the export process.
-    
-    Parameters
-    ----------
-    save_dir: str
-        path of folder containing the files to be removed.
-    """
-    try:
-        shutil.rmtree(save_dir)
-    except Exception as e:
-        print(f"Error removing temporary files: {e}")
-
-def write_yaml(package_name, robot_name, save_dir, joints_dict):
-    """
-    write yaml file "save_dir/launch/controller.yaml"
-    
-    
-    Parameter
-    ---------
-    robot_name: str
-        name of the robot
-    save_dir: str
-        path of the repository to save
-    joints_dict: dict
-        information of the joints
-    """
-    try: os.makedirs(save_dir + '/launch')
-    except: pass 
-
-    controller_name = robot_name + '_controller'
-    file_name = save_dir + '/launch/controller.yaml'
-    with open(file_name, 'w') as f:
-        f.write(controller_name + ':\n')
-        # joint_state_controller
-        f.write('  # Publish all joint states -----------------------------------\n')
-        f.write('  joint_state_controller:\n')
-        f.write('    type: joint_state_controller/JointStateController\n')  
-        f.write('    publish_rate: 50\n\n')
-        # position_controllers
-        f.write('  # Position Controllers --------------------------------------\n')
-        for joint in joints_dict:
-            joint_type = joints_dict[joint]['type']
-            if joint_type != 'fixed':
-                f.write('  ' + joint + '_position_controller:\n')
-                f.write('    type: effort_controllers/JointPositionController\n')
-                f.write('    joint: '+ joint + '\n')
-                f.write('    pid: {p: 100.0, i: 0.01, d: 10.0}\n')
 
 class Joint:
     def __init__(self, name, xyz, axis, parent, child, joint_type, upper_limit, lower_limit):
@@ -614,6 +566,17 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
         args.command.destroy, command_destroy, local_handlers=local_handlers
     )
     
+def do_events_for_duration(duration: float):
+    """
+    Allows the main Fusion 360 thread to process ui events for the specified duration.
+    Prevents the interface lagging during the assembly process.
+
+    :param duration: float: The duration for which to process ui events.
+    :return:
+    """
+    start_time = timer()
+    while timer() - start_time < duration:
+        adsk.doEvents()
 
 def command_execute(args: adsk.core.CommandEventArgs):
     """
@@ -642,6 +605,10 @@ def command_execute(args: adsk.core.CommandEventArgs):
         title,
         adsk.core.MessageBoxButtonTypes.OKCancelButtonType
     )
+    global progress_dialog
+    progress_dialog = ui.createProgressDialog()
+    progress_dialog.show("Exporting Progress", "Beginning to export...", 0, 1)
+    
 
     root = design.rootComponent  # root component 
     components = design.allComponents
@@ -716,9 +683,52 @@ def command_execute(args: adsk.core.CommandEventArgs):
     req.add_header("Content-Type", "application/json; charset=utf-8")
     req.add_header("Content-Length", len(payload))
     response = urllib.request.urlopen(req, payload)
-    print(response.read().decode())
-    response_data = json.loads(response.read().decode())
-    task_id = [response_data['task_id']]    
+    
+    raw_response = response.read().decode()
+    print(raw_response)
+    response_data = json.loads(raw_response)
+    task_id = response_data['task_id']
+
+    status_req = urllib.request.Request(f"http://127.0.0.1:8000/bo/{task_id}/status")
+    
+    # loop to check the status of the task
+    success = False
+    once = True
+    if progress_dialog is not None:
+        previous_max = progress_dialog.maximumValue
+        previous_progress = progress_dialog.progressValue
+        previous_msg = progress_dialog.message
+    while not success:
+        response = urllib.request.urlopen(status_req)
+        response_data = json.loads(response.read().decode())
+        if "total_time" in response_data:
+            success = True
+            print(f"Task completed in {response_data['total_time']} seconds.")
+            print(f"success_rate: {response_data['success_rate']}")
+            print(f"success_list: {response_data['success_list']}")
+        elif 'error' in response_data:
+            success = False
+        if not success:
+            if (progress_dialog is not None) and once:
+                once = False
+                progress_dialog.message = (
+                    progress_dialog.message + "\n\nWaiting for Motion Planning..."
+                )
+                progress_dialog.maximumValue = 1000
+                progress_dialog.progressValue = 0
+            if progress_dialog is not None:
+                progress_dialog.progressValue += (
+                    1 if progress_dialog.progressValue < 999 else -1
+                )
+            do_events_for_duration(0.01)  # Allow the main thread to process events
+            ui.activeSelections.clear()
+            adsk.doEvents()
+    if progress_dialog is not None:
+        progress_dialog.maximumValue = previous_max
+        progress_dialog.progressValue = previous_progress
+        progress_dialog.message = previous_msg
+
+    progress_dialog.hide()
 
 def command_destroy(args: adsk.core.CommandEventArgs):
     """
