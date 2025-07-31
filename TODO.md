@@ -1,5 +1,25 @@
 # Aktuelle Todos
 
+30.7 TODOS
+cost of roboter skalarisieren -> durchreichen
+anderes szenario für motion planning:
+Wand im Weg zum Ball
+progressdialog
+
+könnte bei schwierigen Aufgaben nicht mehr funktionieren -> ist aber okay
+
+mitschreiben wie lange der beste Roboter beim planning gebraucht hat und dann darauf deckeln median zeit im verlauf der optimierung * 1,5 
+
+Bayes opt >10 <100
+
+Fusion
+CLS CAD
+Optimizer
+Robotik -> Kinematik, Freiheitsgrade
+Motion Planning
+ROS
+Rest api -> eine Quelle
+
 # Fragen Conni
 Vorschlag Python subprocess?
 UI Abläufe klären:

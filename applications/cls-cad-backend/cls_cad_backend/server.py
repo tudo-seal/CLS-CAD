@@ -1,5 +1,6 @@
 import mimetypes
 import os
+import uuid
 import zipfile
 import sys
 import docker
@@ -76,6 +77,7 @@ cache = {}
 # 40mm -> 0-5
 search_space = [(0,7),(0,5)]
 state_machine = SkoptOptimizer(search_space)
+task_list = []
 
 @app.post("/submit/part")
 async def save_part(
@@ -153,30 +155,44 @@ async def load_bo_state(
     state_machine = SkoptOptimizer.load_state(get_classdata['classdata'])
     return "OK"
 
-@app.post("/bo/store-mp-files")
-async def store_mp_files(
-    payload: StoreDataRequest
+@app.get("/bo/{task_id}/status")
+async def get_task_status(
+    task_id: str
 ):
     """
-    Stores the motion planning files.
+    Retrieves the status of a specific task.
 
-    :param files: The files to be stored.
-    :param form: Form data containing the relative file paths.
-    :return: Returns "OK" when successful, else returns a 422 response code if payload
-        didn't pass validation.
+    :param task_id: The ID of the task for which the status should be retrieved.
+    :return: Returns the status of the task if found, else returns a 404 response code.
     """
-    joints_dict = payload.joints_dict
-    links_xyz_dict = payload.links_xyz_dict
-    inertial_dict = payload.inertial_dict
-    package_name = payload.package_name
-    robot_name = payload.robot_name
-    save_dir = payload.save_dir
-    export_path = payload.export_path
+    task = next((t for t in task_list if t["task_id"] == task_id), None)
+    if task is not None:
+        if "result" in task:
+            # clear task list
+            task_list.clear()
+            return task["result"]
+        else:
+            return {"status": task["status"]}
+    return {"error": "Task not found"}
 
-    joints_dict = {
-        key.replace(" ", "_"): value
-        for key, value in joints_dict.items()
-    }
+def write_robot_description_files(data: dict) -> None:
+    """
+    Writes the robot description files to the specified directory.
+
+    :param data: The data containing the robot description information.
+    :return: None
+    """
+    # This function should implement the logic to write the robot description files
+    # based on the provided data.
+    task_id = data["task_id"]
+
+    joints_dict = data["joints_dict"]
+    links_xyz_dict = data["links_xyz_dict"]
+    inertial_dict = data["inertial_dict"]
+    package_name = data["package_name"]
+    robot_name = data["robot_name"]
+    save_dir = data["save_dir"]
+    export_path = data["export_path"]
 
     write_urdf(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_name, save_dir)
     write_xacro(joints_dict, links_xyz_dict, inertial_dict, package_name, robot_name, save_dir)
@@ -360,7 +376,65 @@ async def store_mp_files(
     # END BO RELEVANT CODE"""
     
     
-    return {"total_time": total_time, "success_list": success_list, "success_rate": success_rate}
+    result = {"total_time": total_time, "success_list": success_list, "success_rate": success_rate}
+    
+
+    # write result into task list array
+    task_list = [
+        {
+            "task_id": task_id,
+            "status": "Processing finished",
+            "result": result
+        }
+    ]
+
+@app.post("/bo/store-mp-files")
+async def store_mp_files(
+    payload: StoreDataRequest, background_tasks: BackgroundTasks
+):
+    """
+    Stores the motion planning files.
+
+    :param files: The files to be stored.
+    :param form: Form data containing the relative file paths.
+    :return: Returns "OK" when successful, else returns a 422 response code if payload
+        didn't pass validation.
+    """
+    joints_dict = payload.joints_dict
+    links_xyz_dict = payload.links_xyz_dict
+    inertial_dict = payload.inertial_dict
+    package_name = payload.package_name
+    robot_name = payload.robot_name
+    save_dir = payload.save_dir
+    export_path = payload.export_path
+    # generate uuid for task_id
+    task_id = str(uuid.uuid4())
+    joints_dict = {
+        key.replace(" ", "_"): value
+        for key, value in joints_dict.items()
+    }
+    # add task_id to task_list dict
+    if task_list is not None:
+        #return http error for busy
+        return {"error": "A task is already running, please wait until it is finished."}
+    task_list.append({"task_id": task_id, "status": "Processing started"})
+
+    background_tasks.add_task(
+        write_robot_description_files,
+        {
+            "task_id": task_id,
+            "joints_dict": joints_dict,
+            "links_xyz_dict": links_xyz_dict,
+            "inertial_dict": inertial_dict,
+            "package_name": package_name,
+            "robot_name": robot_name,
+            "save_dir": save_dir,
+            "export_path": export_path
+        }
+    )
+    return {"task_id": task_id, "status": "Processing started"}
+
+    
 
 @app.post("/bo/perform-motion-planning")
 async def motion_planning(
