@@ -13,6 +13,7 @@ from .checkandsubmit import entry as check_and_submit
 from .downloadtaxonomy import entry as download_taxonomy
 from .exportproject import entry as export_project
 from .exporturdf import entry as export_urdf
+from .completeexperiment import entry as complete_experiment
 from .requestsynthesisoptimizer import entry as request_synthesis_optimizer
 from .formatstaxonomyediting import entry as formats_taxonomy_editing
 from .jointtyping import entry as joint_typing
@@ -45,6 +46,7 @@ commands = [
     export_urdf,
     uuid_update_crawling_project,
     toggle_custom_graphics,
+    complete_experiment,
     upload_taxonomy,
     download_taxonomy,
     formats_taxonomy_editing,

@@ -181,6 +181,8 @@ def synthesize_with_vector(input_vector):
     req.add_header("Content-Type", "application/json; charset=utf-8")
     req.add_header("Content-Length", len(payload))
     response = urllib.request.urlopen(req, payload)
-    print(response.read().decode())
-    # if response.read().decode() == "FAIL" tell optimizer bad score
+    response = response.read().decode()
+    print(response)
+    # if response == "FAIL" tell optimizer bad score
+    return response
 

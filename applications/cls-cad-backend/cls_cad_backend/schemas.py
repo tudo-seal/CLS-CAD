@@ -67,3 +67,11 @@ class TellResultRequestInf(BaseModel, frozen=True):
     experiment_id: str
     synthesis_vector: list[float]
     result: float
+
+class InitBORequestInf(BaseModel, frozen=True):
+    experiment_id: str
+    project_id: str
+    search_space: dict
+    init_n_points: int
+    init_state: int | None = None
+    iterations: int = 10

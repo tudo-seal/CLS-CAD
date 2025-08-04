@@ -22,7 +22,7 @@ from cls_cad_backend.database.commands import (
 )
 from cls_cad_backend.repository_builder import RepositoryBuilder, wrapped_counted_types
 from cls_cad_backend.responses import FastResponse
-from cls_cad_backend.schemas import PartInf, SynthesisRequestInf, TaxonomyInf, StoreDataRequest, TellResultRequestInf
+from cls_cad_backend.schemas import PartInf, SynthesisRequestInf, TaxonomyInf, InitBORequestInf, StoreDataRequest, TellResultRequestInf
 from cls_cad_backend.util.hrid import generate_id
 from cls_cad_backend.util.json_operations import (
     invert_taxonomy,
@@ -97,10 +97,9 @@ async def save_part(
     return "OK"
 
 
-@app.post("/bo/{project_id}/{experiment_id}/initialize")
+@app.post("/bo/initialize")
 async def initialize_bo(
-    project_id: str,
-    experiment_id: str,
+    payload: InitBORequestInf,
 ):
     """
     Initializes the state machine for a specific project and experiment id.
@@ -111,6 +110,26 @@ async def initialize_bo(
     :return: Returns "OK" when successful, else returns a 422 response code if payload
         didn't pass validation.
     """
+    global state_machine
+    global iterations
+    payload_dict = payload.model_dump(by_alias=True)
+    search_space = [payload_dict["search_space_motors"],
+                    payload_dict["search_space_extrusions"]]
+    # Initialize the state machine with the search space
+    state_machine = SkoptOptimizer(
+        search_space=search_space,
+        n_initial_points=payload_dict.init_n_points,
+        init_state=payload_dict.init_state,
+    )
+    iterations = payload_dict.iterations
+    state_machine_class_data = state_machine.get_classdata()
+    experiment_id = payload_dict["experiment_id"]
+    bo_experiment = {
+        "_id": experiment_id,
+        "classdata": state_machine_class_data
+    }
+    upsert_bo_experiment(bo_experiment)
+
     return "OK"
 
 
