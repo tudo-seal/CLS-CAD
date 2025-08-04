@@ -734,12 +734,12 @@ def command_execute(args: adsk.core.CommandEventArgs):
         # synthesize with vector
         synth_with_vec_response = synthesize_with_vector([cur_motors, cur_extrusions])
 
-        # if synth fails tell score 0
+        # if synth fails tell score 1
         if "FAIL" in synth_with_vec_response:
             print("Synthesis failed")
             # tell optimizer bad score
             request_dict = {
-                "result": 0,
+                "result": 1,
                 "synthesis_vector": [cur_motors, cur_extrusions],
                 "experiment_id": experiment_id,
             }
@@ -758,6 +758,10 @@ def command_execute(args: adsk.core.CommandEventArgs):
             synth_with_vec_response_data = json.loads(synth_with_vec_response)
             assembly_id = synth_with_vec_response_data['_id']
             # assemble cheapest assembly
+            # wait for the assembly to be inserted into database
+            # sys wait(5)  # wait for 5 seconds
+            print("Waiting for assembly to be inserted into database")
+            do_events_for_duration(5)  # wait for 5 seconds
             request_cheapest_response = request_cheapest(assembly_id)
 
             design = adsk.fusion.Design.cast(app.activeProduct)
@@ -878,7 +882,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
             # tell score to bo
             request_dict = {
-                "result": response_data['success_rate'],
+                "result": 1 - response_data['success_rate'],
                 "synthesis_vector": [cur_motors, cur_extrusions],
                 "experiment_id": experiment_parameters["experiment_id"],
             }
@@ -896,7 +900,21 @@ def command_execute(args: adsk.core.CommandEventArgs):
             progress_dialog.progressValue += 1
     # end of loop
     progress_dialog.hide()
-    
+
+    # Show results
+    req = urllib.request.Request(f"http://127.0.0.1:8000/bo/{experiment_parameters['experiment_id']}/result-list")
+    req.add_header("Content-Type", "application/json; charset=utf-8")
+    response = urllib.request.urlopen(req)
+    response_data = json.loads(response.read().decode())
+    # Show the results in a message box
+    result_msg = "Experiment Results:\n"
+    result_msg += f"State: {response_data['state']}\n"
+    result_msg += f"Best Parameters: {response_data['best_params']}\n"
+    result_msg += f"Suggested Parameters: {response_data['suggested_params']}\n"
+    result_msg += f"Iterations: {response_data['iterations']}\n"
+    result_msg += response_data['state'] + "\n"
+
+    ui.messageBox(result_msg, "Experiment Results", adsk.core.MessageBoxButtonTypes.OKButtonType)
     
 
 def command_destroy(args: adsk.core.CommandEventArgs):

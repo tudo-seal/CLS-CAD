@@ -522,6 +522,29 @@ async def update_with_result(
     upsert_bo_experiment(bo_experiment)
     return "OK"
 
+@app.get("/bo/{experiment_id}/result-list")
+async def get_experiment_result_list(
+    experiment_id: str,
+):
+    """
+    Retrieves the result list for a specific experiment.
+
+    :param experiment_id: The experiment id for which the result list should be retrieved.
+    :return: Returns the result list when successful, else returns a 422 response code if payload
+        didn't pass validation.
+    """
+    get_classdata = get_bo_experiment_for_experiment_id(experiment_id)
+    if get_classdata is None:
+        return {"error": "Experiment not found"}
+    state_machine = SkoptOptimizer.load_state(get_classdata['classdata'])
+    
+    results = {
+        "state": state_machine.status(),
+        "best_params": state_machine.best_params(),
+        "suggested_params": state_machine._suggested,
+    }
+    return results
+
 @app.post("/submit/taxonomy")
 async def save_taxonomy(
     payload: TaxonomyInf,
