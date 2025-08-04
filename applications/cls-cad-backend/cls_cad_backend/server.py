@@ -118,10 +118,10 @@ async def initialize_bo(
     # Initialize the state machine with the search space
     state_machine = SkoptOptimizer(
         search_space=search_space,
-        n_initial_points=payload_dict.init_n_points,
-        init_state=payload_dict.init_state,
+        n_initial_points=payload_dict["init_n_points"],
+        random_state=payload_dict["initial_state"],
     )
-    iterations = payload_dict.iterations
+    iterations = payload_dict["iterations"]
     state_machine_class_data = state_machine.get_classdata()
     experiment_id = payload_dict["experiment_id"]
     bo_experiment = {

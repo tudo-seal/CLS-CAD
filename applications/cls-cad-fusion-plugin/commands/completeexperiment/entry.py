@@ -646,7 +646,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
     if cancelled:
         return
 
-    experiment_parameters["iterations"] = iterations
+    experiment_parameters["iterations"] = int(iterations)
 
     (search_space_extrusions, cancelled) = ui.inputBox(
             "Please enter minimum and max count for extrusions (comma separated, e.g. 0,5)",
@@ -679,7 +679,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
     if cancelled:
         return
 
-    experiment_parameters["initial_state"] = initial_state
+    experiment_parameters["initial_state"] = int(initial_state)
 
     (initial_n_points, cancelled) = ui.inputBox(
             "Please enter number of initial points to sample in the search space before optimizing",
@@ -690,7 +690,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
     if cancelled:
         return
 
-    experiment_parameters["initial_n_points"] = initial_n_points
+    experiment_parameters["initial_n_points"] = int(initial_n_points)
     futil.log(f"Experiment parameters: {experiment_parameters}")
 
     # call backend
@@ -716,7 +716,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
     global progress_dialog
     progress_dialog = ui.createProgressDialog()
     progress_dialog.show("Experiment in Progress", "Running Experiment...", 0, 1)
-
+    progress_dialog.maximumValue = experiment_parameters["iterations"]
     # beginning of loop
     for i in range(experiment_parameters["iterations"]):
         progress_dialog.message = f"Iteration {i+1} of {experiment_parameters['iterations']}"
@@ -732,10 +732,10 @@ def command_execute(args: adsk.core.CommandEventArgs):
         cur_motors = int(cur_vec_response_data['new_suggestion'][0])
         cur_extrusions = int(cur_vec_response_data['new_suggestion'][1])
         # synthesize with vector
-        synth_with_vec_response = synthesize_with_vector(cur_motors, cur_extrusions)
+        synth_with_vec_response = synthesize_with_vector([cur_motors, cur_extrusions])
 
         # if synth fails tell score 0
-        if synth_with_vec_response == "FAIL":
+        if "FAIL" in synth_with_vec_response:
             print("Synthesis failed")
             # tell optimizer bad score
             request_dict = {
@@ -755,7 +755,8 @@ def command_execute(args: adsk.core.CommandEventArgs):
             response = urllib.request.urlopen(req, payload)
             print(response.read().decode())
         else:
-            assembly_id = synth_with_vec_response['_id']
+            synth_with_vec_response_data = json.loads(synth_with_vec_response)
+            assembly_id = synth_with_vec_response_data['_id']
             # assemble cheapest assembly
             request_cheapest_response = request_cheapest(assembly_id)
 
@@ -834,14 +835,15 @@ def command_execute(args: adsk.core.CommandEventArgs):
             task_id = response_data['task_id']
 
             status_req = urllib.request.Request(f"http://127.0.0.1:8000/bo/{task_id}/status")
-            
+            motion_planning_progress_dialog = ui.createProgressDialog()
+            motion_planning_progress_dialog.show("Experiment in Progress", "Running Experiment...", 0, 1)
             # loop to check the status of the task
             success = False
             once = True
-            if progress_dialog is not None:
-                previous_max = progress_dialog.maximumValue
-                previous_progress = progress_dialog.progressValue
-                previous_msg = progress_dialog.message
+            if motion_planning_progress_dialog is not None:
+                previous_max = motion_planning_progress_dialog.maximumValue
+                previous_progress = motion_planning_progress_dialog.progressValue
+                previous_msg = motion_planning_progress_dialog.message
             while not success:
                 response = urllib.request.urlopen(status_req)
                 response_data = json.loads(response.read().decode())
@@ -853,26 +855,26 @@ def command_execute(args: adsk.core.CommandEventArgs):
                 elif 'error' in response_data:
                     success = False
                 if not success:
-                    if (progress_dialog is not None) and once:
+                    if (motion_planning_progress_dialog is not None) and once:
                         once = False
-                        progress_dialog.message = (
-                            progress_dialog.message + "\n\nWaiting for Motion Planning..."
+                        motion_planning_progress_dialog.message = (
+                            motion_planning_progress_dialog.message + "\n\nWaiting for Motion Planning..."
                         )
-                        progress_dialog.maximumValue = 1000
-                        progress_dialog.progressValue = 0
-                    if progress_dialog is not None:
-                        progress_dialog.progressValue += (
-                            1 if progress_dialog.progressValue < 999 else -1
+                        motion_planning_progress_dialog.maximumValue = 1000
+                        motion_planning_progress_dialog.progressValue = 0
+                    if motion_planning_progress_dialog is not None:
+                        motion_planning_progress_dialog.progressValue += (
+                            1 if motion_planning_progress_dialog.progressValue < 999 else -1
                         )
                     do_events_for_duration(0.01)  # Allow the main thread to process events
                     ui.activeSelections.clear()
                     adsk.doEvents()
-            if progress_dialog is not None:
-                progress_dialog.maximumValue = previous_max
-                progress_dialog.progressValue = previous_progress
-                progress_dialog.message = previous_msg
+            if motion_planning_progress_dialog is not None:
+                motion_planning_progress_dialog.maximumValue = previous_max
+                motion_planning_progress_dialog.progressValue = previous_progress
+                motion_planning_progress_dialog.message = previous_msg
 
-            progress_dialog.hide()
+            motion_planning_progress_dialog.hide()
 
             # tell score to bo
             request_dict = {
@@ -891,7 +893,9 @@ def command_execute(args: adsk.core.CommandEventArgs):
             req.add_header("Content-Length", len(payload))
             response = urllib.request.urlopen(req, payload)
             print(response.read().decode())
+            progress_dialog.progressValue += 1
     # end of loop
+    progress_dialog.hide()
     
     
 

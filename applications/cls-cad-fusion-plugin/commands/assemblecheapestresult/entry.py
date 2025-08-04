@@ -230,15 +230,10 @@ def request_cheapest(request_id):
     response_data = response.read().decode()
     message_data: dict = json.loads(response_data)
 
-    (name, cancelled) = ui.inputBox(
-            "Please pick a name to describe the result.",
-            "Synthesized Result Name",
-            generate_id(),
-    )
-    if cancelled:
-        return
+    name = generate_id()
 
     create_assembly_document(message_data, name)
+    return name
 
 
 def buckets_saved_handler(args: adsk.core.DataEventArgs):
