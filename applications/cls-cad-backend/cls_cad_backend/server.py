@@ -75,7 +75,7 @@ cache = {}
 # anzahl motoren -> Dynamixel 0-7
 # axisrotaryjointintent -> 0-7 -> remove for now since its difficult to find valid configurations
 # 40mm -> 0-5
-search_space = [(0,7),(0,5)]
+search_space = [(0,7),(0,5), (0,10)]
 state_machine = SkoptOptimizer(search_space)
 task_list = []
 
@@ -114,7 +114,8 @@ async def initialize_bo(
     global iterations
     payload_dict = payload.model_dump(by_alias=True)
     search_space = [payload_dict["search_space_motors"],
-                    payload_dict["search_space_extrusions"]]
+                    payload_dict["search_space_extrusions"],
+                    payload_dict["search_space_rotary_joints"]]
     # Initialize the state machine with the search space
     state_machine = SkoptOptimizer(
         search_space=search_space,
@@ -537,11 +538,15 @@ async def get_experiment_result_list(
     if get_classdata is None:
         return {"error": "Experiment not found"}
     state_machine = SkoptOptimizer.load_state(get_classdata['classdata'])
-    
+    print(state_machine.best_params())
+    print(state_machine._suggested)
+    print(state_machine.status())
+    print([int(x) for x in state_machine.best_params()])
+    print([tuple(int(i) for i in p) for p in state_machine._suggested])
     results = {
         "state": state_machine.status(),
-        "best_params": state_machine.best_params(),
-        "suggested_params": state_machine._suggested,
+        "best_params": [int(x) for x in state_machine.best_params()],
+        "suggested_params": [tuple(int(i) for i in p) for p in state_machine._suggested],
     }
     return results
 
@@ -644,6 +649,85 @@ async def synthesize_assembly(
         "count": len(interpreted_terms),
     }
 
+@app.post("/request/assembly/sync")
+async def synthesize_assembly(
+    payload: SynthesisRequestInf
+):
+    """
+    Takes a payload describing a synthesis request as JSON. Builds a repository and a
+    query and then executes clsp. Results (if present) get enumerated (up to 100) and
+    then post-processed into assembly instructions for the Fusion 360 Add-In to execute.
+    A background task inserts the results bundled in a single JSON Object into the
+    database.
+
+    :param payload: The payload containing target types and constraints for the
+        synthesis request.
+    :param background_tasks: The background tasks to asynchronously insert into the
+        database.
+    :return: A JSON containing a result id and metadata, or FAIL if there are no
+        results.
+    """
+    # state machine should transition to motion planning state after this is done
+    # and IF flag is set
+    take_time = timer()
+    literals = {}
+    part_count_type = Omega()
+    if payload.partCounts:
+        for partCount in payload.partCounts:
+            literals[partCount.partCountName] = list(range(partCount.partNumber + 1))
+        part_count_type = wrapped_counted_types(
+            [Literal(c.partNumber, c.partCountName) for c in payload.partCounts]
+        )
+
+    query = Type.intersect([Constructor(x, part_count_type) for x in payload.target])
+    taxonomy = Subtypes(
+        suffix_and_merge_taxonomy(get_taxonomy_for_project(payload.forgeProjectId))
+    )
+
+    repo = RepositoryBuilder.add_all_to_repository(
+        payload.forgeProjectId,
+        taxonomy=taxonomy,
+        part_counts=[
+            (p.partType, p.partNumber, p.partCountName) for p in payload.partCounts
+        ]
+        if payload.partCounts
+        else None,
+    )
+
+    gamma = FiniteCombinatoryLogic(
+        repo,
+        subtypes=taxonomy,
+        literals=literals,
+    )
+
+    result = gamma.inhabit(query)
+
+    terms = []
+    terms.extend(enumerate_terms(query, result, max_count=100))
+    interpreted_terms = [postprocess(interpret_term(term)) for term in terms]
+
+    if not interpreted_terms:
+        return "FAIL"
+
+    request_id = generate_id()
+    upsert_result({
+        "_id": request_id,
+        "forgeProjectId": payload.forgeProjectId,
+        "name": payload.name,
+        "timestamp": datetime.today().strftime("%Y-%m-%d %H:%M:%S"),
+        "count": len(interpreted_terms),
+        "interpretedTerms": interpreted_terms,
+        "payload": payload.model_dump()
+    })
+    print(f"Took: {timer() - take_time}")
+    return {
+        "_id": request_id,
+        "forgeProjectId": payload.forgeProjectId,
+        "name": payload.name,
+        "timestamp": datetime.today().strftime("%Y-%m-%d %H:%M:%S"),
+        "count": len(interpreted_terms),
+    }
+
 
 @app.get("/data/taxonomy/{project_id}", response_class=FastResponse)
 async def get_taxonomy(project_id: str):
@@ -726,10 +810,11 @@ async def maximum_counts_for_id(
             )
     return FastResponse(part_counts)
 
-@app.get("/results/{project_id}/{request_id}/cheapest", response_class=FastResponse)
+@app.get("/results/{project_id}/{request_id}/cheapest/{max}", response_class=FastResponse)
 async def cheapest_assembly_for_id(
     project_id: str,
     request_id: str,
+    max: int
 ):
     """
     Computes the cheapest assembly from a synthesis result.
@@ -746,13 +831,15 @@ async def cheapest_assembly_for_id(
     lowest_cost = None
     lowest_cost_index = 0
     for result_index, result in enumerate(results):
-        if lowest_cost is None:
+        if lowest_cost is None and result["cost"] <= max:
             lowest_cost = result["cost"]
             lowest_cost_index = result_index
-        if result["cost"] < lowest_cost:
+        if result["cost"] < lowest_cost and result["cost"] <= max:
             lowest_cost = result["cost"]
             lowest_cost_index = result_index
-    return FastResponse(results[lowest_cost_index])
+    if lowest_cost is None:
+        return "FAIL"
+    return FastResponse({"message_data": results[lowest_cost_index], "lowest_cost": lowest_cost})
 
 
 @app.get("/results/{project_id}/{request_id}", response_class=FastResponse)

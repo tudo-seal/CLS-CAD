@@ -100,9 +100,13 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     extrusions = cmd_inputs.addIntegerSpinnerCommandInput(
         "40mm_attributes", "Extrusion Count", 0, 5, 1, 1
     )
+    rotary_joint_count = cmd_inputs.addIntegerSpinnerCommandInput(
+        "AxisRotaryJoint_Intent_attributes", "Axis Rotary Joint Count", 0, 10, 1, 1
+    )
     requested_vector = [
         motor_count.value,
-        extrusions.value
+        extrusions.value,
+        rotary_joint_count.value
     ]
 
 
@@ -164,7 +168,13 @@ def synthesize_with_vector(input_vector):
                 "partNumber": input_vector[1],
                 "partCountName": "40mm_attributes",
                 "partType": ["40mm_attributes"]
+            },
+            {
+                "partNumber": input_vector[2],
+                "partCountName": "AxisRotaryJoint_Intent_attributes",
+                "partType": ["AxisRotaryJoint_Intent_attributes"]
             }
+
         ],
         "optimizeAssembly": "True",
         "forgeProjectId": app.activeDocument.dataFile.parentProject.id
@@ -177,7 +187,7 @@ def synthesize_with_vector(input_vector):
     ).encode("utf-8")
     print("Send request")
     print(request_dict)
-    req = urllib.request.Request("http://127.0.0.1:8000/request/assembly")
+    req = urllib.request.Request("http://127.0.0.1:8000/request/assembly/sync")
     req.add_header("Content-Type", "application/json; charset=utf-8")
     req.add_header("Content-Length", len(payload))
     response = urllib.request.urlopen(req, payload)

@@ -36,6 +36,8 @@ experiment_parameters = {
     "iterations": 5,
     "search_space_extrusions": (0, 5),
     "search_space_motors": (0, 7),
+    "search_space_rotary_joints": (0, 10),
+    "maximum_cost": 1000,
     "initial_state": None,
     "initial_n_points": 0,
 }
@@ -648,6 +650,15 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
     experiment_parameters["iterations"] = int(iterations)
 
+    (maximum_cost, cancelled) = ui.inputBox(
+            "Please enter maximum cost for the experiment (e.g. 1000)",
+            "Run New Experiment",
+            str(experiment_parameters["maximum_cost"]),
+    )
+    if cancelled:
+        return
+    experiment_parameters["maximum_cost"] = int(maximum_cost)
+
     (search_space_extrusions, cancelled) = ui.inputBox(
             "Please enter minimum and max count for extrusions (comma separated, e.g. 0,5)",
             "Run New Experiment",
@@ -678,8 +689,20 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
     if cancelled:
         return
-
+    
     experiment_parameters["initial_state"] = int(initial_state)
+    
+    (search_space_rotary_joints, cancelled) = ui.inputBox(
+            "Please enter minimum and max count for rotary joints (comma separated, e.g. 0,3)",
+            "Run New Experiment",
+            str(experiment_parameters["search_space_rotary_joints"]),
+    )
+
+    if cancelled:
+        return
+    experiment_parameters["search_space_rotary_joints"] = tuple(map(int, search_space_rotary_joints.split(",")))
+
+    
 
     (initial_n_points, cancelled) = ui.inputBox(
             "Please enter number of initial points to sample in the search space before optimizing",
@@ -702,6 +725,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
         "experiment_id": experiment_parameters["experiment_id"],
         "search_space_extrusions": experiment_parameters["search_space_extrusions"],
         "search_space_motors": experiment_parameters["search_space_motors"],
+        "search_space_rotary_joints": experiment_parameters["search_space_rotary_joints"]
     }).encode('utf-8')
     # POST the payload to the backend server
 
@@ -762,142 +786,161 @@ def command_execute(args: adsk.core.CommandEventArgs):
             # sys wait(5)  # wait for 5 seconds
             print("Waiting for assembly to be inserted into database")
             do_events_for_duration(5)  # wait for 5 seconds
-            request_cheapest_response = request_cheapest(assembly_id)
+            request_cheapest_response, lowest_cost = request_cheapest(assembly_id, experiment_parameters["maximum_cost"])
+            if "FAIL" in request_cheapest_response:
+                print("Request for cheapest assembly failed")
+                # tell optimizer bad score
+                request_dict = {
+                    "result": 1,
+                    "synthesis_vector": [cur_motors, cur_extrusions],
+                    "experiment_id": experiment_id,
+                }
+                payload = json.dumps(
+                    request_dict,
+                    indent=4,
+                ).encode("utf-8")
+                print("Send request")
+                print(request_dict)
+                req = urllib.request.Request("http://127.0.0.1:8000/bo/update-with-result")
+                req.add_header("Content-Type", "application/json; charset=utf-8")
+                req.add_header("Content-Length", len(payload))
+                response = urllib.request.urlopen(req, payload)
+                print(response.read().decode())
+            else:
+                design = adsk.fusion.Design.cast(app.activeProduct)
+                if not design:
+                        ui.messageBox('No active Fusion design', title)
+                        return
 
-            design = adsk.fusion.Design.cast(app.activeProduct)
-            if not design:
-                    ui.messageBox('No active Fusion design', title)
-                    return
+                root = design.rootComponent  # root component 
+                components = design.allComponents
 
-            root = design.rootComponent  # root component 
-            components = design.allComponents
+                # set the names        
+                robot_name = root.name.split()[0]
+                package_name = robot_name
 
-            # set the names        
-            robot_name = root.name.split()[0]
-            package_name = robot_name
+                save_dir = export_path + '/' + package_name
+        
+                try: os.makedirs(save_dir)
+                except: pass  
 
-            save_dir = export_path + '/' + package_name
-    
-            try: os.makedirs(save_dir)
-            except: pass  
-
-            package_dir = os.path.abspath(os.path.dirname(__file__)) + '/package/'
+                package_dir = os.path.abspath(os.path.dirname(__file__)) + '/package/'
 
 
-            # run motion planning
-            joints_dict, msg = make_joints_dict(root,msg)
-            if msg != success_msg:
-                ui.messageBox(
-                    msg,
-                    title,
-                    adsk.core.MessageBoxButtonTypes.OKCancelButtonType
-                )
-                # Generate inertial_dict
-            inertial_dict, msg = make_inertial_dict(root, msg)
-            if msg != success_msg:
-                ui.messageBox(
-                    msg,
-                    title,
-                    adsk.core.MessageBoxButtonTypes.OKCancelButtonType
-                )
-                return 0
-            elif not 'link_0_1' in inertial_dict:
-                msg = 'There is no base_link. Please set base_link and run again.'
-                ui.messageBox(
-                    msg,
-                    title,
-                    adsk.core.MessageBoxButtonTypes.OKCancelButtonType
-                )
-                return 0
-            
-            links_xyz_dict = {}
-            
-            # --------------------
-            # Generate STL FILES
-            export_stl(design, save_dir, root, robot_name)
+                # run motion planning
+                joints_dict, msg = make_joints_dict(root,msg)
+                if msg != success_msg:
+                    ui.messageBox(
+                        msg,
+                        title,
+                        adsk.core.MessageBoxButtonTypes.OKCancelButtonType
+                    )
+                    # Generate inertial_dict
+                inertial_dict, msg = make_inertial_dict(root, msg)
+                if msg != success_msg:
+                    ui.messageBox(
+                        msg,
+                        title,
+                        adsk.core.MessageBoxButtonTypes.OKCancelButtonType
+                    )
+                    return 0
+                elif not 'link_0_1' in inertial_dict:
+                    msg = 'There is no base_link. Please set base_link and run again.'
+                    ui.messageBox(
+                        msg,
+                        title,
+                        adsk.core.MessageBoxButtonTypes.OKCancelButtonType
+                    )
+                    return 0
+                
+                links_xyz_dict = {}
+                
+                # --------------------
+                # Generate STL FILES
+                export_stl(design, save_dir, root, robot_name)
 
-            payload = json.dumps({
-                "joints_dict": joints_dict,
-                "links_xyz_dict": links_xyz_dict,
-                "inertial_dict": inertial_dict,
-                "package_name": package_name,
-                "robot_name": robot_name,
-                "save_dir": save_dir,
-                "export_path": export_path
-            }).encode('utf-8')
-            # POST the payload to the backend server
+                payload = json.dumps({
+                    "joints_dict": joints_dict,
+                    "links_xyz_dict": links_xyz_dict,
+                    "inertial_dict": inertial_dict,
+                    "package_name": package_name,
+                    "robot_name": robot_name,
+                    "save_dir": save_dir,
+                    "export_path": export_path
+                }).encode('utf-8')
+                # POST the payload to the backend server
 
-            # check for task list in backend first and only send request if no tasks are running
-            req = urllib.request.Request("http://127.0.0.1:8000/bo/store-mp-files")
-            req.add_header("Content-Type", "application/json; charset=utf-8")
-            req.add_header("Content-Length", len(payload))
-            response = urllib.request.urlopen(req, payload)
-            
-            raw_response = response.read().decode()
-            print(raw_response)
-            response_data = json.loads(raw_response)
-            task_id = response_data['task_id']
+                # check for task list in backend first and only send request if no tasks are running
+                req = urllib.request.Request("http://127.0.0.1:8000/bo/store-mp-files")
+                req.add_header("Content-Type", "application/json; charset=utf-8")
+                req.add_header("Content-Length", len(payload))
+                response = urllib.request.urlopen(req, payload)
+                
+                raw_response = response.read().decode()
+                print(raw_response)
+                response_data = json.loads(raw_response)
+                task_id = response_data['task_id']
 
-            status_req = urllib.request.Request(f"http://127.0.0.1:8000/bo/{task_id}/status")
-            motion_planning_progress_dialog = ui.createProgressDialog()
-            motion_planning_progress_dialog.show("Experiment in Progress", "Running Experiment...", 0, 1)
-            # loop to check the status of the task
-            success = False
-            once = True
-            if motion_planning_progress_dialog is not None:
-                previous_max = motion_planning_progress_dialog.maximumValue
-                previous_progress = motion_planning_progress_dialog.progressValue
-                previous_msg = motion_planning_progress_dialog.message
-            while not success:
-                response = urllib.request.urlopen(status_req)
-                response_data = json.loads(response.read().decode())
-                if "total_time" in response_data:
-                    success = True
-                    print(f"Task completed in {response_data['total_time']} seconds.")
-                    print(f"success_rate: {response_data['success_rate']}")
-                    print(f"success_list: {response_data['success_list']}")
-                elif 'error' in response_data:
-                    success = False
-                if not success:
-                    if (motion_planning_progress_dialog is not None) and once:
-                        once = False
-                        motion_planning_progress_dialog.message = (
-                            motion_planning_progress_dialog.message + "\n\nWaiting for Motion Planning..."
-                        )
-                        motion_planning_progress_dialog.maximumValue = 1000
-                        motion_planning_progress_dialog.progressValue = 0
-                    if motion_planning_progress_dialog is not None:
-                        motion_planning_progress_dialog.progressValue += (
-                            1 if motion_planning_progress_dialog.progressValue < 999 else -1
-                        )
-                    do_events_for_duration(0.01)  # Allow the main thread to process events
-                    ui.activeSelections.clear()
-                    adsk.doEvents()
-            if motion_planning_progress_dialog is not None:
-                motion_planning_progress_dialog.maximumValue = previous_max
-                motion_planning_progress_dialog.progressValue = previous_progress
-                motion_planning_progress_dialog.message = previous_msg
+                status_req = urllib.request.Request(f"http://127.0.0.1:8000/bo/{task_id}/status")
+                motion_planning_progress_dialog = ui.createProgressDialog()
+                motion_planning_progress_dialog.show("Experiment in Progress", "Running Experiment...", 0, 1)
+                # loop to check the status of the task
+                success = False
+                once = True
+                if motion_planning_progress_dialog is not None:
+                    previous_max = motion_planning_progress_dialog.maximumValue
+                    previous_progress = motion_planning_progress_dialog.progressValue
+                    previous_msg = motion_planning_progress_dialog.message
+                while not success:
+                    response = urllib.request.urlopen(status_req)
+                    response_data = json.loads(response.read().decode())
+                    if "total_time" in response_data:
+                        success = True
+                        print(f"Task completed in {response_data['total_time']} seconds.")
+                        print(f"success_rate: {response_data['success_rate']}")
+                        print(f"success_list: {response_data['success_list']}")
+                    elif 'error' in response_data:
+                        success = False
+                    if not success:
+                        if (motion_planning_progress_dialog is not None) and once:
+                            once = False
+                            motion_planning_progress_dialog.message = (
+                                motion_planning_progress_dialog.message + "\n\nWaiting for Motion Planning..."
+                            )
+                            motion_planning_progress_dialog.maximumValue = 1000
+                            motion_planning_progress_dialog.progressValue = 0
+                        if motion_planning_progress_dialog is not None:
+                            motion_planning_progress_dialog.progressValue += (
+                                1 if motion_planning_progress_dialog.progressValue < 999 else -1
+                            )
+                        do_events_for_duration(0.01)  # Allow the main thread to process events
+                        ui.activeSelections.clear()
+                        adsk.doEvents()
+                if motion_planning_progress_dialog is not None:
+                    motion_planning_progress_dialog.maximumValue = previous_max
+                    motion_planning_progress_dialog.progressValue = previous_progress
+                    motion_planning_progress_dialog.message = previous_msg
 
-            motion_planning_progress_dialog.hide()
+                motion_planning_progress_dialog.hide()
 
-            # tell score to bo
-            request_dict = {
-                "result": 1 - response_data['success_rate'],
-                "synthesis_vector": [cur_motors, cur_extrusions],
-                "experiment_id": experiment_parameters["experiment_id"],
-            }
-            payload = json.dumps(
-                request_dict,
-                indent=4,
-            ).encode("utf-8")
-            print("Send request")
-            print(request_dict)
-            req = urllib.request.Request("http://127.0.0.1:8000/bo/update-with-result")
-            req.add_header("Content-Type", "application/json; charset=utf-8")
-            req.add_header("Content-Length", len(payload))
-            response = urllib.request.urlopen(req, payload)
-            print(response.read().decode())
-            progress_dialog.progressValue += 1
+                # tell score to bo
+                request_dict = {
+                    "result": (1 - response_data['success_rate']) * 0.6 + (lowest_cost / experiment_parameters["maximum_cost"]) * 0.4,
+                    "synthesis_vector": [cur_motors, cur_extrusions],
+                    "experiment_id": experiment_parameters["experiment_id"],
+                }
+                payload = json.dumps(
+                    request_dict,
+                    indent=4,
+                ).encode("utf-8")
+                print("Send request")
+                print(request_dict)
+                req = urllib.request.Request("http://127.0.0.1:8000/bo/update-with-result")
+                req.add_header("Content-Type", "application/json; charset=utf-8")
+                req.add_header("Content-Length", len(payload))
+                response = urllib.request.urlopen(req, payload)
+                print(response.read().decode())
+                progress_dialog.progressValue += 1
     # end of loop
     progress_dialog.hide()
 

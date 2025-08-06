@@ -207,7 +207,7 @@ def create_ground_joint(ground_joint_origin):
     joint.isLightBulbOn = False
     return joint
 
-def request_cheapest(request_id):
+def request_cheapest(request_id, maximum_cost):
     """
     Requests the cheapest assembly from the backend. This is done by sending a message
     to the endpoint /results/{project_id}/{request_id}/cheapest"""
@@ -223,17 +223,20 @@ def request_cheapest(request_id):
     }
     payload = json.dumps(request_dict).encode("utf-8")
     req = urllib.request.Request(
-        f"{config.SERVER_URL}/results/{active_id}/{request_id}/cheapest",
+        f"{config.SERVER_URL}/results/{active_id}/{request_id}/cheapest/{maximum_cost}",
         headers={"Content-Type": "application/json; charset=utf-8"},
         method="GET")
     response = urllib.request.urlopen(req, payload)
     response_data = response.read().decode()
+    if "FAIL" in response_data:
+        return "FAIL"
     message_data: dict = json.loads(response_data)
-
+    lowest_cost = message_data["lowest_cost"]
+    assembly_document_data = message_data["message_data"]
     name = generate_id()
 
-    create_assembly_document(message_data, name)
-    return name
+    create_assembly_document(assembly_document_data, name)
+    return name, lowest_cost
 
 
 def buckets_saved_handler(args: adsk.core.DataEventArgs):
