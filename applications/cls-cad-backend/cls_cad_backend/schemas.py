@@ -70,8 +70,8 @@ class TellResultRequestInf(BaseModel, frozen=True):
 
 class InitBORequestInf(BaseModel, frozen=True):
     experiment_id: str
-    search_space_motors: tuple[int, int]
-    search_space_extrusions: tuple[int, int]
+    search_space: list[tuple[int,int]]
     init_n_points: int
     initial_state: int | None = None
     iterations: int
+    

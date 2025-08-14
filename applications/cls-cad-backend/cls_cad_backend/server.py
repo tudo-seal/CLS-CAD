@@ -113,9 +113,7 @@ async def initialize_bo(
     global state_machine
     global iterations
     payload_dict = payload.model_dump(by_alias=True)
-    search_space = [payload_dict["search_space_motors"],
-                    payload_dict["search_space_extrusions"],
-                    payload_dict["search_space_rotary_joints"]]
+    search_space = payload_dict["search_space"]
     # Initialize the state machine with the search space
     state_machine = SkoptOptimizer(
         search_space=search_space,
@@ -330,9 +328,7 @@ def write_robot_description_files(data: dict) -> None:
     source_prefix = "source /opt/ros/noetic/setup.bash && source /ros_ws/devel/setup.bash"
     catkin_make_command = "catkin_make"
     roslaunch_command = "roslaunch moveit_configs demo.launch"
-    cd_to_motion_planning_command = "cd src/motion_planning && python3 add_box.py && python3 move_group_2.py"
-    add_box_command = 'python3 add_box.py'
-    move_group_command = 'python3 move_group_2.py'
+    cd_to_motion_planning_command = "cd src/motion_planning && python3 add_box.py && python3 move_group_nice.py"
     cat_result_command = 'cd src/motion_planning && cat total_time.txt'
 
     try:
@@ -373,28 +369,10 @@ def write_robot_description_files(data: dict) -> None:
     # TODO: REMOVE THIS SIMULATION PART
     # result = "313.09,[1,0,1,1,0,0,1,0]"  # Simulated result for testing purposes
     
-    
-    """print(docker_build(docker_image_name, dockerfile_dir='../../cls-cad-ros-container'))
-    print(docker_run(docker_image_name, local_src_path, container_src_path))
-    print(exec_commands(docker_image_name, 'roslaunch moveit_configs demo.launch'))
-    print(exec_commands(docker_image_name, 'cd /src/motion_planning'))
-    print(exec_commands(docker_image_name, 'python3 add_box.py'))
-    print(exec_commands(docker_image_name, 'python3 move_group_2.py'))
-    result = exec_and_capture(docker_image_name, 'cat total_time.txt')"""
     total_time, success_list = result.split(',', 1)
     total_time = float(total_time)
     success_list = [int(b) for b in success_list.strip('[]').split(',')]
     success_rate = sum(success_list) / len(success_list) if success_list else 0
-    
-    """# BO RELEVANT CODE
-    # asks for new parameters
-    state_machine.suggest()
-    # tells optimizer about result
-    state_machine.observe(params=(6,5),result=sum(success_list) / len(success_list))
-    state_machine.save_state(f"state_{project_id}_{experiment_id}.pkl")
-    state_machine.reset()
-    state_machine.load_state(f"state_{project_id}_{experiment_id}.pkl")
-    # END BO RELEVANT CODE"""
     
     
     result = {"total_time": total_time, "success_list": success_list, "success_rate": success_rate}
@@ -547,6 +525,7 @@ async def get_experiment_result_list(
         "state": state_machine.status(),
         "best_params": [int(x) for x in state_machine.best_params()],
         "suggested_params": [tuple(int(i) for i in p) for p in state_machine._suggested],
+        "iterations": state_machine.status()["iterations"]
     }
     return results
 
@@ -834,7 +813,7 @@ async def cheapest_assembly_for_id(
         if lowest_cost is None and result["cost"] <= max:
             lowest_cost = result["cost"]
             lowest_cost_index = result_index
-        if result["cost"] < lowest_cost and result["cost"] <= max:
+        if lowest_cost is not None and result["cost"] < lowest_cost and result["cost"] <= max:
             lowest_cost = result["cost"]
             lowest_cost_index = result_index
     if lowest_cost is None:

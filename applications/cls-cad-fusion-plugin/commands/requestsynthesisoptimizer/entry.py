@@ -147,7 +147,7 @@ def command_destroy(args: adsk.core.CommandEventArgs):
     requested_vector = []
     futil.log(f"{CMD_NAME} Command Destroy Event")
 
-def synthesize_with_vector(input_vector):
+def synthesize_with_vector(input_dict):
     """
     This method requests a synthesis from the backend using a predicate vector.
     input_vector[0] = #of Dynamixel motors parts
@@ -159,23 +159,24 @@ def synthesize_with_vector(input_vector):
     request_dict = {
         "target": ["Base_parts"],
         "partCounts": [
+        part for part in [
             {
-                "partNumber": input_vector[0],
+                "partNumber": input_dict["motor_count"],
                 "partCountName": "Dynamixel_parts",
                 "partType": ["Dynamixel_parts"],
-            },
+            } if "motor_count" in input_dict else {},
             {
-                "partNumber": input_vector[1],
+                "partNumber": input_dict["extrusion_count"],
                 "partCountName": "40mm_attributes",
                 "partType": ["40mm_attributes"]
-            },
+            } if "extrusion_count" in input_dict else {},
             {
-                "partNumber": input_vector[2],
-                "partCountName": "AxisRotaryJoint_Intent_attributes",
-                "partType": ["AxisRotaryJoint_Intent_attributes"]
-            }
-
-        ],
+                "partNumber": input_dict["rotary_joint_count"],
+                "partCountName": "Dynamixel_parts-AxisRotaryJoint_Intent_attributes",
+                "partType": ["Dynamixel_parts", "AxisRotaryJoint_Intent_attributes"]
+            } if "rotary_joint_count" in input_dict else {}
+        ] if part
+            ],
         "optimizeAssembly": "True",
         "forgeProjectId": app.activeDocument.dataFile.parentProject.id
         if app.activeDocument.dataFile is not None

@@ -34,9 +34,8 @@ ICON_FOLDER = os.path.join(os.path.dirname(__file__), "resources", "")
 local_handlers = []
 experiment_parameters = {
     "iterations": 5,
-    "search_space_extrusions": (0, 5),
-    "search_space_motors": (0, 7),
-    "search_space_rotary_joints": (0, 10),
+    "search_space": [
+    ],
     "maximum_cost": 1000,
     "initial_state": None,
     "initial_n_points": 0,
@@ -659,28 +658,43 @@ def command_execute(args: adsk.core.CommandEventArgs):
         return
     experiment_parameters["maximum_cost"] = int(maximum_cost)
 
-    (search_space_extrusions, cancelled) = ui.inputBox(
-            "Please enter minimum and max count for extrusions (comma separated, e.g. 0,5)",
-            "Run New Experiment",
-            str(experiment_parameters["search_space_extrusions"]),
-    )
-
-    if cancelled:
-        return
-
-    experiment_parameters["search_space_extrusions"] = tuple(map(int, search_space_extrusions.split(",")))
+    experiment_parameters['search_space'] = []
 
     (search_space_motors, cancelled) = ui.inputBox(
             "Please enter minimum and max count for motors (comma separated, e.g. 0,7)",
             "Run New Experiment",
-            str(experiment_parameters["search_space_motors"]),
+            "0,7",
     )
 
     if cancelled:
         return
 
-    experiment_parameters["search_space_motors"] = tuple(map(int, search_space_motors.split(",")))
+    if search_space_motors != "":
+        experiment_parameters["search_space"].append({"motor_count": tuple(map(int, search_space_motors.split(",")))})
 
+    (search_space_extrusions, cancelled) = ui.inputBox(
+            "Please enter minimum and max count for extrusions (comma separated, e.g. 0,5)",
+            "Run New Experiment",
+            "0,5",
+    )
+
+    if cancelled:
+        return
+    if search_space_extrusions != "":
+        experiment_parameters["search_space"].append({"extrusion_count": tuple(map(int, search_space_extrusions.split(",")))})
+
+    (search_space_rotary_joints, cancelled) = ui.inputBox(
+            "Please enter minimum and max count for rotary joints (comma separated, e.g. 0,3)",
+            "Run New Experiment",
+            "0,3",
+    )
+
+    if cancelled:
+        return
+    if search_space_rotary_joints != "":
+        experiment_parameters["search_space"].append({"rotary_joint_count": tuple(map(int, search_space_rotary_joints.split(",")))})
+
+    
     (initial_state, cancelled) = ui.inputBox(
             "Please enter initial state",
             "Run New Experiment",
@@ -691,17 +705,6 @@ def command_execute(args: adsk.core.CommandEventArgs):
         return
     
     experiment_parameters["initial_state"] = int(initial_state)
-    
-    (search_space_rotary_joints, cancelled) = ui.inputBox(
-            "Please enter minimum and max count for rotary joints (comma separated, e.g. 0,3)",
-            "Run New Experiment",
-            str(experiment_parameters["search_space_rotary_joints"]),
-    )
-
-    if cancelled:
-        return
-    experiment_parameters["search_space_rotary_joints"] = tuple(map(int, search_space_rotary_joints.split(",")))
-
     
 
     (initial_n_points, cancelled) = ui.inputBox(
@@ -717,15 +720,16 @@ def command_execute(args: adsk.core.CommandEventArgs):
     futil.log(f"Experiment parameters: {experiment_parameters}")
 
     # call backend
-
+    search_space_list = []
+    for item in experiment_parameters["search_space"]:
+        for key, value in item.items():
+            search_space_list.append(value)
     payload = json.dumps({
         "iterations": experiment_parameters["iterations"],
         "init_n_points": experiment_parameters["initial_n_points"],
         "initial_state": experiment_parameters["initial_state"],
         "experiment_id": experiment_parameters["experiment_id"],
-        "search_space_extrusions": experiment_parameters["search_space_extrusions"],
-        "search_space_motors": experiment_parameters["search_space_motors"],
-        "search_space_rotary_joints": experiment_parameters["search_space_rotary_joints"]
+        "search_space": search_space_list,
     }).encode('utf-8')
     # POST the payload to the backend server
 
@@ -753,10 +757,17 @@ def command_execute(args: adsk.core.CommandEventArgs):
         cur_vec_response_data = json.loads(cur_vec_response.read().decode())
         print(cur_vec_response_data)
         futil.log(f"Request for optimal vector sent for experiment {experiment_id} returned: {cur_vec_response_data}")
-        cur_motors = int(cur_vec_response_data['new_suggestion'][0])
-        cur_extrusions = int(cur_vec_response_data['new_suggestion'][1])
         # synthesize with vector
-        synth_with_vec_response = synthesize_with_vector([cur_motors, cur_extrusions])
+        synthesis_vector = [int(x) for x in cur_vec_response_data['new_suggestion']]
+        synthesis_dict = {}
+        index = 0
+        # keys in experiment_parameters["search_space"] are motor_count, extrusion_count, rotary_joint_count
+        for item in experiment_parameters["search_space"]:
+            for key, value in item.items():
+                synthesis_dict[key] = synthesis_vector[index]
+                index += 1
+
+        synth_with_vec_response = synthesize_with_vector(synthesis_dict)
 
         # if synth fails tell score 1
         if "FAIL" in synth_with_vec_response:
@@ -764,7 +775,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
             # tell optimizer bad score
             request_dict = {
                 "result": 1,
-                "synthesis_vector": [cur_motors, cur_extrusions],
+                "synthesis_vector": synthesis_vector,
                 "experiment_id": experiment_id,
             }
             payload = json.dumps(
@@ -785,14 +796,13 @@ def command_execute(args: adsk.core.CommandEventArgs):
             # wait for the assembly to be inserted into database
             # sys wait(5)  # wait for 5 seconds
             print("Waiting for assembly to be inserted into database")
-            do_events_for_duration(5)  # wait for 5 seconds
             request_cheapest_response, lowest_cost = request_cheapest(assembly_id, experiment_parameters["maximum_cost"])
             if "FAIL" in request_cheapest_response:
                 print("Request for cheapest assembly failed")
                 # tell optimizer bad score
                 request_dict = {
                     "result": 1,
-                    "synthesis_vector": [cur_motors, cur_extrusions],
+                    "synthesis_vector": synthesis_vector,
                     "experiment_id": experiment_id,
                 }
                 payload = json.dumps(
@@ -926,7 +936,7 @@ def command_execute(args: adsk.core.CommandEventArgs):
                 # tell score to bo
                 request_dict = {
                     "result": (1 - response_data['success_rate']) * 0.6 + (lowest_cost / experiment_parameters["maximum_cost"]) * 0.4,
-                    "synthesis_vector": [cur_motors, cur_extrusions],
+                    "synthesis_vector": synthesis_vector,
                     "experiment_id": experiment_parameters["experiment_id"],
                 }
                 payload = json.dumps(

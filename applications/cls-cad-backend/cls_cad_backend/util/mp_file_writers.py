@@ -58,7 +58,7 @@ def setup_cmakelists(save_dir, package_name, robot_name):
     :param save_dir: Path to the directory where CMakeLists.txt should be saved.
     """
     catkin_INCLUDE_DIRS = "${catkin_INCLUDE_DIRS}"
-    cmake_content = f"""cmake_minimum_required(VERSION 2.8.3)
+    cmake_content = f"""cmake_minimum_required(VERSION 3.5.0)
 project({package_name})
 
 find_package(catkin REQUIRED COMPONENTS
@@ -899,21 +899,21 @@ def write_kinematics_yaml(save_dir):
     with open(file_name, 'w') as f:
         f.write('my_arm:\n')
         f.write('  kinematics_solver: kdl_kinematics_plugin/KDLKinematicsPlugin\n')
-        f.write('  kinematics_solver_attempts: 100\n')
+        f.write('  kinematics_solver_attempts: 200\n')
         f.write('  kinematics_solver_search_resolution: 0.005\n')
         f.write('  kinematics_solver_timeout: 0.1\n')
         f.write('  position_only_ik: True\n')
         
         f.write('\nmy_robot_top_group:\n')
         f.write('  kinematics_solver: kdl_kinematics_plugin/KDLKinematicsPlugin\n')
-        f.write('  kinematics_solver_attempts: 100\n')
+        f.write('  kinematics_solver_attempts: 200\n')
         f.write('  kinematics_solver_search_resolution: 0.005\n')
         f.write('  kinematics_solver_timeout: 0.1\n')
         f.write('  position_only_ik: True\n')
 
         f.write('\nmy_effector:\n')
         f.write('  kinematics_solver: kdl_kinematics_plugin/KDLKinematicsPlugin\n')
-        f.write('  kinematics_solver_attempts: 100\n')
+        f.write('  kinematics_solver_attempts: 200\n')
         f.write('  kinematics_solver_search_resolution: 0.005\n')
         f.write('  kinematics_solver_timeout: 0.1\n')
         f.write('  position_only_ik: True\n')
@@ -985,13 +985,16 @@ def write_srdf(package_name, robot_name, save_dir, joints_dict, links_xyz_dict):
         f.write('    <group_state name="closed" group="my_effector">\n')
         f.write('        <joint name="{}" value="0.9666"/>\n'.format(list(joints_dict.items())[-1][0]))
         f.write('    </group_state>\n')
-
-        f.write('    END_EFFECTOR: Purpose: Represent information about an end effector.-->\n')
+        f.write('    <group_state name="home" group="my_robot_top_group">\n')
+        for joint in dict(list(joints_dict.items())[1:]):
+            f.write('        <joint name="{}" value="0"/>\n'.format(joint))
+        f.write('    </group_state>\n')
+        f.write('    <!--END_EFFECTOR: Purpose: Represent information about an end effector.-->\n')
         f.write('    <end_effector name="my_end_effector" parent_link="{}" group="my_effector" parent_group="my_arm"/>\n'.format(list(links_xyz_dict.items())[-2][0]))
         
         f.write('    <!--VIRTUAL JOINT: Purpose: this element defines a virtual joint between a robot link and an external frame of reference (considered fixed with respect to the robot)-->\n')
         f.write('    <virtual_joint name="world_joint" type="fixed" parent_frame="world" child_link="{}"/>\n'.format(list(links_xyz_dict.items())[0][0]))
-        f.write('    DISABLE COLLISIONS: By default it is assumed that any link of the robot could potentially come into collision with any other link in the robot. This tag disables collision checking between a specified pair of links.-->\n')
+        f.write('    <!--DISABLE COLLISIONS: By default it is assumed that any link of the robot could potentially come into collision with any other link in the robot. This tag disables collision checking between a specified pair of links.-->\n')
         for i in range(len(links_xyz_dict) - 1):
             f.write('    <disable_collisions link1="{}" link2="{}" reason="Adjacent"/>\n'.format(list(links_xyz_dict.items())[i][0], list(links_xyz_dict.items())[i+1][0]))
         f.write('</robot>\n')
@@ -1018,16 +1021,21 @@ def write_ompl_planning_yaml(save_dir):
         f.write('    delay_collision_checking: 1  # Stop collision checking as soon as C-free parent found. default 1\n')
         f.write('    optimization_objective: PathLengthOptimizationObjective\n')
         f.write('    min_valid_path_fraction: 0.05\n')
+        f.write('    termination_condition: CostConvergence[10,.1]\n')
+        f.write('    longest_valid_segment_fraction: 0.001\n')
     
         f.write('my_arm:\n')
+        f.write('  default_planner_config: RRTstar\n')
         f.write('  planner_configs:\n')
         f.write('    - RRTstar\n')
         
         f.write('my_effector:\n')
+        f.write('  default_planner_config: RRTstar\n')
         f.write('  planner_configs:\n')
         f.write('    - RRTstar\n')
         
         f.write('my_robot_top_group:\n')
+        f.write('  default_planner_config: RRTstar\n')
         f.write('  planner_configs:\n')
         f.write('    - RRTstar\n')
 

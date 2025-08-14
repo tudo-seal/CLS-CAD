@@ -4,6 +4,7 @@ import pickle
 import base64
 import json
 from skopt import Optimizer
+from skopt.plots import plot_gaussian_process
 
 class SkoptOptimizer:
     def __init__(self, search_space, base_estimator='GP', n_initial_points=5, random_state=None):
@@ -55,6 +56,17 @@ class SkoptOptimizer:
             "iterations": len(self._results),
             "best_score": min(self.optimizer.yi) if self.optimizer.yi else None,
         }
+    
+    def plot(self):
+        if not self.optimizer.yi:
+            raise RuntimeError("No observations to plot.")
+        plot_args = {
+            "show_legend": True,
+            "show_title": True,
+            "show_next_point": False,
+            "show_acq_func": True
+        }
+        _ = plot_gaussian_process(self.optimizer.get_result(), **plot_args)
 
     def reset(self):
         self._ask_queue.clear()
