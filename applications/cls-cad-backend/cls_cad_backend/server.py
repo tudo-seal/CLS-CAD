@@ -328,7 +328,7 @@ def write_robot_description_files(data: dict) -> None:
     source_prefix = "source /opt/ros/noetic/setup.bash && source /ros_ws/devel/setup.bash"
     catkin_make_command = "catkin_make"
     roslaunch_command = "roslaunch moveit_configs demo.launch"
-    cd_to_motion_planning_command = "cd src/motion_planning && python3 add_box.py && python3 move_group_nice.py"
+    cd_to_motion_planning_command = "cd src/motion_planning && python3 move_group_nice.py"
     cat_result_command = 'cd src/motion_planning && cat total_time.txt'
 
     try:
@@ -419,7 +419,16 @@ async def store_mp_files(
         #return http error for busy
         return {"error": "A task is already running, please wait until it is finished."}
     task_list.append({"task_id": task_id, "status": "Processing started"})
-
+    """write_robot_description_files({
+            "task_id": task_id,
+            "joints_dict": joints_dict,
+            "links_xyz_dict": links_xyz_dict,
+            "inertial_dict": inertial_dict,
+            "package_name": package_name,
+            "robot_name": robot_name,
+            "save_dir": save_dir,
+            "export_path": export_path
+    })"""
     background_tasks.add_task(
         write_robot_description_files,
         {

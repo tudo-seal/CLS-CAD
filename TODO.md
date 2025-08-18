@@ -1,5 +1,11 @@
 # Aktuelle Todos
 
+18.8
+search space
+0 7 motors
+0 6 extrusions
+0 2 rotary joint intents
+
 30.7 TODOS
 cost of roboter skalarisieren -> durchreichen
 anderes szenario für motion planning:

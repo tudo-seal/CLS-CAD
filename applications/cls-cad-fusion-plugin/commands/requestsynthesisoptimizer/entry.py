@@ -172,8 +172,8 @@ def synthesize_with_vector(input_dict):
             } if "extrusion_count" in input_dict else {},
             {
                 "partNumber": input_dict["rotary_joint_count"],
-                "partCountName": "Dynamixel_parts-AxisRotaryJoint_Intent_attributes",
-                "partType": ["Dynamixel_parts", "AxisRotaryJoint_Intent_attributes"]
+                "partCountName": "AxisRotaryJoint_Intent_attributes",
+                "partType": ["AxisRotaryJoint_Intent_attributes"]
             } if "rotary_joint_count" in input_dict else {}
         ] if part
             ],
