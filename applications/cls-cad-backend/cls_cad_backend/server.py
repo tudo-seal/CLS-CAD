@@ -78,6 +78,7 @@ cache = {}
 search_space = [(0,7),(0,5), (0,10)]
 state_machine = SkoptOptimizer(search_space)
 task_list = []
+experiment_parameters = {}
 
 @app.post("/submit/part")
 async def save_part(
@@ -112,8 +113,10 @@ async def initialize_bo(
     """
     global state_machine
     global iterations
+    global experiment_parameters
     payload_dict = payload.model_dump(by_alias=True)
     search_space = payload_dict["search_space"]
+    experiment_parameters = payload_dict["experiment_parameters"]
     # Initialize the state machine with the search space
     state_machine = SkoptOptimizer(
         search_space=search_space,
@@ -125,7 +128,8 @@ async def initialize_bo(
     experiment_id = payload_dict["experiment_id"]
     bo_experiment = {
         "_id": experiment_id,
-        "classdata": state_machine_class_data
+        "classdata": state_machine_class_data,
+        "experiment_parameters": experiment_parameters
     }
     upsert_bo_experiment(bo_experiment)
 
@@ -141,6 +145,8 @@ async def optimal_vector(
 
     :return: Returns new suggestion when successful.
     """
+    global experiment_parameters
+    global state_machine
     try:
         new_suggestion = state_machine.suggest()
     except RuntimeError as e:
@@ -148,7 +154,8 @@ async def optimal_vector(
     state_machine_class_data = state_machine.get_classdata()
     bo_experiment = {
         "_id": experiment_id,
-        "classdata": state_machine_class_data
+        "classdata": state_machine_class_data,
+        "experiment_parameters": experiment_parameters
     }
     upsert_bo_experiment(bo_experiment)
     return {"new_suggestion": [int(x) for x in new_suggestion]}
@@ -166,12 +173,17 @@ async def load_bo_state(
     :return: Returns "OK" when successful, else returns a 422 response code if payload
         didn't pass validation.
     """
-    
+    global experiment_parameters
+    global state_machine
     get_classdata = get_bo_experiment_for_experiment_id(experiment_id)
     if get_classdata is None:
         return {"error": "Experiment not found"}
     state_machine = SkoptOptimizer.load_state(get_classdata['classdata'])
-    return "OK"
+    cur_iteration = len(state_machine._suggested)
+    experiment_parameters = get_classdata["experiment_parameters"]
+    return {"experiment_parameters": experiment_parameters,
+            "current_iteration": cur_iteration,
+            "last_suggestion": [int(x) for x in state_machine._suggested[-1]]}
 
 @app.get("/bo/{task_id}/status")
 async def get_task_status(
@@ -328,7 +340,7 @@ def write_robot_description_files(data: dict) -> None:
     source_prefix = "source /opt/ros/noetic/setup.bash && source /ros_ws/devel/setup.bash"
     catkin_make_command = "catkin_make"
     roslaunch_command = "roslaunch moveit_configs demo.launch"
-    cd_to_motion_planning_command = "cd src/motion_planning && python3 move_group_nice.py"
+    cd_to_motion_planning_command = "cd src/motion_planning && python3 move_group_large.py"
     cat_result_command = 'cd src/motion_planning && cat total_time.txt'
 
     try:
@@ -463,27 +475,6 @@ async def motion_planning(
     """
     return "OK"
 
-@app.get("/bo/results/{project_id}/{experiment_id}/{request_id}/motion-planning")
-async def motion_planning_results(
-    project_id: str,
-    experiment_id: str,
-    request_id: str,
-):
-    """
-    Retrieves the motion planning results for a specific project, experiment and request.
-
-    :param project_id: The project id for which the motion planning results should be
-        retrieved.
-    :param experiment_id: The experiment id for which the motion planning results should
-        be retrieved.
-    :param request_id: The request id for which the motion planning results should be
-        retrieved.
-    :return: Returns motion planning stats when successful, else returns a 422 response code if payload
-        didn't pass validation.
-    """
-    data = {}
-    return data
-
 @app.post("/bo/update-with-result")
 async def update_with_result(
     payload: TellResultRequestInf,
@@ -495,9 +486,12 @@ async def update_with_result(
     :return: Returns "OK" when successful, else returns a 422 response code if payload
         didn't pass validation.
     """
+    global state_machine
+    global experiment_parameters
     payload_dict = payload.model_dump(by_alias=True)
     vector_used = payload_dict["synthesis_vector"]
     result = payload_dict["result"]
+    experiment_parameters = payload_dict["experiment_parameters"]
     try:
         state_machine.observe(params=vector_used, result=result)
     except RuntimeError as e:
@@ -505,7 +499,8 @@ async def update_with_result(
     state_machine_class_data = state_machine.get_classdata()
     bo_experiment = {
         "_id": payload.experiment_id,
-        "classdata": state_machine_class_data
+        "classdata": state_machine_class_data,
+        "experiment_parameters": experiment_parameters
     }
     upsert_bo_experiment(bo_experiment)
     return "OK"

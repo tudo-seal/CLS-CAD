@@ -21,9 +21,9 @@ app = adsk.core.Application.get()
 ui = app.userInterface
 joint = None
 
-CMD_ID = f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_run_experiment"
-CMD_NAME = "Run Experiment"
-CMD_DESCRIPTION = "Run the experiment with the current settings."
+CMD_ID = f"{config.COMPANY_NAME}_{config.ADDIN_NAME}_continue_experiment"
+CMD_NAME = "Continue Experiment"
+CMD_DESCRIPTION = "Continue the experiment with the current settings."
 IS_PROMOTED = True
 WORKSPACE_ID = "FusionSolidEnvironment"
 PANEL_ID = "CRAWL"
@@ -33,13 +33,6 @@ ICON_FOLDER = os.path.join(os.path.dirname(__file__), "resources", "")
 
 local_handlers = []
 experiment_parameters = {
-    "iterations": 5,
-    "search_space": [
-    ],
-    "maximum_cost": 1000,
-    "initial_state": None,
-    "initial_n_points": 0,
-    "score_weight": 0.6
 }
 progress_dialog: adsk.core.ProgressDialog = None
 export_path = ""
@@ -639,128 +632,19 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
     experiment_parameters["experiment_id"] = experiment_id
 
-    (iterations, cancelled) = ui.inputBox(
-            "Please enter number of iterations",
-            "Run New Experiment",
-            str(experiment_parameters["iterations"]),
-    )
-
-    if cancelled:
-        return
-
-    experiment_parameters["iterations"] = int(iterations)
-
-    (maximum_cost, cancelled) = ui.inputBox(
-            "Please enter maximum cost for the experiment (e.g. 1000)",
-            "Run New Experiment",
-            str(experiment_parameters["maximum_cost"]),
-    )
-    if cancelled:
-        return
-    experiment_parameters["maximum_cost"] = int(maximum_cost)
-
-    experiment_parameters['search_space'] = []
-
-    (search_space_motors, cancelled) = ui.inputBox(
-            "Please enter minimum and max count for motors (comma separated, e.g. 0,7)",
-            "Run New Experiment",
-            "0,7",
-    )
-
-    if cancelled:
-        return
-
-    if search_space_motors != "":
-        experiment_parameters["search_space"].append({"motor_count": tuple(map(int, search_space_motors.split(",")))})
-
-    (search_space_extrusions, cancelled) = ui.inputBox(
-            "Please enter minimum and max count for extrusions (comma separated, e.g. 0,5)",
-            "Run New Experiment",
-            "0,5",
-    )
-
-    if cancelled:
-        return
-    if search_space_extrusions != "":
-        experiment_parameters["search_space"].append({"extrusion_count": tuple(map(int, search_space_extrusions.split(",")))})
-
-    (search_space_rotary_joints, cancelled) = ui.inputBox(
-            "Please enter minimum and max count for rotary joints (comma separated, e.g. 0,3)",
-            "Run New Experiment",
-            "0,3",
-    )
-
-    if cancelled:
-        return
-    if search_space_rotary_joints != "":
-        experiment_parameters["search_space"].append({"rotary_joint_count": tuple(map(int, search_space_rotary_joints.split(",")))})
-
-    
-    (initial_state, cancelled) = ui.inputBox(
-            "Please enter initial state",
-            "Run New Experiment",
-            str(experiment_parameters["initial_state"]),
-    )
-
-    if cancelled:
-        return
-    
-    experiment_parameters["initial_state"] = int(initial_state)
-    
-
-    (initial_n_points, cancelled) = ui.inputBox(
-            "Please enter number of initial points to sample in the search space before optimizing",
-            "Run New Experiment",
-            str(experiment_parameters["initial_n_points"]),
-    )
-
-    if cancelled:
-        return
-
-    experiment_parameters["initial_n_points"] = int(initial_n_points)
-    futil.log(f"Experiment parameters: {experiment_parameters}")
-
-    (weight, cancelled) = ui.inputBox(
-            "Please enter weight of success rate of motion planning (1-weight of success rate is weight of cost)",
-            "Run New Experiment",
-            str(experiment_parameters["score_weight"]),
-    )
-
-    if cancelled:
-        return
-
-    experiment_parameters["score_weight"] = float(weight)
-    futil.log(f"Experiment parameters: {experiment_parameters}")
-
-    # call backend
-    search_space_list = []
-    for item in experiment_parameters["search_space"]:
-        for key, value in item.items():
-            search_space_list.append(value)
-    payload = json.dumps({
-        "iterations": experiment_parameters["iterations"],
-        "init_n_points": experiment_parameters["initial_n_points"],
-        "initial_state": experiment_parameters["initial_state"],
-        "experiment_id": experiment_parameters["experiment_id"],
-        "search_space": search_space_list,
-        "experiment_parameters": experiment_parameters
-    }).encode('utf-8')
-    # POST the payload to the backend server
-
-    req = urllib.request.Request("http://127.0.0.1:8000/bo/initialize")
+    req = urllib.request.Request(f"http://127.0.0.1:8000/bo/{experiment_id}/load-bo-state")
     req.add_header("Content-Type", "application/json; charset=utf-8")
-    req.add_header("Content-Length", len(payload))
-    response = urllib.request.urlopen(req, payload)
+    response = urllib.request.urlopen(req)
+    decoded_response = json.loads(response.read().decode())
+    experiment_parameters = decoded_response["experiment_parameters"]
+    current_iteration = decoded_response["current_iteration"]
     
-    raw_response = response.read().decode()
-    print(raw_response)
-
     global progress_dialog
     progress_dialog = ui.createProgressDialog()
     progress_dialog.show("Experiment in Progress", "Running Experiment...", 0, 1)
     progress_dialog.maximumValue = experiment_parameters["iterations"]
     # beginning of loop
-    for i in range(experiment_parameters["iterations"]):
+    for i in range(current_iteration-1, experiment_parameters["iterations"]):
         progress_dialog.message = f"Iteration {i+1} of {experiment_parameters['iterations']}"
         # check if done (iterations)
         # ask bo for next vector
@@ -771,8 +655,14 @@ def command_execute(args: adsk.core.CommandEventArgs):
         cur_vec_response_data = json.loads(cur_vec_response.read().decode())
         print(cur_vec_response_data)
         futil.log(f"Request for optimal vector sent for experiment {experiment_id} returned: {cur_vec_response_data}")
+        if("error" in cur_vec_response_data):
+            if cur_vec_response_data["error"] == "Cannot suggest in state waiting":
+                print("Take last suggestion")
+                synthesis_vector = [int(x) for x in decoded_response['last_suggestion']]
+        else:
+            
+            synthesis_vector = [int(x) for x in cur_vec_response_data['new_suggestion']]
         # synthesize with vector
-        synthesis_vector = [int(x) for x in cur_vec_response_data['new_suggestion']]
         synthesis_dict = {}
         index = 0
         # keys in experiment_parameters["search_space"] are motor_count, extrusion_count, rotary_joint_count

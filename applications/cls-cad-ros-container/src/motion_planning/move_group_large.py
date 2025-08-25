@@ -83,16 +83,13 @@ def add_collision_objects():
     above_table_2 = create_collision_object(id='above_table_2',
                                             dimensions=[0.3, 0.3, 0.1],
                                             pose=[0.05, 0.35, 0.425])
-    target_box = create_collision_object(id='target_box',
-                                       dimensions=[0.02, 0.02, 0.04],
-                                       pose=[0.35, -0.0293, 0.271])
+
 
     SCENE.add_object(floor_limit)
     SCENE.add_object(table_1)
     SCENE.add_object(table_2)
     SCENE.add_object(above_table_1)
     SCENE.add_object(above_table_2)
-    #SCENE.add_object(target_box)
 
 
 def reach_named_position(arm, target):
@@ -188,7 +185,7 @@ def main():
     success_list.append(plan_success)
     print(f"Time to reach target_1: {get_total_time():.2f} seconds")
     #arm.attach_object('target_box')
-    start_timer
+    start_timer()
     something, plan_success = reach_named_position(arm=arm, target='home')
     stop_timer()
     success_list.append(plan_success)

@@ -226,8 +226,18 @@ def request_cheapest(request_id, maximum_cost):
         f"{config.SERVER_URL}/results/{active_id}/{request_id}/cheapest/{maximum_cost}",
         headers={"Content-Type": "application/json; charset=utf-8"},
         method="GET")
-    response = urllib.request.urlopen(req, payload)
-    response_data = response.read().decode()
+    # retry if connection error
+    attempts = 0
+    while True:
+        try:
+            print(f"Attempting request {attempts + 1}")
+            response = urllib.request.urlopen(req, payload)
+            response_data = response.read().decode()
+            break
+        except Exception as e:
+            print(f"Error occurred: {e}")
+            attempts += 1
+
     if "FAIL" in response_data:
         return "FAIL"
     message_data: dict = json.loads(response_data)
