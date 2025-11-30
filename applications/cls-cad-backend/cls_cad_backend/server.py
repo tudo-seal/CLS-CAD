@@ -39,6 +39,7 @@ from clsp import (
     enumerate_terms,
     interpret_term,
 )
+from skopt.plots import plot_evaluations,plot_objective
 from clsp.types import Literal, Omega
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -456,24 +457,6 @@ async def store_mp_files(
     )
     return {"task_id": task_id, "status": "Processing started"}
 
-    
-
-@app.post("/bo/perform-motion-planning")
-async def motion_planning(
-    project_id: str,
-    experiment_id: str,
-    request_id: str,
-):
-    """
-    Starts the motion planning process for a specific project, experiment and request.
-    :param project_id: The project id for which the motion planning should be started.
-    :param experiment_id: The experiment id for which the motion planning should be
-        started.
-    :param request_id: The request id for which the motion planning should be started.
-    :return: Returns "OK" when successful, else returns a 422 response code if payload
-        didn't pass validation.
-    """
-    return "OK"
 
 @app.post("/bo/update-with-result")
 async def update_with_result(
@@ -520,11 +503,9 @@ async def get_experiment_result_list(
     if get_classdata is None:
         return {"error": "Experiment not found"}
     state_machine = SkoptOptimizer.load_state(get_classdata['classdata'])
-    print(state_machine.best_params())
-    print(state_machine._suggested)
-    print(state_machine.status())
-    print([int(x) for x in state_machine.best_params()])
-    print([tuple(int(i) for i in p) for p in state_machine._suggested])
+    result = state_machine.optimizer.get_result()
+    _ = plot_objective(result)
+    _ = plot_evaluations(result)
     results = {
         "state": state_machine.status(),
         "best_params": [int(x) for x in state_machine.best_params()],
@@ -532,6 +513,7 @@ async def get_experiment_result_list(
         "iterations": state_machine.status()["iterations"]
     }
     return results
+    return result
 
 @app.post("/submit/taxonomy")
 async def save_taxonomy(

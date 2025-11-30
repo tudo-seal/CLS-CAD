@@ -17,6 +17,7 @@ montydb = {extras = ["bson"], version = "^2"}
 python-statemachine = "^0"
 scikit-optimize = "^0"
 docker = "^7"
+matplotlib = "^3.10.7"
 
 [tool.poetry.group.docker]
 optional = true

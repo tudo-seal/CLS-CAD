@@ -971,22 +971,6 @@ def command_execute(args: adsk.core.CommandEventArgs):
     # end of loop
     progress_dialog.hide()
 
-    # Show results
-    req = urllib.request.Request(f"http://127.0.0.1:8000/bo/{experiment_parameters['experiment_id']}/result-list")
-    req.add_header("Content-Type", "application/json; charset=utf-8")
-    response = urllib.request.urlopen(req)
-    response_data = json.loads(response.read().decode())
-    # Show the results in a message box
-    result_msg = "Experiment Results:\n"
-    result_msg += f"State: {response_data['state']}\n"
-    result_msg += f"Best Parameters: {response_data['best_params']}\n"
-    result_msg += f"Suggested Parameters: {response_data['suggested_params']}\n"
-    result_msg += f"Iterations: {response_data['iterations']}\n"
-    result_msg += response_data['state'] + "\n"
-
-    ui.messageBox(result_msg, "Experiment Results", adsk.core.MessageBoxButtonTypes.OKButtonType)
-    
-
 def command_destroy(args: adsk.core.CommandEventArgs):
     """
     Logs that the command was destroyed (window closed). Currently, does not clean up

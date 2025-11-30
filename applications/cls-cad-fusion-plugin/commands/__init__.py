@@ -19,6 +19,7 @@ from .requestsynthesisoptimizer import entry as request_synthesis_optimizer
 from .formatstaxonomyediting import entry as formats_taxonomy_editing
 from .jointtyping import entry as joint_typing
 from .loadbo import entry as load_bo
+from .showresults import entry as show_results
 from .partmanagement import entry as part_management
 from .partstaxonomyediting import entry as parts_taxonomy_editing
 from .parttyping import entry as part_typing
@@ -61,6 +62,7 @@ commands = [
     request_current_optimal_vector,
     load_bo,
     update_bo,
+    show_results
 ]
 
 
