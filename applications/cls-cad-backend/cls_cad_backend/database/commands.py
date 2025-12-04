@@ -1,6 +1,5 @@
 import configparser
 import os
-import platform
 import zipfile
 from tkinter.filedialog import askopenfilename
 from tkinter.messagebox import askyesno, showerror, showinfo
@@ -14,17 +13,15 @@ database: MontyClient | MongoClient
 parts: Collection = None
 taxonomies: Collection = None
 results: Collection = None
-storage_engine = "flatfile" if any(platform.win32_ver()) else "lightning"
+storage_engine = "flatfile"
 
 
 def init_database():  # pragma: no cover
     """
     Initialize the database for the backend. This can either be a remote MongoDB
-    instance, or a local MontyDB instance. When possible, the local instance uses LMDB
-    as storage engine, else a normal flatfile. The configuration is done via the
+    instance, or a local MontyDB instance. The configuration is done via the
     config.ini in this folder. If no configuration exists, the user is prompted
-    graphically to create one. If the backend runs in a container, a LMDB MontyDB
-    instance is always created.
+    graphically to create one.
 
     :return:
     """

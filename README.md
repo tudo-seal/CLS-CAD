@@ -5,7 +5,7 @@
 ![Generic badge](https://img.shields.io/badge/python-fusion360%20|%203.10%20|%203.11-informational.svg?style=for-the-badge)
 ![Supported systems](https://img.shields.io/badge/os-windows-informational.svg?style=for-the-badge)
 [![GitHub license](https://img.shields.io/github/license/tudo-seal/CLS-CAD?style=for-the-badge)](https://github.com/tudo-seal/CLS-CAD/blob/main/LICENSE)
-[![CodeCov](https://img.shields.io/codecov/c/gh/tudo-seal/CLS-CAD/badge.svg?style=for-the-badge)](https://codecov.io/gh/tudo-seal/CLS-CAD)
+[![CodeCov](https://img.shields.io/codecov/c/github/tudo-seal/CLS-CAD?style=for-the-badge&cacheSeconds=3600)](https://codecov.io/gh/tudo-seal/CLS-CAD)
 
 [![Latest Release](https://img.shields.io/github/v/release/tudo-seal/CLS-CAD.svg?style=for-the-badge)](https://github.com/tudo-seal/CLS-CAD/releases/latest/download/cls-cad-fusion-plugin.msi)
 [![Youtube Overview](https://img.shields.io/badge/YouTube-Overview-informational?style=for-the-badge)](https://youtu.be/gNqHxLpqiFw)

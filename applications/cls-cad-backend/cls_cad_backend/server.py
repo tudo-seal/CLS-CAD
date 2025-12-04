@@ -46,7 +46,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.background import BackgroundTasks
 from starlette.staticfiles import StaticFiles
 
-
 init_database()
 
 origins = [
