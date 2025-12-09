@@ -7,18 +7,27 @@ from .. import config
 from ..lib import fusion360utils as futil
 from ..lib.general_utils import load_project_taxonomy_to_config
 from .assembleresult import entry as assemble_result
+from .assemblecheapestresult import entry as assemble_cheapest_result
 from .attributestaxonomyediting import entry as attributes_taxonomy_editing
 from .checkandsubmit import entry as check_and_submit
 from .downloadtaxonomy import entry as download_taxonomy
 from .exportproject import entry as export_project
+from .exporturdf import entry as export_urdf
+from .completeexperiment import entry as complete_experiment
+from .continueexperiment import entry as continue_experiment
+from .requestsynthesisoptimizer import entry as request_synthesis_optimizer
 from .formatstaxonomyediting import entry as formats_taxonomy_editing
 from .jointtyping import entry as joint_typing
+from .loadbo import entry as load_bo
+from .showresults import entry as show_results
 from .partmanagement import entry as part_management
 from .partstaxonomyediting import entry as parts_taxonomy_editing
 from .parttyping import entry as part_typing
+from .requestcurrentoptimalvector import entry as request_current_optimal_vector
 from .requestsynthesis import entry as request_synthesis
 from .togglecustomgraphics import entry as toggle_custom_graphics
 from .typecrawlingproject import entry as type_crawling_project
+from .updatebo import entry as update_bo
 from .uploadtaxonomy import entry as upload_taxonomy
 from .uuidupdatecrawlingproject import entry as uuid_update_crawling_project
 
@@ -36,15 +45,24 @@ commands = [
     check_and_submit,
     type_crawling_project,
     export_project,
+    export_urdf,
     uuid_update_crawling_project,
     toggle_custom_graphics,
+    complete_experiment,
+    continue_experiment,
     upload_taxonomy,
     download_taxonomy,
     formats_taxonomy_editing,
     parts_taxonomy_editing,
     attributes_taxonomy_editing,
     request_synthesis,
+    request_synthesis_optimizer,
     assemble_result,
+    assemble_cheapest_result,
+    request_current_optimal_vector,
+    load_bo,
+    update_bo,
+    show_results
 ]
 
 

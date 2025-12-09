@@ -52,3 +52,28 @@ class SynthesisRequestInf(BaseModel, frozen=True):
     tag: str | None = None
     partCounts: list[CountNumOfPartTypeInf] | None = None
     sourceUuid: str | None = None
+    optimizationRunning: str | None = None
+
+class StoreDataRequest(BaseModel, frozen=True):
+    joints_dict: dict
+    links_xyz_dict: dict
+    inertial_dict: dict
+    package_name: str
+    robot_name: str
+    save_dir: str
+    export_path: str
+
+class TellResultRequestInf(BaseModel, frozen=True):
+    experiment_id: str
+    synthesis_vector: list[float]
+    result: float
+    experiment_parameters: dict
+
+class InitBORequestInf(BaseModel, frozen=True):
+    experiment_id: str
+    search_space: list[tuple[int,int]]
+    init_n_points: int
+    initial_state: int | None = None
+    iterations: int
+    experiment_parameters: dict
+    
