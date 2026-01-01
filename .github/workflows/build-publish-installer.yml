@@ -12,7 +12,7 @@ jobs:
         working-directory: applications/cls-cad-fusion-plugin
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Build AIP
         uses: caphyon/advinst-github-action@main
         with:
@@ -25,7 +25,7 @@ jobs:
           aip-commands: |
             SetVersion 1.0.2
       - name: Upload setup artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: Fusion Plugin Installer
           path: ${{ github.workspace }}\applications\cls-cad-fusion-plugin\setup\cls-cad-fusion-plugin.msi
