@@ -18,8 +18,8 @@ jobs:
       backend: ${{ steps.filter.outputs.backend }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
-      - uses: dorny/paths-filter@v3
+        uses: actions/checkout@v7
+      - uses: dorny/paths-filter@v4
         id: filter
         with:
           filters: |
@@ -63,7 +63,7 @@ jobs:
     runs-on: "ubuntu-latest"
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
 
       - uses: actions/download-artifact@master
